@@ -110,13 +110,20 @@ protected:
         rect(2,6,3,7,"#a3cbd1"); rect(5,5,3,4,"#203349"); rect(10,5,3,4,"#203349");
         rect(6,5,1,1,"#ffffff"); rect(11,5,1,1,"#ffffff"); rect(8,10,2,2,"#486c7b");
         p.restore();
-        // Small curled leaves make a grounded composition without visual noise.
-        auto leaf = [&](int x, int y, bool flip) {
-            p.save(); p.translate(x, y); if (flip) p.scale(-1, 1);
-            polygon({{0,0},{3,-1},{2,-4},{5,-3},{6,-6},{8,-3},{11,-4},{10,-1},{13,0},{9,3},{6,4},{2,3}}, "#b76736");
+        // Uneven overlapping leaf piles settle around the sides of the pumpkins.
+        auto leaf = [&](int x, int y, double angle, double scale, const char *color) {
+            p.save(); p.translate(x, y); p.rotate(angle); p.scale(scale, scale);
+            polygon({{0,0},{3,-1},{2,-4},{5,-3},{6,-6},{8,-3},{11,-4},{10,-1},{13,0},{9,3},{6,4},{2,3}}, color);
             rect(5, -2, 1, 6, "#e6a05c"); p.restore();
         };
-        leaf(8, 44, false); leaf(93, 44, true); leaf(115, 44, false);
+        leaf(3, 43, -28, .72, "#955132");
+        leaf(10, 39, 22, .80, "#b76736");
+        leaf(14, 45, -12, .86, "#cd8240");
+        leaf(23, 42, -52, .66, "#a75c31");
+        leaf(81, 43, -20, .70, "#ad6234");
+        leaf(115, 40, 25, .76, "#955132");
+        leaf(110, 45, -16, .88, "#cd8240");
+        leaf(124, 44, -48, .62, "#b76736");
         // Three pumpkins share a restrained orange palette and have independent expressions.
         auto pumpkin = [&](int x, int y, double s, int variant) {
             p.save(); p.translate(x,y); p.scale(s,s);
@@ -149,6 +156,9 @@ protected:
         polygon({{114,24-flicker},{117,29},{116,32},{112,32},{111,29}}, "#dc8738");
         polygon({{114,27},{116,30},{114,32},{113,30}}, "#ffe6a0");
         p.restore();
+        // Small foreground leaves touch only the lower edges, leaving faces clear.
+        leaf(76, 45, -14, .54, "#b76736");
+        leaf(91, 45, 22, .52, "#cd8240");
     }
 private:
     void updateBounds() {
