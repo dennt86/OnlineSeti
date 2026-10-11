@@ -682,6 +682,7 @@ qt_add_executable(Throne
 # Target
 
 set_property(TARGET Throne PROPERTY AUTOUIC ON)
+set_property(TARGET Throne PROPERTY AUTOUIC_SEARCH_PATHS "${CMAKE_CURRENT_SOURCE_DIR}/include/ui")
 set_property(TARGET Throne PROPERTY AUTOMOC ON)
 set_property(TARGET Throne PROPERTY AUTORCC ON)
 
