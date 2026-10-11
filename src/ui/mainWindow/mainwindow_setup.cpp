@@ -1,3 +1,6 @@
+#include <QAbstractTextDocumentLayout>
+#include <QTextDocument>
+#include <QtMath>
 #include "include/ui/mainwindow.h"
 #include "NkrVersion.h"
 
@@ -345,6 +348,9 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     ui->toolButton_tools->setMenu(ui->menuTools);
     ui->toolButton_program->installEventFilter(this);
 
+    ui->tabWidget->setMinimumHeight(100);
+    ui->stats_widget->setMinimumHeight(100);
+    setMinimumHeight(qMax(minimumHeight(), 360));
     designMinimumSize = minimumSize();
     applyTopBarMetrics();
 
@@ -1159,6 +1165,12 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 
     ui->data_view->setStyleSheet("background: transparent; border: none;");
 
+    // Wrapped notices must retain access to Restart/Dismiss even in a narrow window.
+    ui->data_view->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    connect(ui->data_view->document()->documentLayout(), &QAbstractTextDocumentLayout::documentSizeChanged,
+            this, [this](const QSizeF &size) {
+                ui->data_view->setMinimumHeight(qBound(60, qCeil(size.height()) + 8, 150));
+            });
     ui->data_view->setOpenLinks(false);
     ui->data_view->setOpenExternalLinks(false);
     connect(ui->data_view, &QTextBrowser::anchorClicked, this, [this](const QUrl& url) {

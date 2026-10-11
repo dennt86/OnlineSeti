@@ -77,6 +77,16 @@ int TestQwdttImport() {
                     check(decoration->parentWidget() == ui.centralwidget, "decoration belongs to central overlay container");
                     check(decoration->isVisible() == (mode == "halloween"), "decoration toggle applies without restart");
                 }
+                decoration->setNoticePriority(true);
+                ui.data_view->setHtml("<p>Settings changed, restart to apply</p><a href='restart'>Restart</a> · <a href='dismiss'>Dismiss</a>");
+                window.move(window.pos() + QPoint(17, 11));
+                for (int i = 0; i < 6; ++i) QApplication::processEvents();
+                check(!decoration->isVisible(), "restart notice takes priority over artwork");
+                check(ui.data_view->width() > 100, "notice retains available width after move");
+                check(ui.splitter->count() == panes, "moving window preserves splitter panes");
+                decoration->setNoticePriority(false);
+                ui.data_view->clear();
+                for (int i = 0; i < 6; ++i) QApplication::processEvents();
                 if (!screenshots.isEmpty()) check(window.grab().save(screenshots + QString("/seasonal-%1-%2.png").arg(dark ? "dark" : "light").arg(size.width())), "seasonal window screenshot saved");
             }
         }

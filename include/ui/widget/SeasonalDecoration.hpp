@@ -42,7 +42,12 @@ public:
         anchor = space; bottom = divider;
         rightInset = filterWidth + 6;
         space->installEventFilter(this); divider->installEventFilter(this);
+        parentWidget()->installEventFilter(this);
         QTimer::singleShot(0, this, [this] { updateBounds(); });
+    }
+    void setNoticePriority(bool priority) {
+        noticePriority = priority;
+        updateBounds();
     }
     void setDecoration(const QString &value) {
         enabled = value == QStringLiteral("halloween");
@@ -163,14 +168,22 @@ protected:
 private:
     void updateBounds() {
         if (!anchor || !bottom || !parentWidget()) return;
+        // Give status text the available width before reserving room for artwork.
+        const int available = noticePriority ? 0 : qBound(0, parentWidget()->width() - 900, 230);
+        if (anchor->maximumWidth() != available) anchor->setMaximumWidth(available);
+        anchor->setVisible(enabled && !noticePriority);
+        setVisible(enabled && !noticePriority);
+
         const QPoint top = anchor->mapTo(parentWidget(), QPoint(0, 0));
         const int baseline = bottom->mapTo(parentWidget(), QPoint(0, bottom->height())).y();
         setGeometry(top.x(), top.y(), qMax(0, anchor->width() - rightInset), qMax(0, baseline - top.y()));
+        if (isVisible() && width() >= 90 && height() >= 24) timer.start(); else timer.stop();
         raise();
     }
     QPointer<QWidget> anchor, bottom;
     int rightInset = 0;
     bool enabled = false;
+    bool noticePriority = false;
     QTimer timer;
     QElapsedTimer clock;
 };

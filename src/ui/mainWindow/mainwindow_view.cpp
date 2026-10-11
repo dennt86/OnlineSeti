@@ -1,5 +1,6 @@
 #include "include/ui/mainwindow.h"
 #include "NkrVersion.h"
+#include "include/ui/widget/SeasonalDecoration.hpp"
 
 #include <QApplication>
 #include <QHeaderView>
@@ -63,6 +64,7 @@ void MainWindow::UpdateDataView(bool force)
     }
     auto html = dataViewHtmlGenerator_.buildHtml();
     runOnUiThread([=, this] {
+        if (seasonalDecoration) seasonalDecoration->setNoticePriority(dataViewHtmlGenerator_.hasPendingRestart());
         ui->data_view->setHtml(html);
     }, true);
     lastUpdatedMs.store(QDateTime::currentMSecsSinceEpoch());
