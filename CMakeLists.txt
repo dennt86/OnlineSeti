@@ -191,6 +191,7 @@ set(PROJECT_SOURCES
         src/ui/setting/Icon.cpp
 
         src/ui/mainWindow/mainwindow_setup.cpp
+        include/ui/widget/SeasonalDecoration.hpp
         src/ui/mainWindow/mainwindow_events.cpp
         src/ui/mainWindow/mainwindow_groups.cpp
         src/ui/mainWindow/mainwindow_view.cpp

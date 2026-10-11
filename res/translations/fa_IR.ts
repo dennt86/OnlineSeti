@@ -554,6 +554,9 @@ Release note:
         <source>Image Files (*.png)</source>
         <translation type="unfinished"></translation>
     </message>
+    <message><source>Seasonal decoration</source><translation>تزئینات فصلی</translation></message>
+    <message><source>Disabled</source><translation>غیرفعال</translation></message>
+    <message><source>Halloween</source><translation>هالووین</translation></message>
 </context>
 <context>
     <name>DialogEditGroup</name>

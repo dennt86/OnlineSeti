@@ -286,6 +286,7 @@ void MainWindow::dialog_message_impl(MwMessage cmd, const QStringList &args) {
 
     switch (cmd) {
     case MwMessage::UpdateSettings: {
+        if (seasonalDecoration) seasonalDecoration->setDecoration(settings->seasonal_decoration);
         updateLogFilterFields();
         ui->actionTraffic_Stats->setVisible(!settings->disable_traffic_aggregation);
         if (changed(MwArg::TrayIcon)) {

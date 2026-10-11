@@ -784,21 +784,21 @@
               </item>
              </widget>
             </item>
-            <item row="1" column="1">
+            <item row="2" column="1">
              <widget class="QPushButton" name="select_custom_icon">
               <property name="text">
                <string>Select</string>
               </property>
              </widget>
             </item>
-            <item row="1" column="0">
+            <item row="2" column="0">
              <widget class="QCheckBox" name="enable_custom_icon">
               <property name="text">
                <string>Enable Custom Icons</string>
               </property>
              </widget>
             </item>
-            <item row="2" column="0">
+            <item row="3" column="0">
              <widget class="QCheckBox" name="follow_status_in_taskbar">
               <property name="toolTip">
                <string>Follow the connection status icon in the dock/taskbar. When off, it always shows the Throne icon</string>
@@ -808,7 +808,15 @@
               </property>
              </widget>
             </item>
-           </layout>
+           <item row="1" column="0">
+ <widget class="QLabel" name="label_seasonal_decoration">
+  <property name="text"><string>Seasonal decoration</string></property>
+ </widget>
+</item>
+<item row="1" column="1">
+ <widget class="QComboBox" name="seasonal_decoration"/>
+</item>
+</layout>
           </widget>
          </item>
          <item>

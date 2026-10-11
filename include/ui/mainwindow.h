@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QMainWindow>
+#include "include/ui/widget/SeasonalDecoration.hpp"
 #include <include/global/HTTPRequestHelper.hpp>
 #ifndef Q_MOC_RUN
 #include <core/gen/libcore.pb.h>
@@ -315,6 +316,7 @@ private slots:
 
 private:
     Ui::MainWindow *ui;
+    SeasonalDecoration *seasonalDecoration = nullptr;
     QElapsedTimer sinceWindowDeactivated;
     ProfilesTableModel *profilesTableModel = nullptr;
 

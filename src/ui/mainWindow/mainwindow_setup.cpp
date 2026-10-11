@@ -304,6 +304,11 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     connect(static_cast<ProfilesTableFilterHeader*>(ui->profilesTableView->horizontalHeader()), &ProfilesTableFilterHeader::closeRequested,
             btnFilter, [btnFilter] { btnFilter->setChecked(false); });
     ui->tabWidget->setCornerWidget(btnFilter, Qt::TopRightCorner);
+    auto *decorationSpace = new SeasonalDecorationSpace(this);
+    ui->horizontalLayout_2->addWidget(decorationSpace);
+    seasonalDecoration = new SeasonalDecoration(ui->tabWidget->parentWidget());
+    seasonalDecoration->setAnchors(decorationSpace, ui->tabWidget->tabBar(), btnFilter->sizeHint().width());
+    seasonalDecoration->setDecoration(Configs::dataManager->settingsRepo->seasonal_decoration);
     RegisterHotkey(false);
     auto last_size = Configs::dataManager->settingsRepo->mw_size.split("x");
     if (last_size.length() == 2) {

@@ -214,6 +214,10 @@ DialogBasicSettings::DialogBasicSettings(QWidget *parent)
         }
     });
     bool ok;
+    ui->seasonal_decoration->addItem(tr("Disabled"), "none");
+    ui->seasonal_decoration->addItem(tr("Halloween"), "halloween");
+    const int decorationIndex = ui->seasonal_decoration->findData(Configs::dataManager->settingsRepo->seasonal_decoration);
+    ui->seasonal_decoration->setCurrentIndex(qMax(0, decorationIndex));
     auto themeId = Configs::dataManager->settingsRepo->theme.toInt(&ok);
     if (ok) {
         ui->theme->setCurrentIndex(themeId);
@@ -375,6 +379,7 @@ void DialogBasicSettings::applyRegexHighlighting() {
 }
 
 void DialogBasicSettings::accept() {
+    Configs::dataManager->settingsRepo->seasonal_decoration = ui->seasonal_decoration->currentData().toString();
     bool needChoosePort = false;
 
     D_SAVE_STRING(inbound_address)

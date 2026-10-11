@@ -1321,6 +1321,9 @@ Throne will restart to complete the restore.</source>
         <source>Backup restored successfully. Throne will now restart for the changes to take effect.</source>
         <translation>备份成功恢复。 Throne 现在将要重启以使得更改生效。</translation>
     </message>
+    <message><source>Seasonal decoration</source><translation>季节装饰</translation></message>
+    <message><source>Disabled</source><translation>关闭</translation></message>
+    <message><source>Halloween</source><translation>万圣节</translation></message>
 </context>
 <context>
     <name>DialogEditGroup</name>

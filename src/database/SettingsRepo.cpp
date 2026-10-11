@@ -144,6 +144,7 @@ namespace Configs {
             {"h2_stream_receive_window",   &h2_stream_receive_window},
             {"h2_connection_receive_window", &h2_connection_receive_window},
             {"theme",                      &theme},
+            {"seasonal_decoration",        &seasonal_decoration},
             {"custom_inbound",             &custom_inbound},
             {"custom_route",               &custom_route_global},
             {"font",                       &font},

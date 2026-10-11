@@ -1126,6 +1126,9 @@ Throne will restart to complete the restore.</source>
         <source>Select at least one part to restore.</source>
         <translation>Выберите хотя бы один раздел для восстановления.</translation>
     </message>
+    <message><source>Seasonal decoration</source><translation>Сезонное украшение</translation></message>
+    <message><source>Disabled</source><translation>Отключено</translation></message>
+    <message><source>Halloween</source><translation>Хэллоуин</translation></message>
 </context>
 <context>
     <name>DialogEditGroup</name>
