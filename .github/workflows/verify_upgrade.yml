@@ -40,8 +40,14 @@ jobs:
           run = json.loads((Path(os.environ['RUNNER_TEMP']) / 'build-run.json').read_text())
           jobs = json.loads((Path(os.environ['RUNNER_TEMP']) / 'build-jobs.json').read_text())['jobs']
           assert run['path'] == '.github/workflows/build.yml' and run['status'] == 'completed' and run['conclusion'] == 'success'
+          common_verified = [j for j in jobs if j['name'] == 'verify-common' and j['conclusion'] == 'success']
+          assert len(common_verified) <= 1
           for prefixes, count in ((('qWDTT and CSQTT tests (', 'test-qwdtt ('), 3), (('build-go (',), 9), (('build-cpp (',), 11), (('Pack ',), 5), (('build-android',), 1)):
               required = [j for j in jobs if j['name'].startswith(prefixes)]
+              if common_verified and prefixes in (('qWDTT and CSQTT tests (', 'test-qwdtt ('), ('build-go (',), ('build-android',)):
+                  # verify-common checks unchanged sources, all 13 prerequisite jobs and nine artifacts.
+                  assert all(j['conclusion'] == 'skipped' for j in required), 'Unexpected common build checks'
+                  continue
               assert len(required) == count and all(j['conclusion'] == 'success' for j in required), 'Required build checks failed: ' + str(prefixes)
           upgrade_verified = any(j['name'] == 'Verify portable Windows upgrade' and j['conclusion'] == 'success' for j in jobs)
           assert json.loads(Path('version.json').read_text())['version'] == os.environ['RELEASE_TAG']
