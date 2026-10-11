@@ -438,7 +438,14 @@ jobs:
         if: contains(matrix.platform, 'ubuntu') && matrix.qt_version == '6.2.0'
         env:
           QT_QPA_PLATFORM: offscreen
+          THRONE_SEASONAL_PREVIEW_DIR: ${{ runner.temp }}/seasonal-preview
         run: '"$DEST/qThrone" --self-test-qwdtt-import'
+      - name: Upload seasonal window previews
+        if: always() && contains(matrix.platform, 'ubuntu') && matrix.qt_version == '6.2.0'
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: Seasonal-preview-${{ github.sha }}-${{ matrix.target }}
+          path: ${{ runner.temp }}/seasonal-preview/*.png
       - name: macOS - Generate MakeFile and Build
         shell: bash
         if: contains( matrix.platform, 'macos' )

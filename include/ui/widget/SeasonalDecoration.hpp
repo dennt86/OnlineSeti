@@ -7,6 +7,9 @@
 #include <QShowEvent>
 #include <QHideEvent>
 #include <QPointer>
+#include <QHBoxLayout>
+#include <QTabBar>
+#include <QToolButton>
 #include <cmath>
 
 class SeasonalDecorationSpace final : public QWidget {
@@ -161,3 +164,12 @@ private:
     QTimer timer;
     QElapsedTimer clock;
 };
+
+inline SeasonalDecoration *installSeasonalDecoration(QWidget *central, QHBoxLayout *topBar,
+                                                     QTabBar *tabs, QToolButton *filter) {
+    auto *space = new SeasonalDecorationSpace(central);
+    topBar->addWidget(space);
+    auto *decoration = new SeasonalDecoration(central);
+    decoration->setAnchors(space, tabs, filter->sizeHint().width());
+    return decoration;
+}

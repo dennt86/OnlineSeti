@@ -23,6 +23,11 @@
 #include "include/ui/setting/RouteItem.h"
 #include <QDialogButtonBox>
 #include <QListWidget>
+#include <QApplication>
+#include <QMainWindow>
+#include <QDir>
+#include "ui_mainwindow.h"
+#include "include/ui/widget/SeasonalDecoration.hpp"
 
 int TestQwdttImport() {
     qInstallMessageHandler(nullptr);
@@ -43,6 +48,39 @@ int TestQwdttImport() {
     const auto check = [&failures](bool ok, const char *name) {
         if (!ok) { qCritical() << "qWDTT import test failed:" << name; ++failures; }
     };
+    {
+        // Exercise the real .ui hierarchy: a splitter silently adopts direct QWidget children.
+        QMainWindow window;
+        Ui::MainWindow ui;
+        ui.setupUi(&window);
+        auto *filter = new QToolButton(&window);
+        filter->setIcon(QIcon(":/icon/filter.png"));
+        ui.tabWidget->setCornerWidget(filter, Qt::TopRightCorner);
+        const int panes = ui.splitter->count();
+        auto *decoration = installSeasonalDecoration(ui.centralwidget, ui.horizontalLayout_2, ui.tabWidget->tabBar(), filter);
+        const QString screenshots = qEnvironmentVariable("THRONE_SEASONAL_PREVIEW_DIR");
+        if (!screenshots.isEmpty()) QDir().mkpath(screenshots);
+        for (bool dark : {false, true}) {
+            auto palette = window.palette();
+            palette.setColor(QPalette::Window, dark ? QColor("#202020") : QColor("#f2f2f2"));
+            palette.setColor(QPalette::WindowText, dark ? Qt::white : Qt::black);
+            window.setPalette(palette);
+            for (const QSize size : {QSize(800, 600), QSize(1152, 720), QSize(1600, 1000)}) {
+                window.resize(size);
+                for (const QString mode : {QStringLiteral("halloween"), QStringLiteral("none"), QStringLiteral("halloween")}) {
+                    decoration->setDecoration(mode);
+                    window.show();
+                    for (int i = 0; i < 4; ++i) QApplication::processEvents();
+                    check(ui.splitter->count() == panes, "seasonal overlay never becomes a splitter pane");
+                    check(ui.splitter->width() >= ui.centralwidget->width() - 24, "seasonal overlay preserves full-width panels");
+                    check(ui.tabWidget->width() >= ui.splitter->width() - 24, "profile table preserves panel width");
+                    check(decoration->parentWidget() == ui.centralwidget, "decoration belongs to central overlay container");
+                    check(decoration->isVisible() == (mode == "halloween"), "decoration toggle applies without restart");
+                }
+                if (!screenshots.isEmpty()) check(window.grab().save(screenshots + QString("/seasonal-%1-%2.png").arg(dark ? "dark" : "light").arg(size.width())), "seasonal window screenshot saved");
+            }
+        }
+    }
     const QByteArray android = "qwdtt://config?name=Main+%28demo%29&peer=203.0.113.10%3A56000&hashes=hash1%2Chash2&workers=9&port=9000&pass=a%2Bb+%26%25";
     const auto parse = [](const QByteArray &body) {
         QList<std::shared_ptr<Configs::Profile>> profiles;
