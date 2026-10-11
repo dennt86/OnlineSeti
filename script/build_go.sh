@@ -46,6 +46,7 @@ cp LICENSE "$DEST/qwdtt-LICENSE"
 popd
 
 #### Go: core ####
+source script/build_openflux.sh
 pushd core
 pushd gen
 protoc -I . --go_out=. --go-grpc_out=. libcore.proto

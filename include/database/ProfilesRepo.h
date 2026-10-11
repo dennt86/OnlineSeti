@@ -18,6 +18,7 @@ namespace Configs {
 
         std::shared_ptr<Profile> profileFromJson(const QJsonObject& json) const;
         
+        void RememberTransportIdentity(const Profile* profile) const;
         void saveToDatabase(const Profile* profile, int id) const;
 
         // Must stay column-compatible with saveToDatabase.
@@ -41,6 +42,7 @@ namespace Configs {
 
     public:
         explicit ProfilesRepo(Database& database);
+        void RestoreTransportIdentity(Profile* profile) const;
         
         // Not saved yet: id stays -1 until AddProfile.
         [[nodiscard]] static std::shared_ptr<Profile> NewProfile(const QString &type);

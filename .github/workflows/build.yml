@@ -57,6 +57,10 @@ jobs:
         run: |
           go test -race ./...
           go vet ./...
+      - name: OpenFlux local TCP, UDP and lifecycle integration
+        if: runner.os == 'Linux'
+        shell: bash
+        run: bash script/test_openflux.sh
       - name: Install Protoc for core regression tests
         uses: arduino/setup-protoc@v3
         with:
@@ -127,7 +131,7 @@ jobs:
         uses: actions/cache@v6.1.0
         with:
           path: artifacts.tgz
-          key: CommonCache-${{ matrix.cross_os }}-${{ matrix.cross_arch }}-${{ hashFiles('script/build_go.sh', 'core/**', 'qwdtt/**') }}-${{ matrix.go_version }}
+          key: CommonCache-${{ matrix.cross_os }}-${{ matrix.cross_arch }}-${{ hashFiles('script/build_go.sh', 'script/build_openflux.sh', 'script/openflux/**', 'core/**', 'qwdtt/**') }}-${{ matrix.go_version }}
       - name: Install Golang
         if: steps.cache-common.outputs.cache-hit != 'true'
         uses: actions/setup-go@v7.0.0

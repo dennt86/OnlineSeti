@@ -1,6 +1,7 @@
 #include "include/configs/generate.h"
 #include "include/configs/outbounds/qwdtt.h"
 #include "include/configs/outbounds/csqtt.h"
+#include "include/configs/outbounds/openflux.h"
 #include "include/api/RPC.h"
 #include "include/configs/AutoSelectorPlan.h"
 #include "include/configs/common/utils.h"
@@ -189,6 +190,7 @@ namespace Configs {
             bool xrayToSingTransitioned = false;
             bool proxyUsesXray = false;
             bool qwdttIPv4Only = false;
+            QSet<QString> ipv4TransportTags;
             QList<std::shared_ptr<Profile>> preparedTransports;
             std::shared_ptr<Profile> ent = std::make_shared<Profile>(nullptr, nullptr);
             BuildPrerequisites prerequisites;
@@ -350,6 +352,11 @@ namespace Configs {
             // Tests can start the bundled qWDTT while another profile owns the TUN.
             // Only this application's helper gets the existing extra-core exemption.
             QString name = "qwdtt";
+#ifdef Q_OS_WIN
+            name += ".exe";
+#endif
+            add(QFileInfo(QCoreApplication::applicationDirPath() + "/" + name).canonicalFilePath());
+            name = "openflux";
 #ifdef Q_OS_WIN
             name += ".exe";
 #endif
@@ -702,7 +709,7 @@ namespace Configs {
                     ctx.error = "The routing profile is referencing outbounds that no longer exist, consider revising your settings";
                     return;
                 }
-                const bool routedTransport = neededEnt->type == "qwdtt" || neededEnt->type == "csqtt";
+                const bool routedTransport = neededEnt->type == "qwdtt" || neededEnt->type == "csqtt" || neededEnt->type == "openflux";
                 if ((neededEnt->outbound != nullptr && neededEnt->outbound->IsExtraCore() && !routedTransport) || isCustomFullConfig(neededEnt) || isXrayFullConfig(neededEnt)) {
                     ctx.error = "Outbounds used in routing profile cannot use an extra core or be a custom full config";
                     return;
@@ -862,7 +869,7 @@ namespace Configs {
             for (const auto &group : preReqs.routing.routeOutboundGroups) {
                 if (group.hopIDs.size() != 1) continue;
                 auto routed = getProfile(group.hopIDs.first());
-                if (routed == nullptr || (routed->type != "qwdtt" && routed->type != "csqtt")) continue;
+                if (routed == nullptr || (routed->type != "qwdtt" && routed->type != "csqtt" && routed->type != "openflux")) continue;
                 if (mainExtraCore != nullptr && routed->id == mainExtraCore->id) continue;
                 extraCoreProfiles.append(routed);
             }
@@ -877,11 +884,12 @@ namespace Configs {
                 }
                 if (auto *q = dynamic_cast<qwdtt *>(outbound)) {
                     if (auto error = q->Prepare(); !error.isEmpty()) { ctx.error = error; return; }
-                    ctx.qwdttIPv4Only = true;
                 }
                 if (auto *c = dynamic_cast<csqtt *>(outbound)) {
                     if (auto error = c->Prepare(); !error.isEmpty()) { ctx.error = error; return; }
-                    ctx.qwdttIPv4Only = true;
+                }
+                if (auto *o = dynamic_cast<openflux *>(outbound)) {
+                    if (auto error = o->Prepare(); !error.isEmpty()) { ctx.error = error; return; }
                 }
                 ExtraCoreData extraCoreData;
                 extraCoreData.path = QFileInfo(outbound->extraCorePath).canonicalFilePath();
@@ -895,7 +903,10 @@ namespace Configs {
                     extraCoreData.outboundTag = preReqs.routing.outboundMap.at(extraCoreEnt->id);
                     ctx.result->routedExtraCores.append(extraCoreData);
                 }
+                if (extraCoreEnt->type == "qwdtt" || extraCoreEnt->type == "csqtt" || extraCoreEnt->type == "openflux") ctx.ipv4TransportTags.insert(extraCoreData.outboundTag);
             }
+            // A transport's address family must not disable IPv6 for other exits.
+            ctx.qwdttIPv4Only = ctx.ipv4TransportTags.contains(tags::proxy) && preReqs.routing.routeOutboundGroups.isEmpty();
         }
 
         // ------------------------------------------------------- small sections
@@ -1231,6 +1242,37 @@ namespace Configs {
             // Empty AAAA answers let TUN clients choose reachable IPv4 addresses.
             if (ctx.qwdttIPv4Only) {
                 rules.prepend(QJsonObject{{"query_type", QJsonArray{"AAAA"}}, {"action", "predefined"}});
+            } else if (!ctx.ipv4TransportTags.isEmpty()) {
+                const auto route = dataManager->routesRepo->GetRouteProfile(settings.current_route_id);
+                const auto routingRules = route->isRaw
+                    ? RouteProfile::TranslateRawOutbounds(QString2QJsonObject(route->rawRoute), ctx.prerequisites.routing.outboundMap).value("rules").toArray()
+                    : route->get_route_rules(false, ctx.prerequisites.routing.outboundMap);
+                QJsonArray familyRules;
+                const QSet<QString> dnsKeys{"domain", "domain_suffix", "domain_keyword", "domain_regex", "rule_set", "process_name", "process_path", "process_path_regex", "package_name", "user", "user_id", "invert"};
+                for (const auto &entry : routingRules) {
+                    const auto source = entry.toObject();
+                    if (source.value("action").toString("route") != "route" || !source.contains("outbound")) continue;
+                    QJsonObject match;
+                    bool unsupported = false;
+                    for (auto it = source.begin(); it != source.end(); ++it) {
+                        if (dnsKeys.contains(it.key())) match[it.key()] = it.value();
+                        else if (it.key() != "action" && it.key() != "outbound") unsupported = true;
+                    }
+                    // Port and destination-IP matches cannot be projected onto DNS.
+                    if (unsupported || match.isEmpty()) continue;
+                    match["query_type"] = QJsonArray{"AAAA"};
+                    if (ctx.ipv4TransportTags.contains(source.value("outbound").toString())) match["action"] = "predefined";
+                    else {
+                        const bool direct = source.value("outbound").toString() == tags::direct;
+                        if (direct ? settings.direct_dns_disable_ipv6 : settings.remote_dns_disable_ipv6) match["action"] = "predefined";
+                        else { match["action"] = "route"; match["server"] = direct ? tags::dnsDirect : (settings.fake_dns ? tags::dnsFake : remoteDnsTag); }
+                    }
+                    familyRules.append(match);
+                }
+                const auto finalTag = route->isRaw ? RouteProfile::TranslateRawOutbounds(QString2QJsonObject(route->rawRoute), ctx.prerequisites.routing.outboundMap).value("final").toString(tags::proxy) : outboundIDToString(route->defaultOutboundID);
+                if (ctx.ipv4TransportTags.contains(finalTag)) familyRules.append(QJsonObject{{"query_type", QJsonArray{"AAAA"}}, {"action", "predefined"}});
+                for (const auto &rule : rules) familyRules.append(rule);
+                rules = familyRules;
             }
 
             auto dnsObj = QJsonObject{
@@ -2272,11 +2314,27 @@ namespace Configs {
             appendIfSet(injected.resolve);
             appendIfSet(injected.dnsHijack);
             appendIfSet(injected.dnsInReject);
-            for (const auto& r : profileRules) routeRules.append(r);
+            for (const auto& r : profileRules) {
+                const auto rule = r.toObject();
+                if (ctx.ipv4TransportTags.contains(rule.value("outbound").toString()) && rule.value("action").toString("route") == "route") {
+                    if (!rule.contains("ip_cidr") && !rule.contains("ip_is_private") && !rule.contains("rule_set")) {
+                        auto sniff = rule; sniff.remove("outbound"); sniff["action"] = "sniff"; sniff["override_destination"] = true;
+                        routeRules.append(sniff);
+                    }
+                    auto resolve = rule;
+                    resolve.remove("outbound"); resolve["action"] = "resolve"; resolve["strategy"] = "ipv4_only";
+                    routeRules.append(resolve);
+                }
+                routeRules.append(r);
+            }
             for (const auto& r : vpnAuxRules) routeRules.append(r);
             for (const auto& r : l3BridgeFinalRules) routeRules.append(r);
             // final still names the tunnel, but nothing may reach it unmatched.
             for (const auto& r : vpnFallthroughRules) routeRules.append(r);
+            if (ctx.ipv4TransportTags.contains(finalTag)) {
+                routeRules.append(QJsonObject{{"action", "sniff"}, {"override_destination", true}});
+                routeRules.append(QJsonObject{{"action", "resolve"}, {"strategy", "ipv4_only"}});
+            }
             if (!routeChain->isRaw && defOut == blockID) {
                 routeRules.append(QJsonObject{{"action", "reject"}});
             }
@@ -2805,14 +2863,16 @@ namespace Configs {
 
         for (const auto& item : profiles)
         {
-            if (item->type == "qwdtt" || item->type == "csqtt") {
+            if (item->type == "qwdtt" || item->type == "csqtt" || item->type == "openflux") {
                 // Clone runtime fields so probing cannot replace live SOCKS credentials.
                 std::unique_ptr<extracore> holder;
                 if (item->type == "csqtt") holder = std::make_unique<csqtt>();
+                else if (item->type == "openflux") holder = std::make_unique<openflux>();
                 else holder = std::make_unique<qwdtt>();
                 auto &outbound = *holder;
                 if (!outbound.ParseFromJson(item->outbound->ExportToJson())) { item->SetLatency(-1); continue; }
-                if (auto error = item->type == "csqtt" ? static_cast<csqtt &>(outbound).Prepare() : static_cast<qwdtt &>(outbound).Prepare(); !error.isEmpty()) { MW_show_log(error); item->SetLatency(-1); continue; }
+                const auto prepareError = item->type == "csqtt" ? static_cast<csqtt &>(outbound).Prepare() : item->type == "openflux" ? static_cast<openflux &>(outbound).Prepare() : static_cast<qwdtt &>(outbound).Prepare();
+                if (!prepareError.isEmpty()) { MW_show_log(prepareError); item->SetLatency(-1); continue; }
                 auto built = outbound.Build();
                 if (!built.error.isEmpty()) { MW_show_log(built.error); item->SetLatency(-1); continue; }
                 built.object["tag"] = "proxy";
@@ -2822,7 +2882,7 @@ namespace Configs {
                 auto resolver = directDomainResolver();
                 // The original CSQTT IP channel assigns only an IPv4 address.
                 // Match its TUN behavior when testing through the SOCKS bridge.
-                if (item->type == "csqtt") resolver["strategy"] = "ipv4_only";
+                resolver["strategy"] = "ipv4_only";
                 config["route"] = QJsonObject{{"final", "proxy"}, {"auto_detect_interface", true}, {"default_domain_resolver", resolver}};
                 res->fullConfigs[item->id] = QJsonObject2QString(config, false);
                 res->qwdttConfigs[item->id] = outbound.extraCoreConf;

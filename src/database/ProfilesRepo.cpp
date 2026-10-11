@@ -3,6 +3,8 @@
 #include <QJsonObject>
 #include <QJsonArray>
 #include <map>
+#include <QCryptographicHash>
+#include "include/configs/outbounds/csqtt.h"
 
 #include "include/database/GroupsRepo.h"
 #include "include/configs/common/OutboundFactory.h"
@@ -43,6 +45,44 @@ namespace Configs {
             db.exec("ALTER TABLE profiles ADD COLUMN endpoint_json TEXT NOT NULL DEFAULT '{}'");
 
         db.exec("CREATE INDEX IF NOT EXISTS idx_profiles_name ON profiles(name)");
+        db.exec("CREATE TABLE IF NOT EXISTS transport_devices (identity TEXT PRIMARY KEY, device_id TEXT NOT NULL)");
+    }
+
+    void ProfilesRepo::RestoreTransportIdentity(Profile* profile) const {
+        auto *transport = dynamic_cast<csqtt*>(profile->outbound.get());
+        if (!transport || transport->password.isEmpty()) return;
+        const auto keyOf = [](const QJsonObject &o) {
+            const QJsonArray identity{o["server"].toString().toLower(), o["server_port"].toInt(), o["password"].toString()};
+            return QCryptographicHash::hash(QJsonDocument(identity).toJson(QJsonDocument::Compact), QCryptographicHash::Sha256).toHex().toStdString();
+        };
+        const auto key = keyOf(transport->ExportToJson());
+        auto binding = db.query("SELECT device_id FROM transport_devices WHERE identity = ?", key);
+        if (binding && binding->executeStep()) {
+            transport->deviceID = QString::fromStdString(binding->getColumn(0).getString());
+            return;
+        }
+        // Migrate the already-bound identity before a subscription replaces or
+        // deletes its profiles. Hashes, titles and transport options may change.
+        auto existing = db.query("SELECT outbound_json FROM profiles WHERE type = 'csqtt' ORDER BY id");
+        while (existing && existing->executeStep()) {
+            const auto object = QJsonDocument::fromJson(QByteArray::fromStdString(existing->getColumn(0).getString())).object();
+            if (keyOf(object) == key && !object["device_id"].toString().isEmpty()) {
+                transport->deviceID = object["device_id"].toString();
+                break;
+            }
+        }
+        if (transport->deviceID.isEmpty()) transport->deviceID = QUuid::createUuid().toString(QUuid::WithoutBraces);
+        db.exec("INSERT OR IGNORE INTO transport_devices(identity, device_id) VALUES (?, ?)", key, transport->deviceID.toStdString());
+        auto canonical = db.query("SELECT device_id FROM transport_devices WHERE identity = ?", key);
+        if (canonical && canonical->executeStep()) transport->deviceID = QString::fromStdString(canonical->getColumn(0).getString());
+    }
+
+    void ProfilesRepo::RememberTransportIdentity(const Profile* profile) const {
+        const auto *transport = dynamic_cast<const csqtt*>(profile->outbound.get());
+        if (!transport || transport->password.isEmpty() || transport->deviceID.isEmpty()) return;
+        const QJsonArray identity{transport->server.toLower(), transport->server_port, transport->password};
+        const auto key = QCryptographicHash::hash(QJsonDocument(identity).toJson(QJsonDocument::Compact), QCryptographicHash::Sha256).toHex().toStdString();
+        db.exec("INSERT INTO transport_devices(identity, device_id) VALUES (?, ?) ON CONFLICT(identity) DO UPDATE SET device_id = excluded.device_id", key, transport->deviceID.toStdString());
     }
 
     bool ProfilesRepo::profilesColumnExists(const char* columnName) const {
@@ -92,6 +132,7 @@ namespace Configs {
     }
 
     void ProfilesRepo::saveToDatabase(const Profile* profile, int id) const {
+        RememberTransportIdentity(profile);
         QString outboundJson;
         if (profile->outbound) {
             QJsonDocument outboundDoc(profile->outbound->ExportToJson());
@@ -133,6 +174,7 @@ namespace Configs {
     }
 
     ProfileInsertRow ProfilesRepo::profileToInsertRow(const Profile* profile, int id, int gid) const {
+        RememberTransportIdentity(profile);
         QString outboundJson;
         if (profile->outbound) {
             outboundJson = QString::fromUtf8(QJsonDocument(profile->outbound->ExportToJson()).toJson(QJsonDocument::Compact));
@@ -205,6 +247,7 @@ namespace Configs {
 
     bool ProfilesRepo::AddProfile(std::shared_ptr<Profile>& profile, int gid) {
         if (profile->id >= 0) return false;
+        RestoreTransportIdentity(profile.get());
         int newId = NewProfileID();
         profile->id = newId;
         if (profile->outbound) profile->outbound->profile_id = newId;
@@ -228,7 +271,7 @@ namespace Configs {
 
         QList<std::shared_ptr<Profile>> toAdd;
         for (auto& profile : profiles) {
-            if (profile->id < 0) toAdd.append(profile);
+            if (profile->id < 0) { RestoreTransportIdentity(profile.get()); toAdd.append(profile); }
         }
         if (toAdd.isEmpty()) return true;
 

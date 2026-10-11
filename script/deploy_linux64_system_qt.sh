@@ -16,6 +16,10 @@ cp deployment/${DEST_SUFFIX%-system-qt}/qThroneCore $DEST
 cp deployment/${DEST_SUFFIX%-system-qt}/qThroneUpdater $DEST
 cp deployment/${DEST_SUFFIX%-system-qt}/qwdtt $DEST
 cp deployment/${DEST_SUFFIX%-system-qt}/qwdtt-LICENSE $DEST
+cp deployment/${DEST_SUFFIX%-system-qt}/openflux $DEST
+cp deployment/${DEST_SUFFIX%-system-qt}/OpenFlux-LICENSE $DEST
+cp deployment/${DEST_SUFFIX%-system-qt}/OpenFlux-SOURCE $DEST
+cp deployment/${DEST_SUFFIX%-system-qt}/openflux-source.tar.gz $DEST
 cp deployment/${DEST_SUFFIX%-system-qt}/csqtt-transport $DEST
 cp deployment/${DEST_SUFFIX%-system-qt}/CSQTT-LICENSE $DEST
 cp deployment/${DEST_SUFFIX%-system-qt}/CSQTT-SOURCE $DEST

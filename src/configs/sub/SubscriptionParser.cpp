@@ -51,6 +51,7 @@ namespace Subscription {
         constexpr Protocol kProtocols[] = {
             {"qwdtt", {"qwdtt://", "qwdtt:config", "wdtt://"}, {"qwdtt", "wdtt"}, {}},
             {"csqtt", {"csqtt://"}, {"csqtt"}, {}},
+            {"openflux", {"openflux://"}, {"openflux"}, {}},
             {"socks", {"socks5://", "socks4://", "socks4a://", "socks://"}, {"socks"}, {"socks5"}},
             {"http", {"http://", "https://"}, {"http"}, {"http"}},
             {"shadowsocks", {"ss://"}, {"shadowsocks"}, {"ss"}},

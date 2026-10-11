@@ -305,6 +305,10 @@ set(PROJECT_SOURCES
         include/ui/profile/edit_socks.h
         src/configs/outbounds/qwdtt.cpp
         src/configs/outbounds/csqtt.cpp
+        src/configs/outbounds/openflux.cpp
+        include/configs/outbounds/openflux.h
+        src/ui/profile/edit_openflux.cpp
+        include/ui/profile/edit_openflux.h
         include/configs/outbounds/csqtt.h
         src/ui/profile/edit_csqtt.cpp
         include/ui/profile/edit_csqtt.h
@@ -738,6 +742,12 @@ configure_file(res/translations/translations.qrc ${CMAKE_BINARY_DIR} COPYONLY)
 target_sources(Throne PRIVATE ${CMAKE_BINARY_DIR}/translations.qrc)
 
 # Target Link
+if(TARGET Qt6::ZlibPrivate)
+    target_link_libraries(Throne PRIVATE Qt6::ZlibPrivate)
+else()
+    find_package(ZLIB REQUIRED)
+    target_link_libraries(Throne PRIVATE ZLIB::ZLIB)
+endif()
 
 target_link_libraries(Throne PRIVATE
         Qt6::Widgets Qt6::Network ${QT_DBUS_LIBRARY}

@@ -131,6 +131,7 @@ namespace Subscription {
             ImportSink(int gid, ContentIndex *index) : gid(gid), index(index) {}
 
             void add(std::shared_ptr<Configs::Profile> ent) {
+                Configs::dataManager->profilesRepo->RestoreTransportIdentity(ent.get());
                 NewEntry entry;
                 entry.display = ent->outbound->DisplayTypeAndName();
                 if (index != nullptr) {
@@ -825,6 +826,9 @@ namespace Subscription {
 
         // Ids a running auto selector can no longer trust: deleted, or same id with new settings.
         QList<int> disturbed;
+        forEachProfile(members(), [&](const std::shared_ptr<Configs::Profile> &ent) {
+            profilesRepo->RestoreTransportIdentity(ent.get());
+        });
         bool cleared = false;
         if (settings->sub_clear) {
             MW_show_log(QObject::tr("Clearing servers..."));

@@ -89,8 +89,8 @@ func prepareQWDTTProbe(ctx context.Context, config string) (func(), error) {
 	}
 	// Include queue waits in the startup budget; manual captcha gets time for user input.
 	budget := 3 * time.Minute
-	if c.Backend == "csqtt" && !c.Interactive {
-		budget = 30 * time.Second
+	if (c.Backend == "csqtt" && !c.Interactive) || c.Backend == "openflux" {
+		budget = 15 * time.Second
 	}
 	ctx, cancelProbe := context.WithTimeout(ctx, budget)
 	defer cancelProbe()
@@ -108,8 +108,8 @@ func prepareQWDTTProbe(ctx context.Context, config string) (func(), error) {
 		return nil, errors.New("this qWDTT device is already connected; test its active profile instead")
 	}
 	queueBudget := 3 * time.Minute
-	if c.Backend == "csqtt" {
-		queueBudget = 30 * time.Second
+	if c.Backend == "csqtt" || c.Backend == "openflux" {
+		queueBudget = 15 * time.Second
 	}
 	queueCtx, cancelQueue := context.WithTimeout(ctx, queueBudget)
 	defer cancelQueue()
@@ -137,6 +137,9 @@ func prepareQWDTTProbe(ctx context.Context, config string) (func(), error) {
 		return nil, err
 	}
 	name := "qwdtt"
+	if c.Backend == "openflux" {
+		name = "openflux"
+	}
 	if runtime.GOOS == "windows" {
 		name += ".exe"
 	}
@@ -153,12 +156,17 @@ func prepareQWDTTProbe(ctx context.Context, config string) (func(), error) {
 	argument := "-config"
 	if c.Backend == "csqtt" {
 		argument = "-csqtt-config"
+	} else if c.Backend == "openflux" {
+		argument = "--qthrone-config"
 	} else if c.Backend != "" {
 		release()
 		os.RemoveAll(folder)
 		return nil, errors.New("unknown probe transport")
 	}
 	child := process.NewProcess(filepath.Join(filepath.Dir(executable), name), []string{argument, path}, false)
+	if c.Backend == "openflux" {
+		child = process.NewProcess(filepath.Join(filepath.Dir(executable), name), []string{argument, path}, true)
+	}
 	child.SetBackgroundProbe()
 	child.SetCleanupPath(folder)
 	child.EnableStdinShutdown("STOP")
@@ -183,12 +191,14 @@ func prepareQWDTTProbe(ctx context.Context, config string) (func(), error) {
 		release()
 		return nil, err
 	}
-	cleanup := func() { child.Stop(); release() }
+	// Native VK call cleanup can take 20 seconds. Return the test result now,
+	// but retain the device gate until the child has actually stopped.
+	cleanup := deferredProbeCleanup(child.Stop, release)
 	readyCtx, cancel := context.WithTimeout(ctx, 3*time.Minute)
 	defer cancel()
 	startupBudget := 3 * time.Minute
-	if c.Backend == "csqtt" {
-		startupBudget = 30 * time.Second
+	if c.Backend == "csqtt" || c.Backend == "openflux" {
+		startupBudget = 15 * time.Second
 	}
 	startupTimer := time.NewTimer(startupBudget)
 	defer startupTimer.Stop()
@@ -217,10 +227,18 @@ func prepareQWDTTProbe(ctx context.Context, config string) (func(), error) {
 			return nil, errors.New("qWDTT authentication or bridge startup failed; connect interactively and retry the test")
 		case <-readyCtx.Done():
 			cleanup()
+			if errors.Is(readyCtx.Err(), context.Canceled) {
+				return nil, context.Canceled
+			}
 			return nil, errors.New("qWDTT test cancelled or bridge startup timed out")
 		case <-time.After(100 * time.Millisecond):
 		}
 	}
+}
+
+func deferredProbeCleanup(stop, release func()) func() {
+	var once sync.Once
+	return func() { once.Do(func() { go func() { stop(); release() }() }) }
 }
 
 func noninteractiveQWDTTConfig(config string) (string, error) {

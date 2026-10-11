@@ -113,6 +113,30 @@ func TestQWDTTProbeDevicesRunIndependently(t *testing.T) {
 	}
 }
 
+func TestProbeCancellationDoesNotWaitForNativeCleanup(t *testing.T) {
+	stopping, finished, released := make(chan struct{}), make(chan struct{}), make(chan struct{})
+	cleanup := deferredProbeCleanup(func() { close(stopping); <-finished }, func() { close(released) })
+	returned := make(chan struct{})
+	go func() { cleanup(); cleanup(); close(returned) }()
+	select {
+	case <-returned:
+	case <-time.After(time.Second):
+		t.Fatal("cancel blocked on native cleanup")
+	}
+	<-stopping
+	select {
+	case <-released:
+		t.Fatal("device became available before native exit")
+	default:
+	}
+	close(finished)
+	select {
+	case <-released:
+	case <-time.After(time.Second):
+		t.Fatal("device gate was not released")
+	}
+}
+
 func TestQWDTTSessionIdentity(t *testing.T) {
 	first, ok := qwdttSessionKey(`{"peer":"server-a:56003","device_id":"device-a","socks":"127.0.0.1:19000"}`)
 	if !ok {

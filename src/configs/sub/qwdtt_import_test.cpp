@@ -1,6 +1,7 @@
 #include "include/configs/sub/SubscriptionParser.hpp"
 #include "include/configs/outbounds/qwdtt.h"
 #include "include/configs/outbounds/csqtt.h"
+#include "include/configs/outbounds/openflux.h"
 #include "include/configs/generate.h"
 #include "include/global/Configs.hpp"
 #include "include/database/ProfilesRepo.h"
@@ -97,6 +98,15 @@ int TestQwdttImport() {
     if (!fixtureGroups.isEmpty() && !testProfiles.isEmpty() && !csProfiles.isEmpty()) {
         auto cs = csProfiles.first();
         check(Configs::dataManager->profilesRepo->AddProfile(cs, fixtureGroups.first()), "save routed CSQTT fixture");
+        const auto originalDevice = dynamic_cast<Configs::csqtt*>(cs->outbound.get())->deviceID;
+        auto refreshed = Configs::ProfilesRepo::NewProfile("csqtt");
+        auto changed = cs->outbound->ExportToJson();
+        changed.remove("device_id"); changed["tag"] = "Renamed subscription profile";
+        changed["hashes"] = QJsonArray{"abcdefghijklmnop-new-call"};
+        check(refreshed->outbound->ParseFromJson(changed), "updated CSQTT subscription parses");
+        Configs::dataManager->profilesRepo->RestoreTransportIdentity(refreshed.get());
+        check(dynamic_cast<Configs::csqtt*>(refreshed->outbound.get())->deviceID == originalDevice,
+              "CSQTT identity survives name and call-hash changes in a subscription");
         auto mains = parse("vless://00000000-0000-4000-8000-000000000001@203.0.113.12:443?type=tcp&security=none#Routing-main");
         check(mains.size() == 1, "parse main VLESS fixture");
         if (mains.size() == 1) {
@@ -136,9 +146,19 @@ int TestQwdttImport() {
             const auto oldRoute = settings->current_route_id;
             settings->current_route_id = route->id;
             const auto restoreRoute = qScopeGuard([settings, oldRoute] { settings->current_route_id = oldRoute; });
+            const bool oldTun = settings->spmode_vpn, oldIPv6 = settings->vpn_ipv6;
+            settings->spmode_vpn = true; settings->vpn_ipv6 = true;
+            const auto restoreTun = qScopeGuard([settings, oldTun, oldIPv6] { settings->spmode_vpn = oldTun; settings->vpn_ipv6 = oldIPv6; });
             const auto mixed = Configs::BuildSingBoxConfig(main);
             check(mixed->error.isEmpty() && mixed->routedExtraCores.size() == 2,
                   "VLESS with separate qWDTT and CSQTT routing outputs builds");
+            for (const auto &entry : mixed->coreConfig["inbounds"].toArray()) {
+                const auto inbound = entry.toObject();
+                if (inbound["type"] == "tun") check(inbound["address"].toArray().size() == 2, "mixed routing preserves IPv6 on the TUN");
+            }
+            const auto familyRules = mixed->coreConfig["dns"].toObject()["rules"].toArray();
+            check(!familyRules.isEmpty() && familyRules.first().toObject()["domain_suffix"].toArray() == QJsonArray{"example.invalid"}
+                  && familyRules.first().toObject()["action"] == "predefined", "CSQTT AAAA suppression is scoped to its routed domains");
             for (const auto &transport : mixed->routedExtraCores) {
                 bool matched = false;
                 const auto config = QJsonDocument::fromJson(transport.config.toUtf8()).object();
@@ -158,6 +178,25 @@ int TestQwdttImport() {
                   "main tunnel referenced in a routing rule starts only once");
         }
     }
+    Configs::openflux flux;
+    const QJsonObject fluxConfig{{"type", "openflux"}, {"name", "Documents"}, {"secret", "test-secret-123456789"}, {"context", "https://docs.yandex.ru/demo"}, {"negotiate", true},
+        {"transports", QJsonArray{QJsonObject{{"type", "direct"}, {"priority", 100}, {"dial", "203.0.113.11:18445"}},
+                                  QJsonObject{{"type", "yandex"}, {"priority", 50}, {"url", "https://docs.yandex.ru/demo"}},
+                                  QJsonObject{{"type", "mailru"}, {"priority", 40}, {"url", "https://docs.mail.ru/demo"}}}}};
+    check(flux.ParseFromJson(fluxConfig), "OpenFlux document and direct transports parse");
+    const auto fluxProfiles = parse(flux.ExportToLink().toUtf8());
+    check(fluxProfiles.size() == 1 && fluxProfiles.first()->type == "openflux" && fluxProfiles.first()->outbound->ExportIdentity() == flux.ExportIdentity(), "OpenFlux native compressed share link round trip");
+    if (!fluxProfiles.isEmpty() && !fixtureGroups.isEmpty()) {
+        auto profile = fluxProfiles.first();
+        check(Configs::dataManager->profilesRepo->AddProfile(profile, fixtureGroups.first()), "save OpenFlux fixture");
+        const auto probe = Configs::BuildTestConfig({profile});
+        check(probe->error.isEmpty() && probe->qwdttConfigs.size() == 1 && probe->fullConfigs.size() == 1, "OpenFlux ping and speed tests own a private bridge");
+        const auto live = Configs::BuildSingBoxConfig(profile);
+        check(live->error.isEmpty() && live->extraCoreData->args.startsWith("--qthrone-config"), "OpenFlux main connection uses bundled helper");
+    }
+    auto invalidFlux = fluxConfig; invalidFlux["secret"] = "short";
+    check(!flux.ParseFromJson(invalidFlux), "OpenFlux rejects short secrets");
+    check(!flux.ParseFromLink("openflux://v1/not-a-valid-payload"), "OpenFlux rejects malformed compressed links");
     if (!testProfiles.isEmpty()) {
         const auto &settings = Configs::dataManager->settingsRepo;
         const bool oldTun = settings->spmode_vpn;

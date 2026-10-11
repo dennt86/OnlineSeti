@@ -112,12 +112,11 @@ bool TestRunner::isRunning() {
 
 void TestRunner::stop() {
     stopRequested_.store(true);
-    bool ok;
-    defaultClient->StopTests(&ok);
-
-    if (!ok) {
-        MW_show_log(MainWindow::tr("Failed to stop tests"));
-    }
+    runOnNewThread([] {
+        bool ok = false;
+        defaultClient->StopTests(&ok);
+        if (!ok) MW_show_log(MainWindow::tr("Failed to stop tests"));
+    });
 }
 
 QString TestRunner::contextName(int entID) const {

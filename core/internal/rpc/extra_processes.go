@@ -25,7 +25,8 @@ type extraSession struct {
 var extraSessions []*extraSession
 
 func isTunnelHelper(path string) bool {
-	return strings.EqualFold(strings.TrimSuffix(filepath.Base(path), ".exe"), "qwdtt")
+	name := strings.TrimSuffix(strings.ToLower(filepath.Base(path)), ".exe")
+	return name == "qwdtt" || name == "openflux"
 }
 
 func stopExtraSessions(tunnelsOnly bool) {
