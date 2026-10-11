@@ -140,7 +140,7 @@ protected:
             } else { rect(10,16,10,3,ink); rect(13,16,2,1,"#ffe89a"); }
             p.restore();
         };
-        pumpkin(16, 33, .58, 0); pumpkin(33, 21, 1.12, 1); pumpkin(67, 32, .64, 2);
+        pumpkin(20, 33, .58, 0); pumpkin(33, 21, 1.12, 1); pumpkin(60, 32, .64, 2);
         // Candle flame flickers by one pixel, without flashes or bloom.
         p.save(); p.translate(-14, 0);
         const int flicker = int(t*5) % 3;
