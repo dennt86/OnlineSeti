@@ -1324,6 +1324,7 @@ Throne will restart to complete the restore.</source>
     <message><source>Seasonal decoration</source><translation>季节装饰</translation></message>
     <message><source>Disabled</source><translation>关闭</translation></message>
     <message><source>Halloween</source><translation>万圣节</translation></message>
+    <message><source>New Year</source><translation>新年</translation></message>
 </context>
 <context>
     <name>DialogEditGroup</name>

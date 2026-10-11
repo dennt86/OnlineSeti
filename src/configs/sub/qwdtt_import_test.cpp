@@ -67,24 +67,31 @@ int TestQwdttImport() {
             window.setPalette(palette);
             for (const QSize size : {QSize(800, 600), QSize(1152, 720), QSize(1600, 1000)}) {
                 window.resize(size);
-                for (const QString mode : {QStringLiteral("halloween"), QStringLiteral("none"), QStringLiteral("halloween")}) {
+                for (const QString mode : {QStringLiteral("halloween"), QStringLiteral("newyear"), QStringLiteral("none"), QStringLiteral("halloween")}) {
+                    const QSize previousGeometry = decoration->size();
                     decoration->setDecoration(mode);
                     window.show();
                     for (int i = 0; i < 4; ++i) QApplication::processEvents();
+                    if (mode == "newyear") check(decoration->size() == previousGeometry, "both decorations share the same dimensions");
                     check(ui.splitter->count() == panes, "seasonal overlay never becomes a splitter pane");
                     check(ui.splitter->width() >= ui.centralwidget->width() - 24, "seasonal overlay preserves full-width panels");
                     check(ui.tabWidget->width() >= ui.splitter->width() - 24, "profile table preserves panel width");
                     check(decoration->parentWidget() == ui.centralwidget, "decoration belongs to central overlay container");
-                    check(decoration->isVisible() == (mode == "halloween"), "decoration toggle applies without restart");
+                    check(decoration->isVisible() == (mode != "none"), "decoration toggle applies without restart");
                 }
+                decoration->setDecoration("newyear");
+                for (int i = 0; i < 6; ++i) QApplication::processEvents();
+                if (!screenshots.isEmpty()) check(window.grab().save(screenshots + QString("/newyear-%1-%2.png").arg(dark ? "dark" : "light").arg(size.width())), "newyear screenshot saved");
                 decoration->setNoticePriority(true);
-                ui.data_view->setHtml("<p>Settings changed, restart to apply</p><a href='restart'>Restart</a> · <a href='dismiss'>Dismiss</a>");
+                ui.data_view->setHtml("<p>Settings changed, restart to apply</p><a href='restart'>Restart</a> Â· <a href='dismiss'>Dismiss</a>");
                 window.move(window.pos() + QPoint(17, 11));
                 for (int i = 0; i < 6; ++i) QApplication::processEvents();
                 check(!decoration->isVisible(), "restart notice takes priority over artwork");
                 check(ui.data_view->width() > 100, "notice retains available width after move");
                 check(ui.splitter->count() == panes, "moving window preserves splitter panes");
+                if (!screenshots.isEmpty()) check(window.grab().save(screenshots + QString("/notice-%1-%2.png").arg(dark ? "dark" : "light").arg(size.width())), "notice screenshot saved");
                 decoration->setNoticePriority(false);
+                decoration->setDecoration("halloween");
                 ui.data_view->clear();
                 for (int i = 0; i < 6; ++i) QApplication::processEvents();
                 if (!screenshots.isEmpty()) check(window.grab().save(screenshots + QString("/seasonal-%1-%2.png").arg(dark ? "dark" : "light").arg(size.width())), "seasonal window screenshot saved");

@@ -216,6 +216,8 @@ DialogBasicSettings::DialogBasicSettings(QWidget *parent)
     bool ok;
     ui->seasonal_decoration->addItem(tr("Disabled"), "none");
     ui->seasonal_decoration->addItem(tr("Halloween"), "halloween");
+    ui->seasonal_decoration->addItem(tr("New Year"), "newyear");
+    ui->seasonal_decoration->addItem(tr("New Year"), "newyear");
     const int decorationIndex = ui->seasonal_decoration->findData(Configs::dataManager->settingsRepo->seasonal_decoration);
     ui->seasonal_decoration->setCurrentIndex(qMax(0, decorationIndex));
     auto themeId = Configs::dataManager->settingsRepo->theme.toInt(&ok);

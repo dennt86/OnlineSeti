@@ -1129,6 +1129,7 @@ Throne will restart to complete the restore.</source>
     <message><source>Seasonal decoration</source><translation>Сезонное украшение</translation></message>
     <message><source>Disabled</source><translation>Отключено</translation></message>
     <message><source>Halloween</source><translation>Хэллоуин</translation></message>
+    <message><source>New Year</source><translation>Новый год</translation></message>
 </context>
 <context>
     <name>DialogEditGroup</name>

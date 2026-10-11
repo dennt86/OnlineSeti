@@ -557,6 +557,7 @@ Release note:
     <message><source>Seasonal decoration</source><translation>تزئینات فصلی</translation></message>
     <message><source>Disabled</source><translation>غیرفعال</translation></message>
     <message><source>Halloween</source><translation>هالووین</translation></message>
+    <message><source>New Year</source><translation>سال نو</translation></message>
 </context>
 <context>
     <name>DialogEditGroup</name>

@@ -50,7 +50,9 @@ public:
         updateBounds();
     }
     void setDecoration(const QString &value) {
-        enabled = value == QStringLiteral("halloween");
+        decoration = value;
+        timer.setInterval(value == QStringLiteral("newyear") ? 50 : 100);
+        enabled = value == QStringLiteral("halloween") || value == QStringLiteral("newyear");
         setVisible(enabled);
         if (anchor) anchor->setVisible(enabled);
         QTimer::singleShot(0, this, [this] { updateBounds(); });
@@ -75,6 +77,7 @@ protected:
         p.setClipRect(0, 0, 136, 46);
         const double t = clock.elapsed() / 1000.0;
         const bool dark = palette().color(QPalette::Window).lightness() < 128;
+        if (decoration == QStringLiteral("newyear")) { paintNewYear(p, t, dark); return; }
         const QColor ink = dark ? QColor("#372536") : QColor("#51394e");
         auto rect = [&](int x, int y, int w, int h, const QColor &c) { p.fillRect(x, y, w, h, c); };
         auto polygon = [&](std::initializer_list<QPoint> points, const QColor &c) {
@@ -166,6 +169,68 @@ protected:
         leaf(91, 45, 22, .52, "#cd8240");
     }
 private:
+    static void paintNewYear(QPainter &p, double t, bool dark) {
+        const QColor outline(dark ? "#385361" : "#607c88");
+        const QColor snow("#e5f2f3"), shade("#a8ccd5");
+        auto rect = [&](int x,int y,int w,int h,const QColor &c) { p.fillRect(x,y,w,h,c); };
+        auto poly = [&](std::initializer_list<QPoint> pts,const QColor &c) {
+            QPolygon a; for (auto v:pts) a << v; p.setPen(Qt::NoPen); p.setBrush(c); p.drawPolygon(a);
+        };
+        // Low snow banks keep the entire scene seated on the divider.
+        poly({{4,44},{10,41},{22,41},{27,39},{40,41},{56,40},{68,42},{88,40},{102,42},{116,41},{132,44},{132,46},{4,46}},outline);
+        poly({{5,44},{12,42},{24,42},{28,40},{40,42},{57,41},{69,43},{88,41},{103,43},{118,42},{130,44},{130,46},{5,46}},snow);
+        rect(36,34,7,10,"#70503a");
+        poly({{39,5},{49,17},{45,17},{56,29},{50,29},{62,40},{17,40},{28,29},{23,29},{34,17},{30,17}},outline);
+        poly({{39,8},{46,17},{42,17},{52,28},{46,28},{58,38},{22,38},{32,28},{27,28},{37,17},{33,17}},"#34715d");
+        poly({{39,8},{39,17},{33,17},{37,17},{27,28},{32,28},{22,38},{32,38},{40,27},{37,27},{43,17}},"#489778");
+        poly({{39,1},{41,4},{45,4},{42,7},{43,11},{39,9},{35,11},{36,7},{33,4},{37,4}},"#e9bf68");
+        rect(31,18,8,2,snow);rect(26,29,9,2,snow);rect(45,29,7,2,snow);
+        for (int i=0;i<7;++i) {
+            const QPoint lights[]={{37,15},{43,20},{34,24},{46,27},{29,34},{39,34},{51,35}};
+            const QColor colors[]={QColor("#e88672"),QColor("#edc977"),QColor("#a0c4df")};
+            const bool glow=(int(t*1.5)+i)%4==0;
+            rect(lights[i].x(),lights[i].y(),2,2,glow?QColor("#fff0b4"):colors[i%3]);
+        }
+        // The snowman blinks; its twig arms remain still.
+        poly({{75,26},{88,26},{94,31},{95,39},{91,43},{73,43},{68,39},{69,31}},outline);
+        poly({{76,27},{87,27},{92,32},{93,38},{89,41},{74,41},{70,38},{71,32}},snow);
+        poly({{77,14},{87,14},{91,18},{91,25},{87,29},{76,28},{73,24},{73,18}},outline);
+        poly({{78,15},{86,15},{89,18},{89,24},{86,27},{77,26},{75,23},{75,19}},snow);
+        rect(72,32,2,6,shade);rect(76,19,1,4,shade);
+        rect(77,8,11,7,"#344553");rect(74,14,17,2,"#344553");rect(77,12,11,2,"#b75e57");
+        const bool blink=std::fmod(t,6.0)<.22;
+        rect(78,20,2,blink?1:2,"#344553");rect(85,20,2,blink?1:2,"#344553");
+        poly({{81,23},{88,24},{81,25}},"#d88d48");rect(80,27,4,1,"#607c88");
+        rect(74,28,17,3,"#b75e57");rect(86,30,4,7,"#cf7e67");
+        rect(80,34,2,2,"#526875");rect(80,39,2,2,"#526875");
+        p.setPen(QPen(QColor("#977359"),1));
+        p.drawLine(70,32,64,28);p.drawLine(64,28,63,25);
+        // Fixed twig arms drawn on an integer pixel grid.
+        const int hand=27;
+        auto twig=[&](int x0,int y0,int x1,int y1) {
+            const int count=qMax(std::abs(x1-x0),std::abs(y1-y0));
+            for(int i=0;i<=count;++i) {
+                const double f=count ? double(i)/count : 0;
+                rect(qRound(x0+(x1-x0)*f),qRound(y0+(y1-y0)*f),1,1,"#977359");
+            }
+        };
+        twig(70,32,64,28);twig(64,28,63,25);
+        twig(93,32,100,hand);twig(100,hand,103,hand-2);twig(100,hand,100,hand-4);
+        rect(105,34,13,10,"#ad5e62");rect(110,34,2,10,"#edc977");rect(104,33,15,2,"#c97b77");
+        poly({{111,33},{106,30},{105,31},{106,33},{111,33},{115,30},{117,31},{116,33}},"#edc977");
+        // Sparse flakes drift gently, without flashes or a full-window overlay.
+        for(int i=0;i<17;++i) {
+            // Independent phases, periods and gusts avoid rows of evenly spaced flakes.
+            const qreal seed=std::fmod((i+1)*.61803398875,1.0);
+            const qreal speed=1.3+std::fmod((i+1)*.754877666,1.0)*1.7;
+            const qreal x=5+seed*124+2.4*std::sin(t*(.19+seed*.24)+i*2.41)
+                         +1.2*std::sin(t*.73+i*1.37);
+            const qreal y=std::fmod(t*speed+std::fmod((i+1)*.41421356237,1.0)*47,47.0)-3;
+            QColor c=dark?QColor("#afcbd5"):QColor("#8aabb9");
+            p.fillRect(QRectF(x,y,1,1),c);
+            if(i%5==0) { p.fillRect(QRectF(x-1,y,3,1),c);p.fillRect(QRectF(x,y-1,1,3),c); }
+        }
+    }
     void updateBounds() {
         if (!anchor || !bottom || !parentWidget()) return;
         // Give status text the available width before reserving room for artwork.
@@ -182,6 +247,7 @@ private:
     }
     QPointer<QWidget> anchor, bottom;
     int rightInset = 0;
+    QString decoration;
     bool enabled = false;
     bool noticePriority = false;
     QTimer timer;
