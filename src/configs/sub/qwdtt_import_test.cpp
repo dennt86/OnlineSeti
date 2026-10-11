@@ -5,6 +5,7 @@
 #include "include/configs/outbounds/olcrtc.h"
 #include "include/configs/generate.h"
 #include "include/global/Configs.hpp"
+#include "include/global/Utils.hpp"
 #include "include/database/ProfilesRepo.h"
 #include "include/database/GroupsRepo.h"
 #include "include/database/RoutesRepo.h"
@@ -25,6 +26,9 @@
 
 int TestQwdttImport() {
     qInstallMessageHandler(nullptr);
+    const auto previousLogger = MW_show_log;
+    MW_show_log = [](const QString &message) { qWarning().noquote() << message; };
+    const auto restoreLogger = qScopeGuard([previousLogger] { MW_show_log = previousLogger; });
     // This entry point runs before normal application/database initialization.
     // Configuration generation needs repositories, all owned by this fixture.
     QTemporaryDir fixture;

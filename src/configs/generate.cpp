@@ -715,7 +715,7 @@ namespace Configs {
                     ctx.error = "The routing profile is referencing outbounds that no longer exist, consider revising your settings";
                     return;
                 }
-                const bool routedTransport = neededEnt->type == "qwdtt" || neededEnt->type == "csqtt" || neededEnt->type == "openflux";
+                const bool routedTransport = neededEnt->type == "qwdtt" || neededEnt->type == "csqtt" || neededEnt->type == "openflux" || neededEnt->type == "olcrtc";
                 if ((neededEnt->outbound != nullptr && neededEnt->outbound->IsExtraCore() && !routedTransport) || isCustomFullConfig(neededEnt) || isXrayFullConfig(neededEnt)) {
                     ctx.error = "Outbounds used in routing profile cannot use an extra core or be a custom full config";
                     return;
