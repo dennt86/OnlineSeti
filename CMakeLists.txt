@@ -306,6 +306,10 @@ set(PROJECT_SOURCES
         src/configs/outbounds/qwdtt.cpp
         src/configs/outbounds/csqtt.cpp
         src/configs/outbounds/openflux.cpp
+        src/configs/outbounds/olcrtc.cpp
+        include/configs/outbounds/olcrtc.h
+        src/ui/profile/edit_olcrtc.cpp
+        include/ui/profile/edit_olcrtc.h
         include/configs/outbounds/openflux.h
         src/ui/profile/edit_openflux.cpp
         include/ui/profile/edit_openflux.h
