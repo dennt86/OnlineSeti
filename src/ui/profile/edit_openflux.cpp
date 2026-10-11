@@ -3,7 +3,7 @@
 #include <QFormLayout>
 EditOpenFlux::EditOpenFlux(QWidget *parent) : QWidget(parent) {
     auto *form = new QFormLayout(this);
-    secret = new QLineEdit(this); secret->setEchoMode(QLineEdit::Password);
+    secret = new QLineEdit(this); secret->setEchoMode(QLineEdit::Normal);
     context = new QLineEdit(this); context->setPlaceholderText(QStringLiteral("Автоматически из ссылки на документ"));
     yandex = new QLineEdit(this); mail = new QLineEdit(this); cups = new QLineEdit(this);
     form->addRow(QStringLiteral("Секрет"), secret);

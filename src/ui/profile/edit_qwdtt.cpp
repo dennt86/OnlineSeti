@@ -11,7 +11,7 @@ EditQWDTT::EditQWDTT(QWidget *parent) : QWidget(parent) {
     mode->addItem("WG", "wg");
     form->addRow(tr("Tunnel mode"), mode);
     password = new QLineEdit(this);
-    password->setEchoMode(QLineEdit::Password);
+    password->setEchoMode(QLineEdit::Normal);
     form->addRow(tr("Password"), password);
     for (int i = 0; i < 4; ++i) {
         hashes[i] = new QLineEdit(this);

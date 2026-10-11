@@ -9,7 +9,7 @@
 EditCSQTT::EditCSQTT(QWidget *parent) : QWidget(parent) {
     auto *form = new QFormLayout(this);
     password = new QLineEdit(this);
-    password->setEchoMode(QLineEdit::Password);
+    password->setEchoMode(QLineEdit::Normal);
     form->addRow(tr("Password"), password);
     for (int i = 0; i < 6; ++i) {
         hashes[i] = new QLineEdit(this);

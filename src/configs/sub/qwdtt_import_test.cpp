@@ -2,6 +2,7 @@
 #include "include/configs/outbounds/qwdtt.h"
 #include "include/configs/outbounds/csqtt.h"
 #include "include/configs/outbounds/openflux.h"
+#include "include/configs/outbounds/olcrtc.h"
 #include "include/configs/generate.h"
 #include "include/global/Configs.hpp"
 #include "include/database/ProfilesRepo.h"
@@ -178,6 +179,42 @@ int TestQwdttImport() {
                   "main tunnel referenced in a routing rule starts only once");
         }
     }
+    const auto rtcKey = QString(64, 'a');
+    for (const auto &transport : QStringList{"datachannel", "vp8channel", "seichannel", "videochannel"}) {
+        const auto link = "olcrtc://jitsi?" + transport + "@https://example.org/room#" + rtcKey + "$RTC";
+        auto rtcProfiles = parse(link.toUtf8());
+        check(rtcProfiles.size() == 1, "olcRTC transports import");
+        if (rtcProfiles.isEmpty() || fixtureGroups.isEmpty()) continue;
+        auto rtcProfile = rtcProfiles.first();
+        auto *rtc = dynamic_cast<Configs::olcrtc*>(rtcProfile->outbound.get());
+        check(rtc && parse(rtc->ExportToLink().toUtf8()).size() == 1, "olcRTC URI round trip");
+        check(Configs::dataManager->profilesRepo->AddProfile(rtcProfile, fixtureGroups.first()), "save olcRTC fixture");
+        const auto stableDevice = rtc->deviceID;
+        auto renewed = parse((link + "-new-name").toUtf8()).first();
+        Configs::dataManager->profilesRepo->RestoreTransportIdentity(renewed.get());
+        check(dynamic_cast<Configs::olcrtc*>(renewed->outbound.get())->deviceID == stableDevice, "olcRTC subscription refresh preserves device across name and transport changes");
+        const auto probe = Configs::BuildTestConfig({rtcProfile});
+        check(probe->error.isEmpty() && probe->qwdttConfigs.size() == 1, "olcRTC ping and speed private bridge");
+        const auto live = Configs::BuildSingBoxConfig(rtcProfile);
+        check(live->error.isEmpty() && live->extraCoreData->args.startsWith("--qthrone-config"), "olcRTC main bundled helper");
+        check(rtc->Build().object["network"].toString() == "tcp", "olcRTC bridge cannot silently send UDP direct");
+        auto mains = parse("vless://00000000-0000-4000-8000-000000000002@203.0.113.15:443?type=tcp&security=none#RTC-main");
+        if (mains.size() == 1) {
+            auto main = mains.first(); Configs::dataManager->profilesRepo->AddProfile(main, fixtureGroups.first());
+            auto route = std::make_shared<Configs::RouteProfile>(); route->name = "RTC domain route";
+            auto rule = std::make_shared<Configs::RouteRule>(); rule->domain_suffix = {"rtc.example.invalid"}; rule->outboundID = rtcProfile->id; route->Rules = {rule};
+            Configs::dataManager->routesRepo->AddRouteProfile(route);
+            auto *settings = Configs::dataManager->settingsRepo.get(); const auto oldRoute = settings->current_route_id; settings->current_route_id = route->id;
+            const auto restoreRoute = qScopeGuard([settings,oldRoute] {settings->current_route_id = oldRoute;});
+            const auto mixed = Configs::BuildSingBoxConfig(main);
+            check(mixed->error.isEmpty() && mixed->routedExtraCores.size() == 1, "VLESS main with separately routed olcRTC");
+            if (!mixed->routedExtraCores.isEmpty()) check(mixed->routedExtraCores.first().config.contains(stableDevice), "routed olcRTC uses persistent device identity");
+            const auto reused = Configs::BuildSingBoxConfig(rtcProfile);
+            check(reused->error.isEmpty() && reused->routedExtraCores.isEmpty(), "olcRTC main reused by own routing rule");
+        }
+    }
+    check(parse(("olcrtc://telemost?datachannel@room#" + rtcKey).toUtf8()).isEmpty(), "reject unsupported Telemost DataChannel");
+    check(parse("olcrtc://jitsi?datachannel@https://example.org/room#bad").isEmpty(), "reject invalid olcRTC key");
     Configs::openflux flux;
     const QJsonObject fluxConfig{{"type", "openflux"}, {"name", "Documents"}, {"secret", "test-secret-123456789"}, {"context", "https://docs.yandex.ru/demo"}, {"negotiate", true},
         {"transports", QJsonArray{QJsonObject{{"type", "direct"}, {"priority", 100}, {"dial", "203.0.113.11:18445"}},

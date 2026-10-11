@@ -5,6 +5,7 @@
 #include <map>
 #include <QCryptographicHash>
 #include "include/configs/outbounds/csqtt.h"
+#include "include/configs/outbounds/olcrtc.h"
 
 #include "include/database/GroupsRepo.h"
 #include "include/configs/common/OutboundFactory.h"
@@ -48,7 +49,28 @@ namespace Configs {
         db.exec("CREATE TABLE IF NOT EXISTS transport_devices (identity TEXT PRIMARY KEY, device_id TEXT NOT NULL)");
     }
 
+    namespace {
+        std::string olcrtcIdentity(const QJsonObject &o) {
+            const QJsonArray identity{"olcrtc", o["provider"].toString().toLower(), o["room"].toString().trimmed(), o["key"].toString().toLower()};
+            return QCryptographicHash::hash(QJsonDocument(identity).toJson(QJsonDocument::Compact), QCryptographicHash::Sha256).toHex().toStdString();
+        }
+    }
     void ProfilesRepo::RestoreTransportIdentity(Profile* profile) const {
+        if (auto *rtc = dynamic_cast<olcrtc*>(profile->outbound.get())) {
+            const auto key = olcrtcIdentity(rtc->ExportToJson());
+            auto binding = db.query("SELECT device_id FROM transport_devices WHERE identity = ?", key);
+            if (binding && binding->executeStep()) { rtc->deviceID = QString::fromStdString(binding->getColumn(0).getString()); return; }
+            auto existing = db.query("SELECT outbound_json FROM profiles WHERE type = 'olcrtc' ORDER BY id");
+            while (existing && existing->executeStep()) {
+                const auto o = QJsonDocument::fromJson(QByteArray::fromStdString(existing->getColumn(0).getString())).object();
+                if (olcrtcIdentity(o) == key && !o["device_id"].toString().isEmpty()) { rtc->deviceID = o["device_id"].toString(); break; }
+            }
+            if (rtc->deviceID.isEmpty()) rtc->deviceID = QUuid::createUuid().toString(QUuid::WithoutBraces);
+            db.exec("INSERT OR IGNORE INTO transport_devices(identity, device_id) VALUES (?, ?)", key, rtc->deviceID.toStdString());
+            auto canonical = db.query("SELECT device_id FROM transport_devices WHERE identity = ?", key);
+            if (canonical && canonical->executeStep()) rtc->deviceID = QString::fromStdString(canonical->getColumn(0).getString());
+            return;
+        }
         auto *transport = dynamic_cast<csqtt*>(profile->outbound.get());
         if (!transport || transport->password.isEmpty()) return;
         const auto keyOf = [](const QJsonObject &o) {
@@ -78,6 +100,11 @@ namespace Configs {
     }
 
     void ProfilesRepo::RememberTransportIdentity(const Profile* profile) const {
+        if (const auto *rtc = dynamic_cast<const olcrtc*>(profile->outbound.get()); rtc && !rtc->key.isEmpty() && !rtc->deviceID.isEmpty()) {
+            const QJsonObject o{{"provider",rtc->provider},{"room",rtc->room},{"key",rtc->key}};
+            db.exec("INSERT INTO transport_devices(identity, device_id) VALUES (?, ?) ON CONFLICT(identity) DO UPDATE SET device_id = excluded.device_id", olcrtcIdentity(o), rtc->deviceID.toStdString());
+            return;
+        }
         const auto *transport = dynamic_cast<const csqtt*>(profile->outbound.get());
         if (!transport || transport->password.isEmpty() || transport->deviceID.isEmpty()) return;
         const QJsonArray identity{transport->server.toLower(), transport->server_port, transport->password};

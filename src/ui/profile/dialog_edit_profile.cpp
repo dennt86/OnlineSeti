@@ -12,6 +12,7 @@
 #include "include/ui/profile/edit_qwdtt.h"
 #include "include/ui/profile/edit_csqtt.h"
 #include "include/ui/profile/edit_openflux.h"
+#include "include/ui/profile/edit_olcrtc.h"
 #include "include/ui/profile/edit_http.h"
 #include "include/ui/profile/edit_hysteria.h"
 #include "include/ui/profile/edit_juicity.h"
@@ -58,6 +59,7 @@ EditorFactory editorFactory(const QString &type) {
         {"qwdtt", makeEditor<EditQWDTT>},
         {"csqtt", makeEditor<EditCSQTT>},
         {"openflux", makeEditor<EditOpenFlux>},
+        {"olcrtc", makeEditor<EditOLCRTC>},
         {"socks", makeEditor<EditSocks>},
         {"http", makeEditor<EditHttp>},
         {"shadowsocks", makeEditor<EditShadowSocks>},
@@ -95,7 +97,7 @@ bool isCustomSubtype(const QString &type) {
 }
 
 bool hasServerAddress(const QString &type) {
-    static const QSet<QString> serverless = {"chain", "autoselector", "direct", "extracore", "tailscale", "custom"};
+    static const QSet<QString> serverless = {"chain", "autoselector", "direct", "extracore", "tailscale", "custom", "olcrtc"};
     return !serverless.contains(type);
 }
 
@@ -210,7 +212,7 @@ void DialogEditProfile::setupTypeList() {
     const auto addType = [this](const QString &t) {
         ui->type->addItem(t == "qwdtt" ? QStringLiteral("qWDTT") : t == "csqtt" ? QStringLiteral("CSQTT") : Configs::dataManager->profilesRepo->NewProfile(t)->outbound->DisplayType(), t);
     };
-    for (const auto *t: {"qwdtt", "csqtt", "openflux", "autoselector", "socks", "http", "shadowsocks", "trojan", "vmess", "vless", "xrayvless",
+    for (const auto *t: {"qwdtt", "csqtt", "openflux", "olcrtc", "autoselector", "socks", "http", "shadowsocks", "trojan", "vmess", "vless", "xrayvless",
                          "hysteria", "tuic", "juicity", "naive", "trusttunnel", "anytls", "mieru", "snell",
                          "shadowtls", "wireguard", "masque", "openvpn", "openconnect", "tailscale", "ssh", "direct"}) {
         addType(t);
@@ -321,7 +323,7 @@ void DialogEditProfile::updateCommonRows() {
     addressEffective->setToolTip(!overridden ? QString()
                                  : own.isEmpty() ? tr("Set by %1.").arg(endpoint.origin)
                                                  : tr("Set by %1; the profile's own address is %2.").arg(endpoint.origin, own));
-    ui->advanced_button->setVisible((server && type != "qwdtt" && type != "csqtt" && type != "openflux") || type == "direct");
+    ui->advanced_button->setVisible((server && type != "qwdtt" && type != "csqtt" && type != "openflux" && type != "olcrtc") || type == "direct");
 }
 
 void DialogEditProfile::relayout() {
@@ -341,8 +343,10 @@ bool DialogEditProfile::onEnd() {
     if (!innerEditor->onEnd()) return false;
 
     ent->outbound->name = ui->name->text().trimmed();
-    ent->outbound->SetAddress(ui->address->text().remove(' '));
-    ent->outbound->SetPort(ui->port->text().trimmed().toInt());
+    if (type != "olcrtc") {
+        ent->outbound->SetAddress(ui->address->text().remove(' '));
+        ent->outbound->SetPort(ui->port->text().trimmed().toInt());
+    }
     saveSingboxStream();
     saveXrayStream();
     return true;

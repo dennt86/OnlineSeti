@@ -47,6 +47,7 @@ popd
 
 #### Go: core ####
 source script/build_openflux.sh
+source script/build_olcrtc.sh
 pushd core
 pushd gen
 protoc -I . --go_out=. --go-grpc_out=. libcore.proto

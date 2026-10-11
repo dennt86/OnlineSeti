@@ -28,6 +28,7 @@
 #include "include/configs/outbounds/qwdtt.h"
 #include "include/configs/outbounds/csqtt.h"
 #include "include/configs/outbounds/openflux.h"
+#include "include/configs/outbounds/olcrtc.h"
 #include "include/configs/outbounds/naive.h"
 #include "include/configs/outbounds/direct.h"
 
@@ -38,6 +39,7 @@ namespace Configs
         if (type == "qwdtt" || type == "wdtt") return new qwdtt();
         if (type == "csqtt") return new csqtt();
         if (type == "openflux") return new openflux();
+        if (type == "olcrtc") return new olcrtc();
         if (type == "socks") return new socks();
         if (type == "http") return new http();
         if (type == "shadowsocks") return new shadowsocks();

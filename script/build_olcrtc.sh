@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -euo pipefail
+olcrtc_revision=f3ad8fb7c0d0fa981423f83269526fa94077c23d
+if [ ! -d olcrtc-source/.git ]; then
+    git init olcrtc-source
+    git -C olcrtc-source fetch --depth=1 https://github.com/openlibrecommunity/olcrtc.git "$olcrtc_revision"
+    git -C olcrtc-source checkout FETCH_HEAD
+fi
+test "$(git -C olcrtc-source rev-parse HEAD)" = "$olcrtc_revision"
+mkdir -p olcrtc-source/cmd/qthrone-olcrtc
+cp script/olcrtc/*.go olcrtc-source/cmd/qthrone-olcrtc/
+pushd olcrtc-source
+CGO_ENABLED=0 "$GOCMD" build -trimpath -ldflags='-s -w' -o "$DEST/olcrtc$([[ "$GOOS" == windows ]] && echo '.exe')" ./cmd/qthrone-olcrtc
+cp LICENSE "$DEST/OLCRTC-LICENSE"
+printf '%s\n' 'https://github.com/openlibrecommunity/olcrtc' "Revision: $olcrtc_revision" 'Desktop integration: script/olcrtc in qThrone' > "$DEST/OLCRTC-SOURCE"
+tar -czf "$DEST/olcrtc-source.tar.gz" --exclude=.git --exclude=.github .
+popd

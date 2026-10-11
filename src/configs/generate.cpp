@@ -2,6 +2,7 @@
 #include "include/configs/outbounds/qwdtt.h"
 #include "include/configs/outbounds/csqtt.h"
 #include "include/configs/outbounds/openflux.h"
+#include "include/configs/outbounds/olcrtc.h"
 #include "include/api/RPC.h"
 #include "include/configs/AutoSelectorPlan.h"
 #include "include/configs/common/utils.h"
@@ -352,6 +353,11 @@ namespace Configs {
             // Tests can start the bundled qWDTT while another profile owns the TUN.
             // Only this application's helper gets the existing extra-core exemption.
             QString name = "qwdtt";
+#ifdef Q_OS_WIN
+            name += ".exe";
+#endif
+            add(QFileInfo(QCoreApplication::applicationDirPath() + "/" + name).canonicalFilePath());
+            name = "olcrtc";
 #ifdef Q_OS_WIN
             name += ".exe";
 #endif
@@ -869,7 +875,7 @@ namespace Configs {
             for (const auto &group : preReqs.routing.routeOutboundGroups) {
                 if (group.hopIDs.size() != 1) continue;
                 auto routed = getProfile(group.hopIDs.first());
-                if (routed == nullptr || (routed->type != "qwdtt" && routed->type != "csqtt" && routed->type != "openflux")) continue;
+                if (routed == nullptr || (routed->type != "qwdtt" && routed->type != "csqtt" && routed->type != "openflux" && routed->type != "olcrtc")) continue;
                 if (mainExtraCore != nullptr && routed->id == mainExtraCore->id) continue;
                 extraCoreProfiles.append(routed);
             }
@@ -888,6 +894,9 @@ namespace Configs {
                 if (auto *c = dynamic_cast<csqtt *>(outbound)) {
                     if (auto error = c->Prepare(); !error.isEmpty()) { ctx.error = error; return; }
                 }
+                if (auto *rtc = dynamic_cast<olcrtc *>(outbound)) {
+                    if (auto error = rtc->Prepare(); !error.isEmpty()) { ctx.error = error; return; }
+                }
                 if (auto *o = dynamic_cast<openflux *>(outbound)) {
                     if (auto error = o->Prepare(); !error.isEmpty()) { ctx.error = error; return; }
                 }
@@ -903,7 +912,7 @@ namespace Configs {
                     extraCoreData.outboundTag = preReqs.routing.outboundMap.at(extraCoreEnt->id);
                     ctx.result->routedExtraCores.append(extraCoreData);
                 }
-                if (extraCoreEnt->type == "qwdtt" || extraCoreEnt->type == "csqtt" || extraCoreEnt->type == "openflux") ctx.ipv4TransportTags.insert(extraCoreData.outboundTag);
+                if (extraCoreEnt->type == "qwdtt" || extraCoreEnt->type == "csqtt" || extraCoreEnt->type == "openflux" || extraCoreEnt->type == "olcrtc") ctx.ipv4TransportTags.insert(extraCoreData.outboundTag);
             }
             // A transport's address family must not disable IPv6 for other exits.
             ctx.qwdttIPv4Only = ctx.ipv4TransportTags.contains(tags::proxy) && preReqs.routing.routeOutboundGroups.isEmpty();
@@ -1044,6 +1053,7 @@ namespace Configs {
                 if (ctx.proxyUsesXray && ( remoteDnsObj.value("type").toString() == "udp" || remoteDnsObj.value("type").toString() == "quic" )) {
                     remoteDnsObj = buildDnsObj(ctx, upgradeUdpDnsToDoH(remoteDnsObj.value("server").toString()));
                 }
+                if (ctx.ent->type == "olcrtc" && (remoteDnsObj["type"].toString() == "udp" || remoteDnsObj["type"].toString() == "quic")) remoteDnsObj["type"] = "tcp";
                 remoteDnsObj["tag"] = tags::dnsRemote;
                 remoteDnsObj["domain_resolver"] = tags::dnsLocal;
                 remoteDnsObj["detour"] = tags::proxy;
@@ -2863,15 +2873,16 @@ namespace Configs {
 
         for (const auto& item : profiles)
         {
-            if (item->type == "qwdtt" || item->type == "csqtt" || item->type == "openflux") {
+            if (item->type == "qwdtt" || item->type == "csqtt" || item->type == "openflux" || item->type == "olcrtc") {
                 // Clone runtime fields so probing cannot replace live SOCKS credentials.
                 std::unique_ptr<extracore> holder;
                 if (item->type == "csqtt") holder = std::make_unique<csqtt>();
+                else if (item->type == "olcrtc") holder = std::make_unique<olcrtc>();
                 else if (item->type == "openflux") holder = std::make_unique<openflux>();
                 else holder = std::make_unique<qwdtt>();
                 auto &outbound = *holder;
                 if (!outbound.ParseFromJson(item->outbound->ExportToJson())) { item->SetLatency(-1); continue; }
-                const auto prepareError = item->type == "csqtt" ? static_cast<csqtt &>(outbound).Prepare() : item->type == "openflux" ? static_cast<openflux &>(outbound).Prepare() : static_cast<qwdtt &>(outbound).Prepare();
+                const auto prepareError = item->type == "csqtt" ? static_cast<csqtt &>(outbound).Prepare() : item->type == "olcrtc" ? static_cast<olcrtc &>(outbound).Prepare() : item->type == "openflux" ? static_cast<openflux &>(outbound).Prepare() : static_cast<qwdtt &>(outbound).Prepare();
                 if (!prepareError.isEmpty()) { MW_show_log(prepareError); item->SetLatency(-1); continue; }
                 auto built = outbound.Build();
                 if (!built.error.isEmpty()) { MW_show_log(built.error); item->SetLatency(-1); continue; }
