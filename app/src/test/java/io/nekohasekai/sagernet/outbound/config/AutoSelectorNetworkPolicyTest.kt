@@ -28,6 +28,14 @@ class AutoSelectorNetworkPolicyTest {
         assertEquals(listOf(2L), planner.unmeasuredCandidates(99L, selector, stale = listOf(2L)))
     }
 
+    @Test
+    fun cellularPinsWdttPlusAgainstGenericWatchProbeButWifiReturnsToAutomaticSelection() {
+        val members = selectorGroup(wdttPlusAllowed = true).members
+        assertEquals(2L, effectivePinnedMember(1L, wdttPlusAllowed = true, builtMembers = members))
+        assertEquals(1L, effectivePinnedMember(1L, wdttPlusAllowed = false, builtMembers = members.filter { it.id != 2L }))
+        assertEquals(-1L, effectivePinnedMember(-1L, wdttPlusAllowed = false, builtMembers = members.filter { it.id != 2L }))
+    }
+
     private fun selector() = AutoSelector().apply {
         gid = 7L
         buildLimit = 3

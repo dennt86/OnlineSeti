@@ -56,6 +56,18 @@ class SelectorGroup(
     @JvmField val wdttPlusAllowed: Boolean = true,
 )
 
+/** On cellular, WDTT Plus is the network-policy route and must not be displaced by generic latency probes. */
+internal fun effectivePinnedMember(
+    configuredPinnedId: Long,
+    wdttPlusAllowed: Boolean,
+    builtMembers: List<SelectorMember>,
+): Long {
+    if (wdttPlusAllowed) {
+        builtMembers.firstOrNull { it.outbound?.type == "wdttplus" }?.let { return it.id }
+    }
+    return configuredPinnedId.takeIf { id -> builtMembers.any { it.id == id } } ?: -1L
+}
+
 /** The storage the auto-selector plan reads: the tracked group, or null when it does not exist. */
 fun interface SelectorStore {
     fun group(gid: Long): SelectorGroup?

@@ -667,6 +667,11 @@ class ConfigGenerator @JvmOverloads constructor(
         var portIdx = 0
 
         val builtAt = clock()
+        val effectivePinnedId = effectivePinnedMember(
+            selector.pinnedID,
+            tracked.wdttPlusAllowed,
+            plannedMembers.map { it.member },
+        )
         val warm = JsonArray()
         var pinnedTag = ""
         val memberTags = JsonArray()
@@ -697,7 +702,7 @@ class ConfigGenerator @JvmOverloads constructor(
             val member = planned.member
             memberTags.add(tag)
             members[tag] = member.id
-            if (member.id == selector.pinnedID) pinnedTag = tag
+            if (member.id == effectivePinnedId) pinnedTag = tag
             if (member.latency != 0 && member.latencyAt > 0 && selector.resultValidityMins > 0) {
                 val age = builtAt - member.latencyAt
                 if (age >= 0 && age <= selector.resultValidityMins.toLong() * 60) {
