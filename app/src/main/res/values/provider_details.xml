@@ -1,0 +1,32 @@
+<resources>
+    <string name="provider_ignore_import">Ignore routing import</string>
+    <string name="provider_geo_reload">Download geo file again</string>
+    <string name="provider_manual">Manual</string>
+    <string name="provider_edit_rules">Edit rules</string>
+    <string name="provider_domain_settings">Domain settings</string>
+    <string name="provider_fake_dns">Use FakeDNS</string>
+    <string name="provider_proxy_settings">Proxy settings</string>
+    <string name="provider_global_proxy">Global proxy</string>
+    <string name="provider_proxy_notice">When Global proxy is off, unmatched traffic goes directly. The routes specified in this profile still apply.</string>
+    <string name="provider_routing_settings">Routing settings</string>
+    <string name="provider_proxy">Proxy</string>
+    <string name="provider_direct">Direct</string>
+    <string name="provider_block">Block</string>
+    <string name="provider_order_title">Routing order</string>
+    <string name="provider_order">Order</string>
+    <string name="provider_general">General</string>
+    <string name="provider_subscription_name">Subscription name</string>
+    <string name="provider_profile_settings">Profile settings</string>
+    <string name="provider_profile_heading">Title</string>
+    <string name="provider_rules_title">Routing rules</string>
+    <string name="provider_geo_files">Geo files</string>
+    <string name="provider_tunnel_dns">Tunnel DNS</string>
+    <string name="provider_remote_dns">Remote DNS</string>
+    <string name="provider_direct_dns">Direct DNS</string>
+    <string name="provider_tunnel_type">Tunnel DNS type</string>
+    <string name="provider_tunnel_domain">Tunnel domain</string>
+    <string name="provider_tunnel_ip">Tunnel IP address</string>
+    <string name="provider_json_notice">%1$s routing does not replace the routing inside a JSON configuration. Only the profile’s geo files and Tunnel DNS are used. Provider-managed fields cannot be edited.</string>
+    <string name="provider_geo_loading">Downloading geo files…</string>
+    <string name="provider_geo_complete">All files downloaded successfully</string>
+</resources>

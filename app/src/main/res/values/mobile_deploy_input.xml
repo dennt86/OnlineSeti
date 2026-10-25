@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Material's outlined input overlay otherwise derives its cursor from the dark toolbar colour. -->
+    <style name="MobileDeployInputOverlay" parent="">
+        <item name="colorPrimary">?attr/colorAccent</item>
+        <item name="colorControlActivated">?attr/colorAccent</item>
+        <item name="android:colorControlActivated">?attr/colorAccent</item>
+    </style>
+</resources>

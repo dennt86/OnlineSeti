@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- log exports (LogExport), backup shares and copied QR codes only, not the whole cache -->
+    <cache-path name="log" path="log/" />
+    <cache-path name="backup" path="backup/" />
+    <cache-path name="qr" path="qr/" />
+</paths>

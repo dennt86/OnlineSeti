@@ -1,0 +1,22 @@
+name: OnlineSeti VPN artwork
+run-name: OnlineSeti VPN artwork
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  artwork:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Qt
+        run: sudo apt-get update -qq && sudo apt-get install -y qt6-base-dev
+      - name: Render desktop artwork
+        run: |
+          g++ -std=c++17 -fPIC artwork/render.cpp -o render-artwork $(pkg-config --cflags --libs Qt6Widgets)
+          QT_QPA_PLATFORM=offscreen ./render-artwork
+      - uses: actions/upload-artifact@v7
+        with:
+          name: seasonal-assets
+          path: seasonal-assets/
+          if-no-files-found: error

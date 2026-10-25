@@ -1,0 +1,10 @@
+<resources>
+    <string name="qmobile_apps_all">All applications</string>
+    <string name="qmobile_apps_only">Only selected</string>
+    <string name="qmobile_apps_except">Except selected</string>
+    <string name="qmobile_apps_all_summary">All applications use the VPN.</string>
+    <string name="qmobile_apps_only_summary">Only selected applications use the VPN. Others connect directly.</string>
+    <string name="qmobile_apps_except_summary">Selected applications connect directly. All others use the VPN.</string>
+<string name="qmobile_subscription_updated">Subscription “%1$s” successfully updated</string>
+<string name="qmobile_subscription_failed">Subscription “%1$s” was not updated: %2$s</string>
+</resources>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto">
+    <PreferenceCategory app:title="@string/cag_url_test">
+        <moe.matsuri.nb4a.ui.UrlTestPreference
+            app:icon="@drawable/ic_baseline_cast_connected_24"
+            app:key="test_url"
+            app:title="@string/connection_test_url"
+            app:useSimpleSummaryProvider="true" />
+        <EditTextPreference
+            app:dialogMessage="@string/direct_test_url_sum"
+            app:key="direct_test_url"
+            app:title="@string/direct_test_url" />
+    </PreferenceCategory>
+</PreferenceScreen>

@@ -1,0 +1,15 @@
+<resources>
+    <string name="lan_sharing">Share VPN connection</string>
+    <string name="lan_sharing_enabled">Allow connections from other devices</string>
+    <string name="lan_sharing_summary">HTTP and SOCKS5 proxy through this phone. Connect the other device to the phone’s hotspot or the same Wi-Fi, then configure its proxy. Apply changes to the running VPN.</string>
+    <string name="lan_sharing_address">Phone addresses</string>
+    <string name="lan_sharing_loading">Determining phone address…</string>
+    <string name="lan_sharing_no_address">Enable the hotspot or connect to Wi-Fi, then reopen this screen.</string>
+    <string name="lan_sharing_port">HTTP / SOCKS5 port</string>
+    <string name="lan_sharing_hotspot">Open hotspot settings</string>
+    <string name="lan_sharing_help">On Windows: Network &amp; Internet → Proxy → Manual proxy: phone address and port below. For Telegram Desktop, use SOCKS5 in Telegram’s proxy settings. Enter the username and password below when prompted. Only applications configured to use this proxy will share the connection. VPN must remain connected.</string>
+    <string name="openconnect_private_networks">OpenConnect: remote LAN</string>
+    <string name="openconnect_private_networks_summary">OpenConnect only: route private addresses to the remote router, overriding private-range bypass. Enabled by default. Turn off to use the phone’s local network instead. Does not enable VPN sharing.</string>
+    <string name="local_socks_port">SOCKS5 proxy port</string>
+    <string name="local_http_port">HTTP proxy port</string>
+</resources>

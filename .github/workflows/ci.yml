@@ -1,0 +1,47 @@
+name: OnlineSeti VPN CI
+run-name: OnlineSeti VPN CI
+on:
+  push:
+    branches:
+      - '**'
+  workflow_dispatch:
+  pull_request:
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+permissions:
+  contents: read
+  actions: read
+jobs:
+  build:
+    name: Tests and APK
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Release numbering regression
+        run: python3 buildScript/test_release_tag.py
+      - name: Build
+        uses: ./.github/actions/android-build
+        with:
+          tasks: app:testOssDebugUnitTest app:assembleOssDebug app:assembleOssDebugAndroidTest
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v7
+        with:
+          name: OnlineSetiVPN-debug
+          path: app/build/outputs/apk/oss/debug/*.apk
+          if-no-files-found: error
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: OnlineSetiVPN-test-reports
+          path: app/build/reports/tests/
+          if-no-files-found: ignore
+      - name: Upload regression test APK
+        uses: actions/upload-artifact@v7
+        with:
+          name: OnlineSetiVPN-security-tests
+          path: app/build/outputs/apk/androidTest/oss/debug/*.apk
+          if-no-files-found: error

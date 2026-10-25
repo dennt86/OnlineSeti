@@ -1,0 +1,75 @@
+name: Android security regression
+on:
+  workflow_dispatch:
+    inputs:
+      build_run:
+        description: Successful CI build to test
+        required: true
+permissions:
+  contents: read
+  actions: read
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: OnlineSetiVPN-debug
+          path: tested-apk
+          run-id: ${{ inputs.build_run }}
+          github-token: ${{ github.token }}
+      - uses: actions/download-artifact@v8
+        with:
+          name: OnlineSetiVPN-security-tests
+          path: test-apk
+          run-id: ${{ inputs.build_run }}
+          github-token: ${{ github.token }}
+      - name: Prepare emulator
+        shell: bash
+        run: |
+          set -euo pipefail
+          export ANDROID_USER_HOME="$RUNNER_TEMP/security-android"
+          export ANDROID_AVD_HOME="$ANDROID_USER_HOME/avd"
+          mkdir -p "$ANDROID_AVD_HOME"
+          SDK="$ANDROID_HOME/cmdline-tools/latest/bin"
+          "$SDK/sdkmanager" 'system-images;android-35;google_apis;x86_64' 'emulator' 'platform-tools' >/dev/null
+          "$SDK/avdmanager" create avd -n security-test -k 'system-images;android-35;google_apis;x86_64' --device pixel_6 --force
+          sudo chmod a+rw /dev/kvm
+          "$ANDROID_HOME/emulator/emulator" -avd security-test -no-window -no-audio -no-snapshot -no-boot-anim -gpu swiftshader_indirect > "$RUNNER_TEMP/emulator.log" 2>&1 &
+          ADB="$ANDROID_HOME/platform-tools/adb"
+          timeout 180 "$ADB" wait-for-device
+          for attempt in $(seq 1 120); do
+            if test "$("$ADB" shell getprop sys.boot_completed | tr -d '\r')" = 1; then break; fi
+            sleep 2
+          done
+          test "$("$ADB" shell getprop sys.boot_completed | tr -d '\r')" = 1
+          "$ADB" shell input keyevent 82
+          "$ADB" install -r "$(find tested-apk -name '*x86_64*.apk' -print -quit)"
+          "$ADB" install -r "$(find test-apk -name '*.apk' -print -quit)"
+      - name: Test command authorization and database preservation
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p security-results
+          ADB="$ANDROID_HOME/platform-tools/adb"
+          COMPONENT="$("$ADB" shell pm list instrumentation | sed -n 's/^instrumentation:\([^ ]*\/androidx.test.runner.AndroidJUnitRunner\).*/\1/p' | tr -d '\r')"
+          test -n "$COMPONENT"
+          "$ADB" shell am instrument -w -r "$COMPONENT" | tee security-results/instrumentation.txt
+          grep -E 'OK \([0-9]+ tests\)' security-results/instrumentation.txt
+          ! grep -E 'FAILURES|INSTRUMENTATION_FAILED|Process crashed' security-results/instrumentation.txt
+      - name: Short VPN and unauthorized command check
+        run: python3 scripts/smoke_vpn_short.py
+      - name: Collect diagnostics
+        if: always()
+        run: |
+          mkdir -p security-results
+          "$ANDROID_HOME/platform-tools/adb" logcat -d > security-results/logcat.txt
+          cp "$RUNNER_TEMP/emulator.log" security-results/
+          if test -d ui-screenshots; then cp -r ui-screenshots security-results/; fi
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: Android-security-results
+          path: security-results/

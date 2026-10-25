@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@+id/nav_mobile_home" android:icon="@drawable/ic_mobile_core" android:title="Главная" />
+    <item android:id="@+id/nav_mobile_servers" android:icon="@drawable/ic_mobile_globe" android:title="Серверы" />
+    <item android:id="@+id/nav_route" android:icon="@drawable/ic_maps_directions" android:title="Маршруты" />
+    <item android:id="@+id/nav_mobile_more" android:icon="@drawable/ic_action_settings" android:title="Ещё" />
+</menu>

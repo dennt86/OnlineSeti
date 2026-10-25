@@ -1,0 +1,112 @@
+name: OnlineSeti VPN UI
+run-name: OnlineSeti VPN UI
+on:
+  workflow_dispatch:
+    inputs:
+      build_run:
+        description: Successful CI run containing the debug APK
+        required: true
+      artifact_name:
+        description: APK artifact to test (debug or signed release)
+        required: true
+        default: OnlineSetiVPN-debug
+      full_ui:
+        description: Capture every settings screen before the VPN checks
+        type: boolean
+        default: true
+permissions:
+  contents: read
+  actions: read
+jobs:
+  screenshots:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: ${{ inputs.artifact_name }}
+          path: preview-apk
+          run-id: ${{ inputs.build_run }}
+          github-token: ${{ github.token }}
+      - name: Prepare isolated Android emulator
+        shell: bash
+        run: |
+          set -euo pipefail
+          trap 'tail -n 100 "$RUNNER_TEMP/emulator.log" 2>/dev/null || true' EXIT
+          export ANDROID_USER_HOME="$RUNNER_TEMP/onlineseti-android"
+          export ANDROID_AVD_HOME="$ANDROID_USER_HOME/avd"
+          mkdir -p "$ANDROID_AVD_HOME"
+          SDK="$ANDROID_HOME/cmdline-tools/latest/bin"
+          yes | "$SDK/sdkmanager" 'system-images;android-35;google_apis;x86_64' 'emulator' 'platform-tools' > /dev/null || test -d "$ANDROID_HOME/system-images/android-35/google_apis/x86_64"
+          "$SDK/avdmanager" create avd -n onlineseti-preview -k 'system-images;android-35;google_apis;x86_64' --device pixel_6 --path "$ANDROID_AVD_HOME/onlineseti-preview.avd" --force
+          test -f "$ANDROID_AVD_HOME/onlineseti-preview.ini"
+          "$ANDROID_HOME/emulator/emulator" -list-avds | grep -Fx onlineseti-preview
+          if test -e /dev/kvm; then sudo chmod a+rw /dev/kvm; fi
+          "$ANDROID_HOME/emulator/emulator" -avd onlineseti-preview -no-window -no-audio -no-snapshot -no-boot-anim -gpu swiftshader_indirect > "$RUNNER_TEMP/emulator.log" 2>&1 &
+          timeout 180 "$ANDROID_HOME/platform-tools/adb" wait-for-device
+          for attempt in $(seq 1 180); do
+            if test "$("$ANDROID_HOME/platform-tools/adb" shell getprop sys.boot_completed | tr -d '\r')" = 1; then break; fi
+            sleep 3
+          done
+          test "$("$ANDROID_HOME/platform-tools/adb" shell getprop sys.boot_completed | tr -d '\r')" = 1
+          "$ANDROID_HOME/platform-tools/adb" shell input keyevent 82
+          "$ANDROID_HOME/platform-tools/adb" shell settings put global window_animation_scale 0
+          "$ANDROID_HOME/platform-tools/adb" shell settings put global transition_animation_scale 0
+          "$ANDROID_HOME/platform-tools/adb" shell settings put global animator_duration_scale 1
+          sleep 30
+          APK=$(find preview-apk -name '*x86_64*.apk' -print -quit)
+          test -n "$APK"
+          test "$("$ANDROID_HOME/platform-tools/adb" shell getprop ro.product.cpu.abi | tr -d '\r')" = x86_64
+          "$ANDROID_HOME/platform-tools/adb" install "$APK"
+          UNIVERSAL=$(find preview-apk -name '*universal*.apk' -print -quit)
+          test -n "$UNIVERSAL"
+          "$ANDROID_HOME/platform-tools/adb" install -r "$UNIVERSAL"
+          mkdir -p ui-screenshots
+          printf '%s\n' "PASS: ABI APK installed, universal APK installed over it with the same signature" > ui-screenshots/universal-install-result.txt
+          PACKAGE=$("$ANDROID_HOME/platform-tools/adb" shell pm list packages | sed -n 's/^package:\(ru.onlineseti.vpn[^[:space:]]*\).*/\1/p' | tr -d '\r')
+          test -n "$PACKAGE"
+          "$ANDROID_HOME/platform-tools/adb" shell dumpsys package "$PACKAGE" | grep -F 'primaryCpuAbi=x86_64'
+      - name: Capture real application screens
+        if: ${{ inputs.full_ui }}
+        env:
+          ADB: ${{ env.ANDROID_HOME }}/platform-tools/adb
+        run: python3 scripts/capture_ui.py
+      - name: Verify logs and deployment settings
+        run: python3 scripts/check_settings_ui.py
+      - name: Download UI regression tests
+        uses: actions/download-artifact@v8
+        with:
+          name: OnlineSetiVPN-security-tests
+          path: ui-regression-apk
+          run-id: ${{ inputs.build_run }}
+          github-token: ${{ github.token }}
+      - name: Verify OpenConnect forms and manual log scrolling
+        run: |
+          set -euo pipefail
+          ADB="$ANDROID_HOME/platform-tools/adb"
+          APK=$(find ui-regression-apk -name '*.apk' -print -quit)
+          test -n "$APK"
+          "$ADB" install "$APK"
+          TEST_PACKAGE=$("$ADB" shell pm list packages | sed -n 's/^package:\(ru.onlineseti.vpn[^[:space:]]*\.test\).*/\1/p' | tr -d '\r')
+          PACKAGE=${TEST_PACKAGE%.test}
+          "$ADB" shell am instrument -w -e class app.qthrone.mobile.LogsAndAuthRegressionTest "$TEST_PACKAGE/androidx.test.runner.AndroidJUnitRunner" | tee ui-screenshots/logs-auth-regression.txt
+          grep -F 'OK (2 tests)' ui-screenshots/logs-auth-regression.txt
+          for IMAGE in openconnect-auth-form.png openconnect-auth-groups.png logs-follow-bottom.png; do
+            "$ADB" exec-out run-as "$PACKAGE" cat "files/$IMAGE" > "ui-screenshots/$IMAGE"
+          done
+      - name: Verify VPN lifecycle and HTTP latency
+        env:
+          TESTED_BUILD_RUN: ${{ inputs.build_run }}
+        run: python3 scripts/smoke_vpn.py
+      - name: Save emulator diagnostics
+        if: always()
+        run: |
+          mkdir -p ui-screenshots
+          "$ANDROID_HOME/platform-tools/adb" logcat -d > ui-screenshots/emulator-final-logcat.txt
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: OnlineSetiVPN-ui-screenshots
+          path: ui-screenshots/
+          if-no-files-found: error

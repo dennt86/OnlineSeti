@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <PreferenceCategory app:title="@string/route_rule_category_rule">
+        <EditTextPreference
+            app:icon="@drawable/ic_social_emoji_symbols"
+            app:key="name"
+            app:title="@string/route_rule_name"
+            app:useSimpleSummaryProvider="true" />
+        <moe.matsuri.nb4a.ui.SimpleMenuPreference
+            app:entries="@array/route_rule_action_values"
+            app:entryValues="@array/route_rule_action_values"
+            app:icon="@drawable/ic_baseline_legend_toggle_24"
+            app:key="action"
+            app:title="@string/route_rule_action"
+            app:useSimpleSummaryProvider="true" />
+        <moe.matsuri.nb4a.ui.SimpleMenuPreference
+            app:entries="@array/route_rule_outbound_entries"
+            app:entryValues="@array/route_rule_outbound_values"
+            app:icon="@drawable/ic_baseline_compare_arrows_24"
+            app:key="outbound_id"
+            app:title="@string/route_rule_outbound"
+            app:useSimpleSummaryProvider="true" />
+        <moe.matsuri.nb4a.ui.SimpleMenuPreference
+            app:entries="@array/route_rule_reject_method_entries"
+            app:entryValues="@array/route_rule_reject_method_values"
+            app:icon="@drawable/ic_baseline_block_24"
+            app:key="reject_method"
+            app:title="@string/route_rule_reject_method"
+            app:useSimpleSummaryProvider="true" />
+        <moe.matsuri.nb4a.ui.SimpleMenuPreference
+            app:entries="@array/domain_strategy_entries"
+            app:entryValues="@array/domain_strategy_values"
+            app:icon="@drawable/baseline_wrap_text_24"
+            app:key="strategy"
+            app:title="@string/route_rule_strategy"
+            app:useSimpleSummaryProvider="true" />
+        <SwitchPreference
+            app:icon="@drawable/ic_baseline_manage_search_24"
+            app:key="sniff_override_dest"
+            app:summary="@string/route_rule_override_destination_sum"
+            app:title="@string/route_rule_override_destination" />
+    </PreferenceCategory>
+
+    <PreferenceCategory app:title="@string/route_rule_category_match">
+        <EditTextPreference
+            app:dialogMessage="@string/route_rule_domain_suffix_hint"
+            app:icon="@drawable/ic_baseline_domain_24"
+            app:key="domain_suffix"
+            app:title="@string/route_rule_domain_suffix" />
+        <EditTextPreference
+            app:dialogMessage="@string/route_rule_domain_hint"
+            app:icon="@drawable/baseline_public_24"
+            app:key="domain"
+            app:title="@string/route_rule_domain" />
+        <EditTextPreference
+            app:dialogMessage="@string/route_rule_ip_cidr_hint"
+            app:icon="@drawable/ic_baseline_grid_3x3_24"
+            app:key="ip_cidr"
+            app:title="@string/route_rule_ip_cidr" />
+        <app.qthrone.mobile.widget.StringLinesPreference
+            app:icon="@drawable/ic_baseline_rule_folder_24"
+            app:key="rule_set"
+            app:title="@string/route_rule_rule_sets" />
+        <app.qthrone.mobile.widget.StringLinesPreference
+            app:icon="@drawable/ic_navigation_apps"
+            app:key="package_name"
+            app:title="@string/route_rule_apps" />
+        <app.qthrone.mobile.widget.StringLinesPreference
+            app:icon="@drawable/ic_hardware_router"
+            app:key="network_type"
+            app:title="@string/route_rule_network_type" />
+    </PreferenceCategory>
+
+    <Preference
+        app:icon="@drawable/ic_baseline_expand_more_24"
+        app:key="advancedToggle"
+        app:persistent="false"
+        app:title="@string/route_rule_advanced" />
+
+    <PreferenceCategory
+        app:isPreferenceVisible="false"
+        app:key="advancedCategory">
+        <EditTextPreference
+            app:dialogMessage="@string/route_rule_lines_hint"
+            app:key="domain_keyword"
+            app:title="@string/route_rule_domain_keyword" />
+        <EditTextPreference
+            app:dialogMessage="@string/route_rule_regex_hint"
+            app:key="domain_regex"
+            app:title="@string/route_rule_domain_regex" />
+        <SwitchPreference
+            app:key="ip_is_private"
+            app:summary="@string/route_rule_ip_is_private_sum"
+            app:title="@string/route_rule_ip_is_private" />
+        <EditTextPreference
+            app:dialogMessage="@string/route_rule_ip_cidr_hint"
+            app:key="source_ip_cidr"
+            app:title="@string/route_rule_source_ip_cidr" />
+        <SwitchPreference
+            app:key="source_ip_is_private"
+            app:title="@string/route_rule_source_ip_is_private" />
+        <EditTextPreference
+            app:dialogMessage="@string/route_rule_port_hint"
+            app:key="port"
+            app:title="@string/route_rule_port" />
+        <EditTextPreference
+            app:dialogMessage="@string/route_rule_port_range_hint"
+            app:key="port_range"
+            app:title="@string/route_rule_port_range" />
+        <EditTextPreference
+            app:dialogMessage="@string/route_rule_port_hint"
+            app:key="source_port"
+            app:title="@string/route_rule_source_port" />
+        <EditTextPreference
+            app:dialogMessage="@string/route_rule_port_range_hint"
+            app:key="source_port_range"
+            app:title="@string/route_rule_source_port_range" />
+        <moe.matsuri.nb4a.ui.SimpleMenuPreference
+            app:entries="@array/route_rule_network_entries"
+            app:entryValues="@array/route_rule_network_values"
+            app:key="network"
+            app:title="@string/route_rule_network"
+            app:useSimpleSummaryProvider="true" />
+        <moe.matsuri.nb4a.ui.SimpleMenuPreference
+            app:entries="@array/route_rule_protocol_entries"
+            app:entryValues="@array/route_rule_protocol_values"
+            app:key="protocol"
+            app:title="@string/route_rule_protocol"
+            app:useSimpleSummaryProvider="true" />
+        <moe.matsuri.nb4a.ui.SimpleMenuPreference
+            app:entries="@array/route_rule_ip_version_entries"
+            app:entryValues="@array/route_rule_ip_version_values"
+            app:key="ip_version"
+            app:title="@string/route_rule_ip_version"
+            app:useSimpleSummaryProvider="true" />
+        <EditTextPreference
+            app:dialogMessage="@string/route_rule_inbound_hint"
+            app:key="inbound"
+            app:title="@string/route_rule_inbound" />
+        <SwitchPreference
+            app:key="invert"
+            app:summary="@string/route_rule_invert_sum"
+            app:title="@string/route_rule_invert" />
+        <EditTextPreference
+            app:key="override_address"
+            app:title="@string/route_rule_override_address"
+            app:useSimpleSummaryProvider="true" />
+        <EditTextPreference
+            app:key="override_port"
+            app:title="@string/route_rule_override_port"
+            app:useSimpleSummaryProvider="true" />
+        <SwitchPreference
+            app:key="no_drop"
+            app:summary="@string/route_rule_no_drop_sum"
+            app:title="@string/route_rule_no_drop" />
+        <EditTextPreference
+            app:dialogMessage="@string/route_rule_package_name_regex_hint"
+            app:key="package_name_regex"
+            app:title="@string/route_rule_package_name_regex" />
+        <EditTextPreference
+            app:dialogMessage="@string/route_rule_lines_hint"
+            app:key="process_name"
+            app:title="@string/route_rule_process_name" />
+        <EditTextPreference
+            app:dialogMessage="@string/route_rule_lines_hint"
+            app:key="process_path"
+            app:title="@string/route_rule_process_path" />
+        <EditTextPreference
+            app:dialogMessage="@string/route_rule_regex_hint"
+            app:key="process_path_regex"
+            app:title="@string/route_rule_process_path_regex" />
+        <SwitchPreference
+            app:key="network_is_expensive"
+            app:summary="@string/route_rule_network_is_expensive_sum"
+            app:title="@string/route_rule_network_is_expensive" />
+        <EditTextPreference
+            app:dialogMessage="@string/route_rule_lines_hint"
+            app:key="wifi_ssid"
+            app:title="@string/route_rule_wifi_ssid" />
+        <EditTextPreference
+            app:dialogMessage="@string/route_rule_lines_hint"
+            app:key="wifi_bssid"
+            app:title="@string/route_rule_wifi_bssid" />
+    </PreferenceCategory>
+
+</PreferenceScreen>

@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto">
+    <PreferenceCategory app:title="@string/grp_settings_subscription">
+        <EditTextPreference
+            app:icon="@drawable/ic_baseline_http_24"
+            app:key="user_agent2"
+            app:title="@string/grp_settings_user_agent" />
+        <SwitchPreference
+            app:icon="@drawable/ic_baseline_update_24"
+            app:key="subAutoUpdateEnabled"
+            app:persistent="false"
+            app:title="@string/grp_sub_auto_update" />
+        <EditTextPreference
+            app:key="subAutoUpdateInterval"
+            app:persistent="false"
+            app:title="@string/grp_sub_auto_update_interval" />
+        <SwitchPreference
+            app:icon="@drawable/baseline_delete_sweep_24"
+            app:key="sub_clear"
+            app:title="@string/grp_sub_clear" />
+        <SwitchPreference
+            app:key="sub_show_change_popup"
+            app:summary="@string/grp_sub_show_change_popup_tip"
+            app:title="@string/grp_sub_show_change_popup" />
+        <SwitchPreference
+            app:icon="@drawable/ic_baseline_fingerprint_24"
+            app:key="sub_send_hwid"
+            app:defaultValue="true"
+            app:title="@string/grp_sub_send_hwid" />
+        <EditTextPreference
+            app:dialogMessage="@string/grp_sub_custom_hwid_params_tip"
+            app:key="sub_custom_hwid_params"
+            app:title="@string/grp_sub_custom_hwid_params" />
+        <SwitchPreference
+            app:key="allow_stopping_active_profile"
+            app:summary="@string/grp_allow_stopping_active_profile_tip"
+            app:title="@string/grp_allow_stopping_active_profile" />
+    </PreferenceCategory>
+    <PreferenceCategory app:title="@string/cag_app_requests">
+        <SwitchPreference
+            app:key="net_use_proxy"
+            app:summary="@string/net_use_proxy_sum"
+            app:title="@string/net_use_proxy" />
+        <SwitchPreference
+            app:icon="@drawable/ic_action_lock_open"
+            app:key="net_insecure"
+            app:summary="@string/net_insecure_sum"
+            app:title="@string/net_insecure" />
+        <moe.matsuri.nb4a.ui.SimpleMenuPreference
+            app:defaultValue="1.2"
+            app:entries="@array/app_tls_version"
+            app:entryValues="@array/app_tls_version"
+            app:key="appTLSVersion"
+            app:title="@string/app_tls_version"
+            app:useSimpleSummaryProvider="true" />
+    </PreferenceCategory>
+</PreferenceScreen>

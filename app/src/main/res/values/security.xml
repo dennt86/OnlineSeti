@@ -1,0 +1,4 @@
+<resources>
+    <string name="shortcut_permission_title">VPN control</string>
+    <string name="shortcut_permission_message">An unverified shortcut or another app requested VPN control. Allow this action?</string>
+</resources>

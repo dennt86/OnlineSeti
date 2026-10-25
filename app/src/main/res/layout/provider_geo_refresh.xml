@@ -1,0 +1,4 @@
+<ImageButton xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/provider_geo_refresh" android:layout_width="40dp" android:layout_height="40dp"
+    android:padding="8dp" android:background="?attr/selectableItemBackgroundBorderless"
+    android:src="@drawable/ic_mobile_refresh" android:contentDescription="@string/provider_geo_reload" />

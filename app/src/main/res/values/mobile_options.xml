@@ -1,0 +1,15 @@
+<resources>
+<string name="qmobile_seasonal">Seasonal decoration</string>
+<string name="qmobile_edit">Edit</string>
+<string name="qmobile_pin">Pin</string>
+<string name="qmobile_unpin">Unpin</string>
+<string name="qmobile_subscription_name">Subscription name</string>
+<string name="qmobile_subscription_url">Subscription URL</string>
+<string name="qmobile_auto_update">Automatic updates</string>
+<string name="qmobile_save">Save</string>
+<string name="qmobile_server_list">Server list</string>
+<string-array name="mobile_theme_names"><item>Red</item><item>Pink SSR</item><item>Pink</item><item>Purple</item><item>Deep purple</item><item>Indigo</item><item>Blue</item><item>Light blue</item><item>Cyan</item><item>Teal</item><item>Green</item><item>Light green</item><item>Lime</item><item>Yellow</item><item>Amber</item><item>Orange</item><item>Deep orange</item><item>Brown</item><item>Grey</item><item>Blue grey</item><item>Black</item><item>Mint</item><item>White</item></string-array>
+<string-array name="qmobile_seasons"><item>None</item><item>Auto</item><item>Autumn</item><item>Winter</item><item>Spring</item><item>Summer</item></string-array>
+<string-array name="qmobile_season_values"><item>none</item><item>auto</item><item>halloween</item><item>newyear</item><item>easter</item><item>kupala</item></string-array>
+<string name="provider_profile_source">Source: %1$s</string>
+</resources>

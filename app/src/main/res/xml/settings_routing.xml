@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto">
+    <PreferenceCategory app:title="@string/cag_route_profiles">
+        <Preference
+            app:icon="@drawable/ic_maps_directions"
+            app:key="routeProfiles"
+            app:persistent="false"
+            app:summary="@string/route_profiles_sum"
+            app:title="@string/route_profiles" />
+        <Preference
+            app:icon="@drawable/ic_baseline_legend_toggle_24"
+            app:key="currentRouteProfile"
+            app:persistent="false"
+            app:title="@string/route_profile_current" />
+    </PreferenceCategory>
+
+    <PreferenceCategory app:title="@string/cag_common">
+        <moe.matsuri.nb4a.ui.SimpleMenuPreference
+            app:entries="@array/domain_strategy_entries"
+            app:entryValues="@array/domain_strategy_values"
+            app:icon="@drawable/ic_baseline_domain_24"
+            app:key="outbound_domain_strategy"
+            app:title="@string/outbound_domain_strategy"
+            app:useSimpleSummaryProvider="true" />
+        <moe.matsuri.nb4a.ui.SimpleMenuPreference
+            app:entries="@array/domain_strategy_entries"
+            app:entryValues="@array/domain_strategy_values"
+            app:icon="@drawable/baseline_wrap_text_24"
+            app:key="domain_strategy"
+            app:title="@string/resolve_domain_strategy"
+            app:useSimpleSummaryProvider="true" />
+        <moe.matsuri.nb4a.ui.SimpleMenuPreference
+            app:entries="@array/ruleset_mirror_entries"
+            app:entryValues="@array/int_array_6"
+            app:icon="@drawable/ic_baseline_rule_folder_24"
+            app:key="ruleset_mirror"
+            app:title="@string/ruleset_mirror"
+            app:useSimpleSummaryProvider="true" />
+        <SwitchPreference
+            app:icon="@drawable/ic_baseline_block_24"
+            app:key="adblock_enable"
+            app:summary="@string/adblock_enable_sum"
+            app:title="@string/adblock_enable" />
+    </PreferenceCategory>
+
+    <PreferenceCategory app:title="@string/cag_remote_profiles">
+        <SwitchPreference
+            app:icon="@drawable/ic_baseline_update_24"
+            app:key="routeAutoUpdateEnabled"
+            app:persistent="false"
+            app:title="@string/route_auto_update" />
+        <EditTextPreference
+            app:key="routeAutoUpdateInterval"
+            app:persistent="false"
+            app:title="@string/auto_update_interval" />
+    </PreferenceCategory>
+
+    <PreferenceCategory app:title="@string/cag_warp">
+        <app.qthrone.mobile.ui.settings.WarpEntryPreference
+            app:fragment="app.qthrone.mobile.ui.settings.WarpSettingsFragment"
+            app:icon="@drawable/ic_file_cloud_queue"
+            app:key="settingsWarp"
+            app:persistent="false"
+            app:title="@string/warp_settings" />
+    </PreferenceCategory>
+    <PreferenceCategory app:title="@string/apps">
+        <SwitchPreference app:key="proxyApps" app:title="@string/proxied_apps" app:summary="@string/proxied_apps_summary" />
+        <Preference app:key="routingApplications" app:title="@string/apps" app:widgetLayout="@layout/qmobile_preference_arrow" />
+    </PreferenceCategory>
+    <Preference app:fragment="app.qthrone.mobile.ui.settings.XrayGeoSettingsFragment"
+        app:title="@string/xray_geo_download_title" app:widgetLayout="@layout/qmobile_preference_arrow" />
+</PreferenceScreen>

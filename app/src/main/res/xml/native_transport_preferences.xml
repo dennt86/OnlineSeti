@@ -1,0 +1,3 @@
+<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto">
+    <EditTextPreference app:key="name" app:title="@string/profile_name" app:useSimpleSummaryProvider="true" />
+</PreferenceScreen>

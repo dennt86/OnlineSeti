@@ -1,0 +1,32 @@
+<resources>
+    <string name="provider_ignore_import">Игнорировать импорт маршрутизации</string>
+    <string name="provider_geo_reload">Скачать геофайл заново</string>
+    <string name="provider_manual">Ручной</string>
+    <string name="provider_edit_rules">Редактировать правила</string>
+    <string name="provider_domain_settings">Настройки доменов</string>
+    <string name="provider_fake_dns">Использовать поддельную DNS</string>
+    <string name="provider_proxy_settings">Настройки прокси</string>
+    <string name="provider_global_proxy">Глобальный прокси</string>
+    <string name="provider_proxy_notice">Если «Глобальный прокси» отключён, трафик проходит напрямую, кроме маршрутов, указанных в этом профиле.</string>
+    <string name="provider_routing_settings">Настройки маршрутизации</string>
+    <string name="provider_proxy">Прокси</string>
+    <string name="provider_direct">Напрямую</string>
+    <string name="provider_block">Заблокировать</string>
+    <string name="provider_order_title">Порядок маршрутизации</string>
+    <string name="provider_order">Порядок</string>
+    <string name="provider_general">Общие</string>
+    <string name="provider_subscription_name">Имя подписки</string>
+    <string name="provider_profile_settings">Настройки профиля</string>
+    <string name="provider_profile_heading">Заголовок</string>
+    <string name="provider_rules_title">Правила маршрутизации</string>
+    <string name="provider_geo_files">Геофайлы</string>
+    <string name="provider_tunnel_dns">DNS туннеля</string>
+    <string name="provider_remote_dns">Удалённый DNS</string>
+    <string name="provider_direct_dns">Прямой DNS</string>
+    <string name="provider_tunnel_type">Тип DNS туннеля</string>
+    <string name="provider_tunnel_domain">Домен туннеля</string>
+    <string name="provider_tunnel_ip">IP-адрес туннеля</string>
+    <string name="provider_json_notice">Маршрутизация %1$s не заменяет правила внутри JSON-конфигурации. Используются только геофайлы профиля и DNS туннеля. Поля, которыми управляет провайдер, нельзя изменить.</string>
+    <string name="provider_geo_loading">Загрузка геофайлов…</string>
+    <string name="provider_geo_complete">Все файлы успешно загружены</string>
+</resources>

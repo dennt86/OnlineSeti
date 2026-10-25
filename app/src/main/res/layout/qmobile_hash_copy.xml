@@ -1,0 +1,9 @@
+<ImageButton xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/hash_copy"
+    android:layout_width="48dp"
+    android:layout_height="48dp"
+    android:padding="12dp"
+    android:background="?attr/selectableItemBackgroundBorderless"
+    android:src="@drawable/ic_mobile_copy_outline"
+    android:tint="?attr/colorPrimary"
+    android:contentDescription="Скопировать хеш VK" />

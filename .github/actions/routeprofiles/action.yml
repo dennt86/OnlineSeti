@@ -1,0 +1,23 @@
+name: Fetch routeprofiles snapshot
+description: >-
+  Downloads srslist.h from the rule-set branch and the whole profile branch of throneproj/routeprofiles into
+  app/src/main/assets/routeprofiles/ (gitignored), the rule-set list and route profiles the app bundles.
+runs:
+  using: composite
+  steps:
+    - name: Fetch routeprofiles snapshot
+      shell: bash
+      run: |
+        set -euo pipefail
+        DEST=app/src/main/assets/routeprofiles
+        rm -rf "$DEST"
+        mkdir -p "$DEST/profile"
+        curl -fsSL --retry 3 -o "$DEST/srslist.h" \
+          https://raw.githubusercontent.com/throneproj/routeprofiles/rule-set/srslist.h
+        if [ ! -s "$DEST/srslist.h" ]; then
+          echo "::error::srslist.h is missing or empty"
+          exit 1
+        fi
+        curl -fsSL --retry 3 https://codeload.github.com/throneproj/routeprofiles/tar.gz/refs/heads/profile \
+          | tar -xz --strip-components=1 -C "$DEST/profile"
+        ls -l "$DEST" "$DEST/profile"

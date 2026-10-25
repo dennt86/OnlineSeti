@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto">
+    <PreferenceCategory app:title="@string/cag_mixed_inbound">
+        <SwitchPreference
+            app:icon="@drawable/ic_baseline_block_24"
+            app:key="disable_mixed_inbound"
+            app:summary="@string/disable_mixed_inbound_sum"
+            app:title="@string/disable_mixed_inbound" />
+        <EditTextPreference
+            app:icon="@drawable/ic_maps_directions_boat"
+            app:key="inbound_socks_port"
+            app:title="@string/port_proxy"
+            app:useSimpleSummaryProvider="true" />
+        <EditTextPreference app:key="inbound_http_port" app:title="@string/local_http_port" app:useSimpleSummaryProvider="true" />
+        <SwitchPreference
+            app:key="random_inbound_port"
+            app:summary="@string/random_inbound_port_sum"
+            app:title="@string/random_inbound_port" />
+        <SwitchPreference
+            app:icon="@drawable/ic_baseline_nat_24"
+            app:key="inboundAllowLan"
+            app:persistent="false"
+            app:summary="@string/allow_access_sum"
+            app:title="@string/allow_access" />
+        <SwitchPreference
+            app:icon="@drawable/ic_baseline_http_24"
+            app:key="appendHttpProxy"
+            app:summary="@string/append_http_proxy_sum"
+            app:title="@string/append_http_proxy" />
+        <EditTextPreference
+            app:dialogMessage="@string/http_proxy_bypass_dialog_message"
+            app:icon="@drawable/ic_baseline_domain_24"
+            app:key="httpProxyBypass"
+            app:title="@string/http_proxy_bypass" />
+    </PreferenceCategory>
+
+    <PreferenceCategory app:title="@string/cag_authentication">
+        <SwitchPreference
+            app:icon="@drawable/ic_baseline_lock_24"
+            app:key="inbound_auth"
+            app:summary="@string/inbound_auth_sum"
+            app:title="@string/qmobile_socks_auth" />
+        <EditTextPreference
+            app:key="inbound_user"
+            app:title="@string/qmobile_socks_user"
+            app:useSimpleSummaryProvider="true" />
+        <EditTextPreference
+            app:key="inbound_pass"
+            app:title="@string/qmobile_socks_pass" />
+        <Preference app:key="qmobileResetSocks" app:title="@string/qmobile_socks_reset" />
+    </PreferenceCategory>
+
+    <PreferenceCategory app:title="@string/cag_advanced">
+        <EditTextPreference
+            app:dialogMessage="@string/dns_in_port_dialog_message"
+            app:icon="@drawable/ic_action_dns"
+            app:key="core_dns_in_port"
+            app:title="@string/dns_in_port"
+            app:useSimpleSummaryProvider="true" />
+        <moe.matsuri.nb4a.ui.EditConfigPreference
+            app:icon="@drawable/ic_baseline_layers_24"
+            app:jsonAllowEmpty="true"
+            app:jsonSchema="#"
+            app:key="custom_inbound"
+            app:title="@string/custom_inbound" />
+    </PreferenceCategory>
+</PreferenceScreen>

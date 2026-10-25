@@ -1,0 +1,10 @@
+<resources>
+    <string name="log_detail">Подробность логов</string>
+    <string-array name="log_detail_choices"><item>Подробные: соединения, маршрутизация и DNS</item><item>Обычные: основные события</item><item>Только ошибки</item></string-array>
+    <string name="openconnect_auth_unsupported">Эта форма авторизации пока не поддерживается.</string>
+    <string name="openconnect_auth_title">Авторизация OpenConnect</string>
+    <string name="openconnect_browser_required">Сервер требует авторизацию через браузер. Этот способ входа пока не поддерживается.</string>
+    <string name="qmobile_logs">Логи</string>
+    <string name="log_empty">Логов пока нет. Здесь появятся события подключения.</string>
+    <string name="log_clear_confirm">Очистить логи текущего и предыдущего подключения?</string>
+</resources>

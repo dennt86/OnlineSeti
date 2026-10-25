@@ -1,0 +1,30 @@
+<resources>
+ <string name="qmobile_color">Color</string>
+ <string name="qmobile_notification_speed">Show speed in notification</string>
+ <string-array name="qmobile_surface_themes"><item>Use system theme</item><item>OLED</item><item>Dark</item><item>Light</item></string-array>
+ <string-array name="qmobile_surface_values"><item>system</item><item>oled</item><item>dark</item><item>light</item></string-array>
+<string name="qmobile_check_connection">Check current\nconnection</string>
+<string name="qmobile_ping_checking">Checking ping</string>
+<string name="qmobile_ping_success">Success: %1$d ms</string>
+<string name="qmobile_socks_auth">SOCKS5 authentication</string>
+<string name="qmobile_socks_user">SOCKS5 username</string>
+<string name="qmobile_socks_pass">SOCKS5 password</string>
+<string name="qmobile_socks_reset">Reset username and password</string>
+<string name="qmobile_file">Add from file</string>
+<string name="qmobile_manual">Manual input</string>
+<string name="qmobile_paste_json">Paste JSON</string>
+<string name="qmobile_copy_json">Copy JSON</string>
+<string name="qmobile_dev_updates">Dev builds</string>
+<string name="qmobile_dev_updates_summary">Include signed development builds when checking for updates.</string>
+<string name="qmobile_socks_password_invalid">Use a password of at least 32 characters or reset the credentials.</string>
+    <string name="qmobile_unavailable">n/a</string>
+    <string name="qmobile_current_server">CONNECTED THROUGH</string>
+    <string name="qmobile_auto_server_checking">Choosing a server…</string>
+    <string name="qmobile_auto_server_waiting">Waiting for network</string>
+    <string name="qmobile_auto_server_no_network">Automatic switching will resume when the network is back</string>
+    <string name="qmobile_auto_server_checking_detail">Checking available servers</string>
+    <string name="qmobile_auto_switch_active">Automatic switching is on</string>
+    <string name="qmobile_auto_server_switched">Automatic switching · changed %s ago</string>
+    <string name="qmobile_auto_server_details">Open automatic switching details</string>
+    <string name="qmobile_auto_server_accessibility">Connected through %1$s. %2$s. Open automatic switching details.</string>
+</resources>

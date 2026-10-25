@@ -1,0 +1,6 @@
+<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto">
+    <SwitchPreference app:key="allow_beta_update" app:icon="@drawable/ic_mobile_update" app:title="@string/allow_beta_update" app:summary="@string/allow_beta_update_sum" />
+    <SwitchPreference app:key="updateCheckAuto" app:icon="@drawable/ic_mobile_clock" app:title="@string/update_check_auto" app:summary="@string/update_check_auto_sum" />
+    <Preference app:key="qmobileUpdate" app:icon="@drawable/ic_mobile_refresh" app:title="@string/update_check" />
+    <Preference app:key="updateCurrentVersion" app:selectable="false" />
+</PreferenceScreen>

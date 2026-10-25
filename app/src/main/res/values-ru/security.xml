@@ -1,0 +1,4 @@
+<resources>
+    <string name="shortcut_permission_title">Управление VPN</string>
+    <string name="shortcut_permission_message">Непроверенный ярлык или другое приложение запросило управление VPN. Разрешить это действие?</string>
+</resources>

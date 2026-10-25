@@ -1,0 +1,10 @@
+<resources>
+    <string name="qmobile_apps_all">Все приложения</string>
+    <string name="qmobile_apps_only">Только выбранные</string>
+    <string name="qmobile_apps_except">Кроме выбранных</string>
+    <string name="qmobile_apps_all_summary">Все приложения используют VPN.</string>
+    <string name="qmobile_apps_only_summary">Только выбранные приложения используют VPN. Остальные подключаются напрямую.</string>
+    <string name="qmobile_apps_except_summary">Выбранные приложения подключаются напрямую. Остальные используют VPN.</string>
+<string name="qmobile_subscription_updated">Подписка «%1$s» успешно обновлена</string>
+<string name="qmobile_subscription_failed">Подписка «%1$s» не обновлена: %2$s</string>
+</resources>

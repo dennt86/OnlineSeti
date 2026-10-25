@@ -1,0 +1,43 @@
+<resources>
+<item name="nav_mobile_home" type="id"/>
+<string name="qmobile_connect">Connect or disconnect VPN</string>
+<string name="qmobile_clipboard">From clipboard</string>
+<string name="qmobile_qr">QR code</string>
+<string name="qmobile_profiles">Profiles and tests</string>
+<string name="qmobile_empty">To use the app, add a proxy server and/or subscription to the server list.</string>
+<string name="qmobile_settings">Settings</string>
+<string name="qmobile_add">Add profile or subscription</string>
+<string name="qmobile_refresh">Update subscription</string>
+<string name="qmobile_more">More actions</string>
+<string name="qmobile_subscription_info">Subscription information</string>
+<string name="qmobile_expiry">Expiry: %1$s</string>
+<string name="qmobile_quota_unknown">Traffic not provided</string>
+<string name="qmobile_connected">Connected</string>
+<string name="qmobile_connecting">Connecting…</string>
+<string name="qmobile_disconnected">Not connected</string>
+<string name="qmobile_clipboard_empty">Clipboard is empty</string>
+<string name="qmobile_collapse_all">Collapse / expand all</string>
+<string name="qmobile_share">Share profile</string>
+<string name="qmobile_delete">Delete</string>
+<string name="qmobile_delete_failed">Could not delete the profile.</string>
+<string name="qmobile_ping">Latency test</string>
+<string name="qmobile_speed">Speed test</string>
+<string name="qmobile_tests">Testing</string>
+<string name="qmobile_stop">Stop</string>
+<color name="qmobile_launcher_background">#00000000</color>
+<string name="qmobile_routing">Split routing</string>
+<string name="qmobile_route_default">Default traffic destination</string>
+<string name="qmobile_route_add">Add a rule</string>
+<string name="qmobile_route_target">Traffic destination</string>
+<string name="qmobile_route_main">Main profile</string>
+<string name="qmobile_route_dns_rule">DNS routing</string>
+<string name="qmobile_route_direct">Direct connection</string>
+<string name="qmobile_route_remove">Delete this rule?</string>
+<string name="qmobile_route_domains">Domains, including subdomains</string>
+<string name="qmobile_route_ips">IP addresses or CIDR networks</string>
+<string name="qmobile_route_apps">Applications</string>
+<string name="qmobile_route_required">Enter at least one value</string>
+<string name="qmobile_route_advanced">Advanced routing editor</string>
+<string name="qmobile_route_invalid">Enter valid domains or IP networks</string>
+<string name="qmobile_advanced_settings">Advanced</string>
+</resources>

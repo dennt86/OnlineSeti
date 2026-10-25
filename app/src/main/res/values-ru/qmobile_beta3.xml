@@ -1,0 +1,29 @@
+<resources>
+ <string name="qmobile_color">Цвет</string>
+ <string name="qmobile_notification_speed">Показывать скорость в уведомлении</string>
+ <string-array name="qmobile_surface_themes"><item>Использовать системную тему</item><item>OLED</item><item>Тёмная</item><item>Светлая</item></string-array>
+<string name="qmobile_check_connection">Проверить текущее\nподключение</string>
+<string name="qmobile_ping_checking">Проверка пинга</string>
+<string name="qmobile_ping_success">Успешно: %1$d мс</string>
+<string name="qmobile_socks_auth">SOCKS5 авторизация</string>
+<string name="qmobile_socks_user">SOCKS5 логин</string>
+<string name="qmobile_socks_pass">SOCKS5 пароль</string>
+<string name="qmobile_socks_reset">Сбросить логин и пароль</string>
+<string name="qmobile_file">Добавить из файла</string>
+<string name="qmobile_manual">Ручной ввод</string>
+<string name="qmobile_paste_json">Вставить JSON</string>
+<string name="qmobile_copy_json">Копировать JSON</string>
+<string name="qmobile_dev_updates">Dev-ветка</string>
+<string name="qmobile_dev_updates_summary">Искать также подписанные сборки из ветки разработки.</string>
+<string name="qmobile_socks_password_invalid">Пароль должен содержать не менее 32 символов. Можно сгенерировать новый кнопкой сброса.</string>
+    <string name="qmobile_unavailable">н/д</string>
+    <string name="qmobile_current_server">ПОДКЛЮЧЕНО ЧЕРЕЗ</string>
+    <string name="qmobile_auto_server_checking">Выбираем сервер…</string>
+    <string name="qmobile_auto_server_waiting">Ожидаем сеть</string>
+    <string name="qmobile_auto_server_no_network">Автопереключение возобновится, когда появится сеть</string>
+    <string name="qmobile_auto_server_checking_detail">Проверяем доступные серверы</string>
+    <string name="qmobile_auto_switch_active">Автопереключение включено</string>
+    <string name="qmobile_auto_server_switched">Автопереключение · смена %s назад</string>
+    <string name="qmobile_auto_server_details">Открыть состояние автопереключения</string>
+    <string name="qmobile_auto_server_accessibility">Подключено через %1$s. %2$s. Открыть состояние автопереключения.</string>
+</resources>

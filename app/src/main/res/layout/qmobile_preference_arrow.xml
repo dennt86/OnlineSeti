@@ -1,0 +1,4 @@
+<ImageView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="24dp" android:layout_height="24dp"
+    android:src="@drawable/ic_mobile_chevron" android:alpha="0.65"
+    android:importantForAccessibility="no" android:contentDescription="@null" />

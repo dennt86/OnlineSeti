@@ -1,0 +1,12 @@
+<resources>
+    <string name="qmobile_general">General settings</string>
+    <string name="qmobile_tun">TUN settings</string>
+    <string name="qmobile_core">Core settings</string>
+    <string name="qmobile_dns">DNS settings</string>
+    <string name="qmobile_routes">Routing settings</string>
+    <string name="qmobile_subscriptions">Subscription settings</string>
+    <string name="qmobile_backup">Backup and restore</string>
+    <string name="qmobile_updates">Updates</string>
+<string name="qmobile_mtu_manual">Enter manually</string>
+<string name="qmobile_mtu_range">Enter a value from 1000 to 10000</string>
+</resources>

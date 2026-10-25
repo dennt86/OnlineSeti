@@ -1,0 +1,41 @@
+package app.qthrone.mobile.bg.carrier
+
+import app.qthrone.mobile.outbound.types.Qwdtt
+import app.qthrone.mobile.outbound.types.Socks
+import java.net.ServerSocket
+import java.net.DatagramSocket
+import java.net.InetAddress
+
+/** One generation owns its bridge; no runtime secret is written back to a stored profile. */
+class CarrierPlan private constructor(
+    val profileId:Long, val kind:CarrierKind, val port:Int, val key:String,
+    val credentials:CarrierBridgeCredentials, val privateJson:String,
+) {
+    fun outbound()=Socks().also {
+        it.server="127.0.0.1";it.serverPort=port
+        it.username=credentials.username;it.password=credentials.password
+    }
+    companion object {
+        fun qwdtt(profileId:Long, profile:NativeCarrier):CarrierPlan {
+            val identity=(profile as app.qthrone.mobile.outbound.Outbound).exportToJson().also { it.remove("name");it.remove("tag") }.toCompact()
+            val key=java.security.MessageDigest.getInstance("SHA-256").digest(identity.toByteArray()).joinToString("") { "%02x".format(it.toInt() and 255) }
+            CarrierPool.activePlan(key)?.let { return it }
+            val runtimeProfile = if(profile is Qwdtt && profile.hashSource == "auto") {
+                val copy = app.qthrone.mobile.outbound.OutboundFactory.newByType(profile.type) as Qwdtt
+                check(copy.parseFromJson(profile.exportToJson()))
+                // Calls come from the qWDTT account binding; one hash serves 27 workers.
+                copy.hashes = profile.hashes.ifEmpty { VkRelayAccount.hashes(((profile.workers+26)/27).coerceIn(1,4)) }
+                copy.hashSource = "manual"
+                copy
+            } else profile
+            val loopback=InetAddress.getByName("127.0.0.1")
+            val credentials=CarrierBridgeCredentials.fresh()
+            return ServerSocket(0,1,loopback).use { tcp -> DatagramSocket(0,loopback).use { udp ->
+                CarrierPlan(profileId,profile.carrierKind,tcp.localPort,key,credentials,
+                    runtimeProfile.privateConfig(tcp.localPort,udp.localPort,credentials).also {
+                        if(profile is Qwdtt && profile.type=="qwdtt" && profile.hashSource=="auto") it["vk_auth"]="account"
+                    }.toCompact())
+            } }
+        }
+    }
+}

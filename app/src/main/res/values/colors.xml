@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <integer-array name="material_colors">
+        <item>@color/material_red_500</item>
+        <item>@color/color_pink_ssr</item>
+        <item>@color/material_pink_500</item>
+        <item>@color/material_purple_500</item>
+        <item>@color/material_deep_purple_500</item>
+        <item>@color/material_indigo_500</item>
+        <item>@color/material_blue_500</item>
+        <item>@color/material_light_blue_500</item>
+        <item>@color/material_cyan_500</item>
+        <item>@color/material_teal_500</item>
+        <item>@color/material_green_500</item>
+
+        <item>@color/material_light_green_500</item>
+        <item>@color/material_lime_500</item>
+        <item>@color/material_yellow_500</item>
+        <item>@color/material_amber_500</item>
+        <item>@color/material_orange_500</item>
+        <item>@color/material_deep_orange_500</item>
+
+        <item>@color/material_brown_500</item>
+        <item>@color/material_grey_500</item>
+        <item>@color/material_blue_grey_500</item>
+        <item>@color/material_light_black</item>
+        <item>@color/color_verdant_mint</item>
+        <item>@color/color_white_theme</item>
+    </integer-array>
+
+    <color name="material_amber_500">#FFC107</color>
+    <color name="material_amber_700">#FFA000</color>
+    <color name="material_amber_accent_200">#FFD740</color>
+    <color name="material_blue_500">#2196F3</color>
+    <color name="material_blue_700">#1976D2</color>
+    <color name="material_blue_accent_200">#448AFF</color>
+    <color name="material_blue_grey_200">#B0BEC5</color>
+    <color name="material_blue_grey_500">#607D8B</color>
+    <color name="material_blue_grey_700">#455A64</color>
+    <color name="material_brown_200">#BCAAA4</color>
+    <color name="material_brown_500">#795548</color>
+    <color name="material_brown_700">#5D4037</color>
+    <color name="material_cyan_500">#00BCD4</color>
+    <color name="material_cyan_700">#0097A7</color>
+    <color name="material_cyan_accent_200">#18FFFF</color>
+    <color name="material_deep_orange_500">#FF5722</color>
+    <color name="material_deep_orange_700">#E64A19</color>
+    <color name="material_deep_orange_accent_200">#FF6E40</color>
+    <color name="material_deep_purple_500">#673AB7</color>
+    <color name="material_deep_purple_700">#512DA8</color>
+    <color name="material_deep_purple_accent_200">#7C4DFF</color>
+    <color name="material_green_500">#4CAF50</color>
+    <color name="material_green_700">#388E3C</color>
+    <color name="material_green_accent_200">#69F0AE</color>
+    <color name="material_grey_200">#EEEEEE</color>
+    <color name="material_grey_500">#9E9E9E</color>
+    <color name="material_grey_700">#616161</color>
+    <color name="material_indigo_500">#3F51B5</color>
+    <color name="material_indigo_700">#303F9F</color>
+    <color name="material_indigo_accent_200">#536DFE</color>
+    <color name="material_light_black">#212121</color>
+    <color name="material_light_blue_500">#03A9F4</color>
+    <color name="material_light_blue_700">#0288D1</color>
+    <color name="material_light_blue_accent_200">#40C4FF</color>
+    <color name="material_light_green_500">#8BC34A</color>
+    <color name="material_light_green_700">#689F38</color>
+    <color name="material_light_green_accent_200">#B2FF59</color>
+    <color name="material_lime_500">#CDDC39</color>
+    <color name="material_lime_700">#AFB42B</color>
+    <color name="material_lime_accent_200">#EEFF41</color>
+    <color name="material_orange_500">#FF9800</color>
+    <color name="material_orange_700">#F57C00</color>
+    <color name="material_orange_accent_200">#FFAB40</color>
+    <color name="material_pink_500">#E91E63</color>
+    <color name="material_pink_700">#C2185B</color>
+    <color name="material_pink_accent_200">#FF4081</color>
+    <color name="material_purple_500">#9C27B0</color>
+    <color name="material_purple_700">#7B1FA2</color>
+    <color name="material_purple_accent_200">#E040FB</color>
+    <color name="material_red_500">#F44336</color>
+    <color name="material_red_700">#D32F2F</color>
+    <color name="material_red_accent_200">#FF5252</color>
+    <color name="material_teal_500">#009688</color>
+    <color name="material_teal_700">#00796B</color>
+    <color name="material_teal_accent_200">#64FFDA</color>
+    <color name="material_yellow_500">#FFEB3B</color>
+    <color name="material_yellow_700">#FBC02D</color>
+    <color name="material_yellow_accent_200">#FFFF00</color>
+
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+
+    <color name="color_pink_ssr">#fb7299</color>
+    <color name="color_verdant_mint">#00B96B</color>
+    <color name="color_verdant_mint_dark">#00875E</color>
+    <color name="color_verdant_mint_accent">#00D685</color>
+
+    <!-- White theme -->
+    <color name="color_white_theme">#FFFFFF</color>
+    <color name="color_white_theme_dark">#FFFFFF</color>
+    <color name="color_white_theme_accent">#424242</color>
+    <color name="color_white_theme_fab">#212121</color>
+    <!-- White theme night fallback: selection / accent colour (darker than #9E9E9E) -->
+    <color name="color_white_night_accent">#757575</color>
+    <color name="color_white_theme_nav_fill">#E0E0E0</color>
+    <color name="card_elevated_white">#F7F7F7</color>
+
+    <color name="color_ng_black_accent">#9E9E9E</color>
+    <color name="color_ng_black_primary">#2B2B2B</color>
+
+    <!-- Route rule types (day) -->
+    <color name="color_route_block">#E53935</color>
+    <color name="color_route_direct">#43A047</color>
+    <color name="color_route_proxy">#1E88E5</color>
+    <color name="color_route_config">#8E24AA</color>
+
+    <!-- Default thin card border: about 12% black (night: values-night/colors.xml) -->
+    <color name="card_stroke">#29000000</color>
+
+    <!-- Tinted elevated card surfaces: white + 8% of each primary (night: values-night/colors.xml) -->
+    <color name="card_elevated_pink">#FDEDF3</color>
+    <color name="card_elevated_pink_ssr">#FFF4F7</color>
+    <color name="card_elevated_amber">#FFFAEB</color>
+    <color name="card_elevated_blue">#EDF7FE</color>
+    <color name="card_elevated_blue_grey">#F2F5F6</color>
+    <color name="card_elevated_brown">#F4F1F0</color>
+    <color name="card_elevated_cyan">#EBFAFC</color>
+    <color name="card_elevated_deep_orange">#FFF2ED</color>
+    <color name="card_elevated_deep_purple">#F3EFF9</color>
+    <color name="card_elevated_green">#F1F9F1</color>
+    <color name="card_elevated_grey">#F7F7F7</color>
+    <color name="card_elevated_indigo">#F0F1F9</color>
+    <color name="card_elevated_light_blue">#EBF8FE</color>
+    <color name="card_elevated_light_green">#F6FAF1</color>
+    <color name="card_elevated_lime">#FBFCEF</color>
+    <color name="card_elevated_orange">#FFF7EB</color>
+    <color name="card_elevated_purple">#F7EEF9</color>
+    <color name="card_elevated_red">#FEF0EF</color>
+    <color name="card_elevated_teal">#EBF7F5</color>
+    <color name="card_elevated_yellow">#FFFDEF</color>
+    <color name="card_elevated_black">#EEEEEE</color>
+    <color name="card_elevated_verdant_mint">#EBF9F3</color>
+    <!-- Elevated card surface of the AMOLED black overlay (near black) -->
+    <color name="card_elevated_amoled">#121212</color>
+
+    <!-- Dialog button text where the 500 primary is unreadable on dark surfaces (night: values-night/colors.xml) -->
+    <color name="dialog_button_purple">@color/material_purple_500</color>
+    <color name="dialog_button_deep_purple">@color/material_deep_purple_500</color>
+    <color name="dialog_button_indigo">@color/material_indigo_500</color>
+    <color name="dialog_button_brown">@color/material_brown_500</color>
+    <color name="dialog_button_blue_grey">@color/material_blue_grey_500</color>
+
+</resources>

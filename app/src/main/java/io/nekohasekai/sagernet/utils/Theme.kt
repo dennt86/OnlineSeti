@@ -1,0 +1,185 @@
+package app.qthrone.mobile.utils
+
+import android.content.Context
+import android.content.res.Configuration
+import android.os.Build
+import androidx.appcompat.app.AppCompatDelegate
+import app.qthrone.mobile.R
+import app.qthrone.mobile.database.DataStore
+import app.qthrone.mobile.ktx.app
+import app.qthrone.mobile.ui.MobilePalette
+
+object Theme {
+
+    const val MONET = 0
+    const val RED = 1
+    const val PINK_SSR = 2
+    const val PINK = 3
+    const val PURPLE = 4
+    const val DEEP_PURPLE = 5
+    const val INDIGO = 6
+    const val BLUE = 7
+    const val LIGHT_BLUE = 8
+    const val CYAN = 9
+    const val TEAL = 10
+    const val GREEN = 11
+    const val LIGHT_GREEN = 12
+    const val LIME = 13
+    const val YELLOW = 14
+    const val AMBER = 15
+    const val ORANGE = 16
+    const val DEEP_ORANGE = 17
+    const val BROWN = 18
+    const val GREY = 19
+    const val BLUE_GREY = 20
+    const val BLACK = 21
+    const val VERDANT_MINT = 22
+    const val WHITE = 23
+
+    private fun defaultTheme() = PINK_SSR
+
+    fun apply(context: Context) {
+        context.setTheme(getTheme())
+        applyAmoledOverlay(context)
+        context.theme.applyStyle(if (MobilePalette.light) R.style.MobileSurfaceWhite else if (MobilePalette.oled) R.style.MobileSurfaceOled else R.style.MobileSurfaceGray,true)
+    }
+
+    fun applyDialog(context: Context) {
+        context.setTheme(getDialogTheme())
+        applyAmoledOverlay(context)
+    }
+
+    // Night mode with AMOLED black: the black overlay goes on top of the theme
+    private fun applyAmoledOverlay(context: Context) {
+        if (DataStore.amoledTheme && usingNightMode()) {
+            context.theme.applyStyle(R.style.Theme_SagerNet_Amoled, true)
+            // White falls back to Black at night, whose app bar (colorPrimary) is dark grey; OLED makes it black.
+            // Not under Monet, so the Monet colours are not flattened to black
+            if (DataStore.appTheme == WHITE && !usingMonetTheme()) {
+                context.theme.applyStyle(R.style.Theme_SagerNet_Amoled_White, true)
+            }
+        }
+    }
+
+    // Whether system dynamic colour (Monet) is in effect; it disables every White-theme adjustment
+    fun usingMonetTheme(): Boolean {
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && DataStore.useSystemTheme
+    }
+
+    fun getTheme(): Int {
+        return if (usingMonetTheme()) {
+            getTheme(MONET)
+        } else {
+            getTheme(DataStore.appTheme)
+        }
+    }
+
+    fun getDialogTheme(): Int {
+        return if (usingMonetTheme()) {
+            getDialogTheme(MONET)
+        } else {
+            getDialogTheme(DataStore.appTheme)
+        }
+    }
+
+    fun getTheme(theme: Int): Int {
+        return when (theme) {
+            MONET -> R.style.Theme_SagerNet_Monet
+            RED -> R.style.Theme_SagerNet_Red
+            PINK -> R.style.Theme_SagerNet
+            PINK_SSR -> R.style.Theme_SagerNet_Pink_SSR
+            PURPLE -> R.style.Theme_SagerNet_Purple
+            DEEP_PURPLE -> R.style.Theme_SagerNet_DeepPurple
+            INDIGO -> R.style.Theme_SagerNet_Indigo
+            BLUE -> R.style.Theme_SagerNet_Blue
+            LIGHT_BLUE -> R.style.Theme_SagerNet_LightBlue
+            CYAN -> R.style.Theme_SagerNet_Cyan
+            TEAL -> R.style.Theme_SagerNet_Teal
+            GREEN -> R.style.Theme_SagerNet_Green
+            LIGHT_GREEN -> R.style.Theme_SagerNet_LightGreen
+            LIME -> R.style.Theme_SagerNet_Lime
+            YELLOW -> R.style.Theme_SagerNet_Yellow
+            AMBER -> R.style.Theme_SagerNet_Amber
+            ORANGE -> R.style.Theme_SagerNet_Orange
+            DEEP_ORANGE -> R.style.Theme_SagerNet_DeepOrange
+            BROWN -> R.style.Theme_SagerNet_Brown
+            GREY -> R.style.Theme_SagerNet_Grey
+            BLUE_GREY -> R.style.Theme_SagerNet_BlueGrey
+            BLACK -> R.style.Theme_SagerNet_Black
+            VERDANT_MINT -> R.style.Theme_SagerNet_VerdantMint
+            WHITE ->
+                // White only applies outside night mode; at night it falls back to Black
+                if (usingNightMode()) R.style.Theme_SagerNet_White_Night else R.style.Theme_SagerNet_White
+            else -> getTheme(defaultTheme())
+        }
+    }
+
+    fun getDialogTheme(theme: Int): Int {
+        return when (theme) {
+            MONET -> R.style.Theme_SagerNet_Dialog_Monet
+            RED -> R.style.Theme_SagerNet_Dialog_Red
+            PINK -> R.style.Theme_SagerNet_Dialog
+            PINK_SSR -> R.style.Theme_SagerNet_Dialog_Pink_SSR
+            PURPLE -> R.style.Theme_SagerNet_Dialog_Purple
+            DEEP_PURPLE -> R.style.Theme_SagerNet_Dialog_DeepPurple
+            INDIGO -> R.style.Theme_SagerNet_Dialog_Indigo
+            BLUE -> R.style.Theme_SagerNet_Dialog_Blue
+            LIGHT_BLUE -> R.style.Theme_SagerNet_Dialog_LightBlue
+            CYAN -> R.style.Theme_SagerNet_Dialog_Cyan
+            TEAL -> R.style.Theme_SagerNet_Dialog_Teal
+            GREEN -> R.style.Theme_SagerNet_Dialog_Green
+            LIGHT_GREEN -> R.style.Theme_SagerNet_Dialog_LightGreen
+            LIME -> R.style.Theme_SagerNet_Dialog_Lime
+            YELLOW -> R.style.Theme_SagerNet_Dialog_Yellow
+            AMBER -> R.style.Theme_SagerNet_Dialog_Amber
+            ORANGE -> R.style.Theme_SagerNet_Dialog_Orange
+            DEEP_ORANGE -> R.style.Theme_SagerNet_Dialog_DeepOrange
+            BROWN -> R.style.Theme_SagerNet_Dialog_Brown
+            GREY -> R.style.Theme_SagerNet_Dialog_Grey
+            BLUE_GREY -> R.style.Theme_SagerNet_Dialog_BlueGrey
+            BLACK -> R.style.Theme_SagerNet_Dialog_Black
+            VERDANT_MINT -> R.style.Theme_SagerNet_Dialog_VerdantMint
+            WHITE ->
+                if (usingNightMode()) R.style.Theme_SagerNet_Dialog_White_Night else R.style.Theme_SagerNet_Dialog_White
+            else -> getDialogTheme(defaultTheme())
+        }
+    }
+
+    // Whether the White theme is in effect (not at night, where it falls back to Black, and not under Monet)
+    fun isWhiteTheme(): Boolean {
+        if (usingMonetTheme()) {
+            return false
+        }
+        return DataStore.appTheme == WHITE && !usingNightMode()
+    }
+
+    var currentNightMode = -1
+    fun getNightMode(): Int {
+        if (currentNightMode == -1) {
+            currentNightMode = DataStore.nightTheme
+        }
+        return getNightMode(currentNightMode)
+    }
+
+    fun getNightMode(mode: Int): Int {
+        return when (mode) {
+            0 -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
+            1 -> AppCompatDelegate.MODE_NIGHT_YES
+            2 -> AppCompatDelegate.MODE_NIGHT_NO
+            else -> AppCompatDelegate.MODE_NIGHT_AUTO_BATTERY
+        }
+    }
+
+    fun usingNightMode(): Boolean {
+        return when (DataStore.nightTheme) {
+            1 -> true
+            2 -> false
+            else -> (app.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+        }
+    }
+
+    fun applyNightTheme() {
+        AppCompatDelegate.setDefaultNightMode(getNightMode())
+    }
+
+}

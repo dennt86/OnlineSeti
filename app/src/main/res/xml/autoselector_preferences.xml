@@ -1,0 +1,186 @@
+<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <EditTextPreference
+        app:icon="@drawable/ic_social_emoji_symbols"
+        app:key="name"
+        app:title="@string/profile_name"
+        app:useSimpleSummaryProvider="true" />
+
+    <moe.matsuri.nb4a.ui.SimpleMenuPreference
+        app:icon="@drawable/ic_baseline_layers_24"
+        app:key="gid"
+        app:title="@string/autosel_group"
+        app:useSimpleSummaryProvider="true" />
+
+    <EditTextPreference
+        app:dialogMessage="@string/autosel_name_filter_tip"
+        app:icon="@drawable/ic_baseline_filter_list_24"
+        app:key="nameFilter"
+        app:title="@string/autosel_name_filter" />
+
+    <SwitchPreference
+        app:icon="@drawable/ic_baseline_shuffle_24"
+        app:key="balance"
+        app:summary="@string/autosel_balance_tip"
+        app:title="@string/autosel_balance" />
+
+    <Preference
+        app:icon="@drawable/ic_baseline_push_pin_24"
+        app:isPreferenceVisible="false"
+        app:key="autoselPinned"
+        app:persistent="false"
+        app:title="@string/autosel_pinned" />
+
+    <Preference
+        app:icon="@drawable/ic_baseline_info_24"
+        app:key="autoselPlan"
+        app:persistent="false"
+        app:selectable="false"
+        app:summary="@string/autosel_plan_calculating"
+        app:title="@string/autosel_plan" />
+
+    <Preference
+        app:icon="@drawable/ic_baseline_expand_more_24"
+        app:key="autoselAdvanced"
+        app:persistent="false"
+        app:summary="@string/autosel_advanced_show"
+        app:title="@string/autosel_advanced" />
+
+    <PreferenceCategory
+        app:isPreferenceVisible="false"
+        app:key="autoselMembership"
+        app:title="@string/autosel_cat_membership">
+
+        <EditTextPreference
+            app:dialogMessage="@string/autosel_country_filter_tip"
+            app:key="countryFilter"
+            app:title="@string/autosel_country_filter" />
+
+        <EditTextPreference
+            app:dialogMessage="@string/autosel_build_limit_tip"
+            app:key="buildLimit"
+            app:title="@string/autosel_build_limit" />
+
+        <EditTextPreference
+            app:dialogMessage="@string/autosel_pool_cap_tip"
+            app:key="poolCap"
+            app:title="@string/autosel_pool_cap" />
+
+        <EditTextPreference
+            app:dialogMessage="@string/autosel_result_validity_tip"
+            app:key="resultValidityMins"
+            app:title="@string/autosel_result_validity" />
+
+        <SwitchPreference
+            app:key="excludeUnavailable"
+            app:summary="@string/autosel_exclude_unavailable_tip"
+            app:title="@string/autosel_exclude_unavailable" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        app:isPreferenceVisible="false"
+        app:key="autoselHealth"
+        app:title="@string/autosel_cat_health">
+
+        <EditTextPreference
+            app:dialogMessage="@string/autosel_expected_tip"
+            app:key="expected"
+            app:title="@string/autosel_expected" />
+
+        <EditTextPreference
+            app:dialogMessage="@string/autosel_active_size_tip"
+            app:key="activeSize"
+            app:title="@string/autosel_active_size" />
+
+        <EditTextPreference
+            app:dialogMessage="@string/autosel_interval_tip"
+            app:key="intervalSec"
+            app:title="@string/autosel_interval" />
+
+        <EditTextPreference
+            app:dialogMessage="@string/autosel_bench_interval_tip"
+            app:key="benchIntervalSec"
+            app:title="@string/autosel_bench_interval" />
+
+        <EditTextPreference
+            app:dialogMessage="@string/autosel_watch_interval_tip"
+            app:key="watchIntervalSec"
+            app:title="@string/autosel_watch_interval" />
+
+        <EditTextPreference
+            app:dialogMessage="@string/autosel_sampling_tip"
+            app:key="sampling"
+            app:title="@string/autosel_sampling" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        app:isPreferenceVisible="false"
+        app:key="autoselSwitching"
+        app:title="@string/autosel_cat_switching">
+
+        <EditTextPreference
+            app:dialogMessage="@string/autosel_tolerance_tip"
+            app:key="toleranceMs"
+            app:title="@string/autosel_tolerance" />
+
+        <EditTextPreference
+            app:dialogMessage="@string/autosel_max_rtt_tip"
+            app:key="maxRTTms"
+            app:title="@string/autosel_max_rtt" />
+
+        <EditTextPreference
+            app:dialogMessage="@string/autosel_dial_retries_tip"
+            app:key="dialRetries"
+            app:title="@string/autosel_dial_retries" />
+
+        <SwitchPreference
+            app:key="interruptOnSwitch"
+            app:summary="@string/autosel_interrupt_tip"
+            app:title="@string/autosel_interrupt" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        app:isPreferenceVisible="false"
+        app:key="autoselBalancing"
+        app:title="@string/autosel_cat_balance">
+
+        <moe.matsuri.nb4a.ui.SimpleMenuPreference
+            app:entries="@array/autosel_balance_modes"
+            app:entryValues="@array/autosel_balance_mode_values"
+            app:key="balanceMode"
+            app:title="@string/autosel_balance_mode"
+            app:useSimpleSummaryProvider="true" />
+
+        <EditTextPreference
+            app:dialogMessage="@string/autosel_balance_interval_tip"
+            app:key="balanceIntervalSec"
+            app:title="@string/autosel_balance_interval" />
+
+        <Preference
+            app:key="autoselBalanceHint"
+            app:persistent="false"
+            app:selectable="false" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        app:isPreferenceVisible="false"
+        app:key="autoselEndpoints"
+        app:title="@string/autosel_cat_endpoints">
+
+        <EditTextPreference
+            app:dialogMessage="@string/autosel_test_url_tip"
+            app:key="testURL"
+            app:title="@string/autosel_test_url" />
+
+        <EditTextPreference
+            app:dialogMessage="@string/autosel_connectivity_url_tip"
+            app:key="connectivityURL"
+            app:title="@string/autosel_connectivity_url" />
+
+    </PreferenceCategory>
+
+</PreferenceScreen>

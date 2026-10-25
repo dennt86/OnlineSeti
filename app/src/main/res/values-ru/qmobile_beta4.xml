@@ -1,0 +1,12 @@
+<resources>
+    <string name="qmobile_general">Основные настройки</string>
+    <string name="qmobile_tun">Настройки TUN</string>
+    <string name="qmobile_core">Настройки ядра</string>
+    <string name="qmobile_dns">Настройки DNS</string>
+    <string name="qmobile_routes">Настройки маршрутизации</string>
+    <string name="qmobile_subscriptions">Настройки подписок</string>
+    <string name="qmobile_backup">Резервное копирование и восстановление</string>
+    <string name="qmobile_updates">Обновления</string>
+<string name="qmobile_mtu_manual">Ввести вручную</string>
+<string name="qmobile_mtu_range">Введите значение от 1000 до 10000</string>
+</resources>

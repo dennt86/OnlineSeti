@@ -1,0 +1,109 @@
+package app.qthrone.mobile.bg
+
+import android.app.Application
+import go.Seq
+import app.qthrone.mobile.BuildConfig
+import app.qthrone.mobile.route.OnlinesetiRouting
+import app.qthrone.mobile.bg.test.TestEngine
+import app.qthrone.mobile.database.DataStore
+import app.qthrone.mobile.outbound.json.JsonInput
+import app.qthrone.core.mobile.Instance
+import app.qthrone.core.mobile.LogSink
+import app.qthrone.core.mobile.Mobile
+import app.qthrone.core.mobile.SetupOptions
+import moe.matsuri.nb4a.NativeInterface
+import moe.matsuri.nb4a.utils.CoreLog
+import java.io.File
+
+// Loaded only in the :bg process: everything here pulls the ThroneCore AAR (libthrone.so) in.
+object CoreRuntime {
+
+    /** The core's working dir under filesDir, which relative paths of its config resolve against. */
+    const val WORKING_DIR = "core"
+
+    private const val LOG_QUEUE_LINES = 1024
+
+    val platform: NativeInterface by lazy { NativeInterface() }
+
+    /** The started main instance and the profile it runs, from box start to close (test-current). */
+    class RunningCore(val instance: Instance, val profileId: Long) {
+        val authSession = java.util.UUID.randomUUID().toString()
+    }
+
+    @Volatile
+    var running: RunningCore? = null
+        private set
+
+    @Synchronized
+    fun attachRunning(instance: Instance, profileId: Long) {
+        running = RunningCore(instance, profileId)
+    }
+
+    fun detachRunning(instance: Instance) {
+        val detached = synchronized(this) {
+            (running?.instance === instance).also { if (it) running = null }
+        }
+        if (detached) TestEngine.onRunningClosed()
+    }
+
+    /**
+     * The sing-box level lines must reach to be written: the box level-filters only its own console and hands every
+     * line to the sink, so the sink applies the running config's `log.level` (unset = trace, like sing-box).
+     */
+    @Volatile
+    private var logLevel = Mobile.LogLevelTrace
+
+    fun setup(app: Application) {
+        Seq.setContext(app)
+        for (tag in OnlinesetiRouting.bundledTags) {
+            val path = OnlinesetiRouting.seedPath(tag)!!
+            val target = File(File(app.filesDir, WORKING_DIR), path)
+            target.parentFile!!.mkdirs()
+            app.assets.open(path).use { input -> target.outputStream().use { input.copyTo(it) } }
+        }
+        CoreLog.newSession()
+        logLevel = runCatching { levelOf(DataStore.logLevel) }.getOrDefault(Mobile.LogLevelWarn)
+        Mobile.setup(SetupOptions().apply {
+            basePath = app.filesDir.absolutePath
+            workingPath = File(app.filesDir, WORKING_DIR).absolutePath
+            tempPath = app.cacheDir.absolutePath
+            logMaxLines = LOG_QUEUE_LINES
+            debug = BuildConfig.DEBUG
+        })
+        CoreLog.write("[Info] core: sing-box ${Mobile.version()}, xray ${Mobile.xrayVersion()}, ${Mobile.goVersion()}")
+        Mobile.setLogSink(CoreLogSink)
+    }
+
+    /** Follows the `log.level` of [coreConfig], the config the main instance is about to run. */
+    fun applyLogLevel(coreConfig: String) {
+        logLevel = levelOf(JsonInput.parseObject(coreConfig).obj("log").string("level"))
+    }
+
+    private fun levelOf(level: String): Int = when (level.trim().lowercase()) {
+        "panic" -> Mobile.LogLevelPanic
+        "fatal" -> Mobile.LogLevelFatal
+        "error" -> Mobile.LogLevelError
+        "warn", "warning" -> Mobile.LogLevelWarn
+        "info" -> Mobile.LogLevelInfo
+        "debug" -> Mobile.LogLevelDebug
+        else -> Mobile.LogLevelTrace
+    }
+
+    private object CoreLogSink : LogSink {
+        override fun write(level: Int, message: String) {
+            if (level > logLevel) return
+            CoreLog.write("[${levelName(level)}] $message")
+        }
+
+        private fun levelName(level: Int): String = when (level) {
+            Mobile.LogLevelPanic -> "Panic"
+            Mobile.LogLevelFatal -> "Fatal"
+            Mobile.LogLevelError -> "Error"
+            Mobile.LogLevelWarn -> "Warning"
+            Mobile.LogLevelInfo -> "Info"
+            Mobile.LogLevelDebug -> "Debug"
+            Mobile.LogLevelTrace -> "Trace"
+            else -> "Info"
+        }
+    }
+}

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Compact Onlineseti signal mark for Android's monochrome notification and tile surfaces. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M12,18.5a1.5,1.5 0,1 0,0 3,1.5 1.5,0 0,0 0,-3 M6.34,16.34a8,8 0,0 1,11.32 0l2.12,-2.12a11,11 0,0 0,-15.56 0z M2.1,12.1a14,14 0,0 1,19.8 0l2.12,-2.12a17,17 0,0 0,-24.04 0z" />
+</vector>

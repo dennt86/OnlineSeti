@@ -1,0 +1,87 @@
+name: OnlineSeti VPN release
+run-name: OnlineSeti VPN release
+on:
+  # Version validity and monotonicity are checked by buildScript/release_tag.py before publishing.
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish the release v<VERSION_NAME> at this commit (otherwise the APKs are only uploaded as a workflow artifact)
+        type: boolean
+        default: true
+concurrency:
+  group: release
+  cancel-in-progress: false
+permissions:
+  contents: write
+  actions: read
+jobs:
+  release:
+    name: APK
+    runs-on: ubuntu-latest
+    env:
+      SIGNING_KEYSTORE_B64: ${{ secrets.SIGNING_KEYSTORE_B64 }}
+      SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
+      SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+      SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Release numbering regression
+        run: python3 buildScript/test_release_tag.py
+      # Public tags use three version components and always increase.
+      - name: Version
+        id: version
+        env:
+          PUBLISH: ${{ github.event_name == 'push' || inputs.publish }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python3 buildScript/release_tag.py
+      - name: Match pushed tag to app version
+        if: github.event_name == 'push'
+        env:
+          RELEASE_TAG: ${{ steps.version.outputs.tag }}
+        run: test "$GITHUB_REF_NAME" = "$RELEASE_TAG"
+      - name: Build
+        uses: ./.github/actions/android-build
+        with:
+          tasks: app:testOssDebugUnitTest app:assembleOssRelease
+          channel: stable
+          build-number: ${{ steps.version.outputs.build }}
+          sign: 'true'
+      - name: Verify release SSH classes
+        run: python3 buildScript/check_release_ssh.py app/build/outputs/apk/oss/release
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: OnlineSetiVPN-release-test-reports
+          path: app/build/reports/tests/
+          if-no-files-found: ignore
+      - name: Release assets
+        run: python3 buildScript/release_assets.py app/build/outputs/apk/oss/release dist stable
+      - name: Upload artifact
+        if: ${{ github.event_name != 'push' && !inputs.publish }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: OnlineSetiVPN-${{ steps.version.outputs.tag }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 14
+      - name: Publish release
+        if: ${{ github.event_name == 'push' || inputs.publish }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ steps.version.outputs.tag }}
+          RELEASE_NAME: ${{ steps.version.outputs.name }}
+        run: |
+          set -euo pipefail
+          if [[ "$TAG" == *-beta.* || "$TAG" == *-rc.* ]]; then
+            gh release create "$TAG" dist/* --target "$GITHUB_SHA" --title "$RELEASE_NAME" --prerelease --latest=false --notes-file RELEASE_NOTES.md
+          else
+            gh release create "$TAG" dist/* --target "$GITHUB_SHA" --title "$RELEASE_NAME" --latest --notes-file RELEASE_NOTES.md
+          fi

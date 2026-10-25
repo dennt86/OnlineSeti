@@ -1,0 +1,242 @@
+<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto">
+    <PreferenceCategory app:title="@string/cag_url_test">
+        <EditTextPreference
+            app:icon="@drawable/ic_baseline_cast_connected_24"
+            app:key="test_url"
+            app:title="@string/connection_test_url"
+            app:useSimpleSummaryProvider="true" />
+        <EditTextPreference
+            app:dialogMessage="@string/direct_test_url_sum"
+            app:key="direct_test_url"
+            app:title="@string/direct_test_url" />
+        <EditTextPreference app:persistent="false" app:key="test_concurrent" app:title="@string/test_concurrency" app:useSimpleSummaryProvider="true" />
+        <EditTextPreference app:persistent="false" app:key="url_test_timeout_ms" app:title="@string/connection_test_timeout" app:useSimpleSummaryProvider="true" />
+    </PreferenceCategory>
+
+    <PreferenceCategory app:title="@string/cag_logging">
+        <moe.matsuri.nb4a.ui.LongClickListPreference
+            app:entries="@array/log_level"
+            app:entryValues="@array/log_level"
+            app:icon="@drawable/ic_baseline_bug_report_24"
+            app:key="log_level"
+            app:title="@string/log_level"
+            app:useSimpleSummaryProvider="true" />
+        <moe.matsuri.nb4a.ui.SimpleMenuPreference
+            app:entries="@array/xray_log_level"
+            app:entryValues="@array/xray_log_level"
+            app:key="xray_log_level"
+            app:title="@string/xray_log_level"
+            app:useSimpleSummaryProvider="true" />
+    </PreferenceCategory>
+
+    <PreferenceCategory app:title="@string/cag_statistics">
+        <SwitchPreference
+            app:icon="@drawable/ic_baseline_multiline_chart_24"
+            app:key="enable_stats"
+            app:summary="@string/enable_stats_sum"
+            app:title="@string/enable_stats" />
+        <SwitchPreference
+            app:key="disable_traffic_stats"
+            app:summary="@string/disable_traffic_stats_sum"
+            app:title="@string/disable_traffic_stats" />
+    </PreferenceCategory>
+
+    <PreferenceCategory app:title="@string/cag_clash_api">
+        <SwitchPreference
+            app:icon="@drawable/baseline_construction_24"
+            app:key="coreClashApiEnabled"
+            app:persistent="false"
+            app:summary="@string/enable_clash_api_summary"
+            app:title="@string/enable_clash_api" />
+        <EditTextPreference
+            app:key="coreClashApiPort"
+            app:persistent="false"
+            app:title="@string/listen_port" />
+        <EditTextPreference
+            app:key="core_box_clash_listen_addr"
+            app:title="@string/listen_address"
+            app:useSimpleSummaryProvider="true" />
+        <EditTextPreference
+            app:key="core_box_clash_api_secret"
+            app:title="@string/clash_api_secret" />
+    </PreferenceCategory>
+
+    <PreferenceCategory app:title="@string/cag_api_dashboard">
+        <SwitchPreference
+            app:icon="@drawable/ic_baseline_transform_24"
+            app:key="coreApiDashboardEnabled"
+            app:persistent="false"
+            app:summary="@string/api_dashboard_enable_sum"
+            app:title="@string/api_dashboard_enable" />
+        <EditTextPreference
+            app:key="coreApiDashboardPort"
+            app:persistent="false"
+            app:title="@string/listen_port" />
+        <EditTextPreference
+            app:dialogMessage="@string/api_dashboard_secret_hint"
+            app:key="core_box_api_secret"
+            app:title="@string/clash_api_secret" />
+    </PreferenceCategory>
+
+    <PreferenceCategory app:title="@string/cag_xray">
+        <moe.matsuri.nb4a.ui.SimpleMenuPreference
+            app:entries="@array/xray_vless_preference_entries"
+            app:entryValues="@array/int_array_3"
+            app:key="xray_vless_preference"
+            app:title="@string/xray_vless_preference"
+            app:useSimpleSummaryProvider="true" />
+</PreferenceCategory>
+
+    <PreferenceCategory app:title="@string/cag_security">
+        <SwitchPreference
+            app:icon="@drawable/ic_action_lock_open"
+            app:key="skip_cert"
+            app:summary="@string/skip_cert_sum"
+            app:title="@string/global_allow_insecure" />
+        <SwitchPreference
+            app:icon="@drawable/ic_baseline_security_24"
+            app:key="use_mozilla_certs"
+            app:title="@string/use_mozilla_certs" />
+    </PreferenceCategory>
+
+    <PreferenceCategory app:title="@string/cag_ntp">
+        <SwitchPreference
+            app:icon="@drawable/ic_baseline_timelapse_24"
+            app:key="enable_ntp"
+            app:summary="@string/enable_ntp_sum"
+            app:title="@string/enable_ntp" />
+        <EditTextPreference
+            app:key="ntp_server_address"
+            app:title="@string/ntp_server_address"
+            app:useSimpleSummaryProvider="true" />
+        <EditTextPreference
+            app:key="ntp_server_port"
+            app:title="@string/ntp_server_port" />
+        <EditTextPreference
+            app:dialogMessage="@string/duration_dialog_message"
+            app:key="ntp_interval"
+            app:title="@string/ntp_interval" />
+        <moe.matsuri.nb4a.ui.SimpleMenuPreference
+            app:entries="@array/ntp_outbound_values"
+            app:entryValues="@array/ntp_outbound_values"
+            app:key="ntp_outbound"
+            app:title="@string/ntp_outbound"
+            app:useSimpleSummaryProvider="true" />
+    </PreferenceCategory>
+
+    <PreferenceCategory app:title="@string/cag_mux_sing_box">
+        <moe.matsuri.nb4a.ui.SimpleMenuPreference
+            app:entries="@array/mux_protocol_preset"
+            app:entryValues="@array/mux_protocol_preset"
+            app:icon="@drawable/ic_baseline_layers_24"
+            app:key="mux_protocol"
+            app:title="@string/mux_type"
+            app:useSimpleSummaryProvider="true" />
+        <EditTextPreference
+            app:icon="@drawable/ic_baseline_low_priority_24"
+            app:key="mux_concurrency"
+            app:title="@string/preset_concurrency"
+            app:useSimpleSummaryProvider="true" />
+        <SwitchPreference
+            app:icon="@drawable/baseline_developer_board_24"
+            app:key="mux_padding"
+            app:summary="@string/preset_mux_padding_sum"
+            app:title="@string/padding" />
+        <SwitchPreference
+            app:icon="@drawable/ic_baseline_compare_arrows_24"
+            app:key="mux_default_on"
+            app:summary="@string/preset_mux_default_on_sum"
+            app:title="@string/preset_default_on" />
+    </PreferenceCategory>
+
+    <PreferenceCategory app:title="@string/cag_mux_xray">
+        <EditTextPreference
+            app:icon="@drawable/ic_baseline_low_priority_24"
+            app:key="xray_mux_concurrency"
+            app:title="@string/preset_concurrency"
+            app:useSimpleSummaryProvider="true" />
+        <SwitchPreference
+            app:icon="@drawable/ic_baseline_compare_arrows_24"
+            app:key="xray_mux_default_on"
+            app:summary="@string/preset_xray_mux_default_on_sum"
+            app:title="@string/preset_default_on" />
+    </PreferenceCategory>
+
+    <PreferenceCategory app:title="@string/tls_fragment">
+        <moe.matsuri.nb4a.ui.SimpleMenuPreference
+            app:entries="@array/fragment_implementation_entries"
+            app:entryValues="@array/fragment_implementation_values"
+            app:icon="@drawable/ic_baseline_layers_24"
+            app:key="fragment_implementation"
+            app:title="@string/fragment_implementation" />
+        <EditTextPreference
+            app:dialogMessage="@string/preset_fragment_size_message"
+            app:icon="@drawable/ic_baseline_texture_24"
+            app:key="fragment_size"
+            app:title="@string/fragment_size" />
+        <EditTextPreference
+            app:dialogMessage="@string/preset_fragment_sleep_message"
+            app:icon="@drawable/ic_baseline_timelapse_24"
+            app:key="fragment_sleep"
+            app:title="@string/fragment_sleep" />
+        <SwitchPreference
+            app:icon="@drawable/ic_baseline_shuffle_24"
+            app:key="fragment_default_on"
+            app:summary="@string/preset_fragment_default_on_sum"
+            app:title="@string/preset_default_on" />
+    </PreferenceCategory>
+
+    <PreferenceCategory app:title="@string/tls_tricks">
+        <SwitchPreference
+            app:icon="@drawable/ic_baseline_tune_24"
+            app:key="tls_tricks_default_on"
+            app:summary="@string/preset_tls_tricks_default_on_sum"
+            app:title="@string/preset_default_on" />
+    </PreferenceCategory>
+
+    <PreferenceCategory app:title="@string/cag_utls">
+        <moe.matsuri.nb4a.ui.SimpleMenuPreference
+            app:entries="@array/utls_fingerprint_preset_entries"
+            app:entryValues="@array/utls_fingerprint_entry"
+            app:icon="@drawable/ic_baseline_fingerprint_24"
+            app:key="utlsFingerprint"
+            app:title="@string/utls_fingerprint"
+            app:useSimpleSummaryProvider="true" />
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        app:summary="@string/preset_h2_quic_note"
+        app:title="@string/cag_h2_quic">
+        <EditTextPreference
+            app:dialogMessage="@string/duration_dialog_message"
+            app:icon="@drawable/ic_baseline_timelapse_24"
+            app:key="h2_idle_timeout"
+            app:title="@string/quic_idle_timeout" />
+        <EditTextPreference
+            app:dialogMessage="@string/duration_dialog_message"
+            app:icon="@drawable/ic_baseline_timelapse_24"
+            app:key="h2_keep_alive_period"
+            app:title="@string/quic_keep_alive_period" />
+        <EditTextPreference
+            app:icon="@drawable/ic_baseline_texture_24"
+            app:key="h2_stream_receive_window"
+            app:title="@string/hysteria_stream_receive_window" />
+        <EditTextPreference
+            app:icon="@drawable/ic_baseline_transform_24"
+            app:key="h2_connection_receive_window"
+            app:title="@string/hysteria_connection_receive_window" />
+        <EditTextPreference
+            app:icon="@drawable/ic_baseline_low_priority_24"
+            app:key="h2_max_concurrent_streams"
+            app:title="@string/quic_max_concurrent_streams" />
+        <EditTextPreference
+            app:icon="@drawable/ic_baseline_tune_24"
+            app:key="quic_initial_packet_size"
+            app:title="@string/quic_initial_packet_size" />
+        <SwitchPreference
+            app:icon="@drawable/ic_baseline_multiple_stop_24"
+            app:key="quic_disable_path_mtu_discovery"
+            app:summary="@string/preset_pmtud_default_on_sum"
+            app:title="@string/hysteria_disable_mtu_discovery" />
+    </PreferenceCategory>
+</PreferenceScreen>

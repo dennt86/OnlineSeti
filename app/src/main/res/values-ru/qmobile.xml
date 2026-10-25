@@ -1,0 +1,42 @@
+<resources>
+<string name="qmobile_connect">Подключить или отключить VPN</string>
+<string name="qmobile_clipboard">Из буфера</string>
+<string name="qmobile_qr">QR-код</string>
+<string name="qmobile_profiles">Профили и тесты</string>
+<string name="qmobile_empty">Чтобы использовать приложение, вам необходимо добавить прокси-сервер и/или подписку в список серверов.</string>
+<string name="qmobile_settings">Настройки</string>
+<string name="qmobile_add">Добавить профиль или подписку</string>
+<string name="qmobile_refresh">Обновить подписку</string>
+<string name="qmobile_more">Другие действия</string>
+<string name="qmobile_subscription_info">Информация о подписке</string>
+<string name="qmobile_expiry">Срок действия: %1$s</string>
+<string name="qmobile_quota_unknown">Трафик не указан</string>
+<string name="qmobile_connected">Подключено</string>
+<string name="qmobile_connecting">Подключение…</string>
+<string name="qmobile_disconnected">Не подключено</string>
+<string name="qmobile_clipboard_empty">Буфер обмена пуст</string>
+<string name="qmobile_collapse_all">Скрыть / раскрыть все</string>
+<string name="qmobile_share">Поделиться профилем</string>
+<string name="qmobile_delete">Удалить</string>
+<string name="qmobile_delete_failed">Не удалось удалить профиль.</string>
+<string name="qmobile_ping">Тест задержки</string>
+<string name="qmobile_speed">Тест скорости</string>
+<string name="qmobile_tests">Тестирование</string>
+<string name="qmobile_stop">Остановить</string>
+
+<string name="qmobile_routing">Раздельная маршрутизация</string>
+<string name="qmobile_route_default">Куда направлять остальной трафик</string>
+<string name="qmobile_route_add">Добавить правило</string>
+<string name="qmobile_route_target">Куда направлять трафик</string>
+<string name="qmobile_route_main">Основной профиль</string>
+<string name="qmobile_route_dns_rule">DNS-маршрут</string>
+<string name="qmobile_route_direct">Напрямую</string>
+<string name="qmobile_route_remove">Удалить это правило?</string>
+<string name="qmobile_route_domains">Домены, включая поддомены</string>
+<string name="qmobile_route_ips">IP-адреса или сети CIDR</string>
+<string name="qmobile_route_apps">Приложения</string>
+<string name="qmobile_route_required">Введите хотя бы одно значение</string>
+<string name="qmobile_route_advanced">Подробный редактор маршрутов</string>
+<string name="qmobile_route_invalid">Введите корректные домены или IP-сети</string>
+<string name="qmobile_advanced_settings">Дополнительно</string>
+</resources>

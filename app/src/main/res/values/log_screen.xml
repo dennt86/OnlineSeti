@@ -1,0 +1,10 @@
+<resources>
+    <string name="log_detail">Log detail</string>
+    <string-array name="log_detail_choices"><item>Detailed: connections, routing and DNS</item><item>Normal: main events</item><item>Errors only</item></string-array>
+    <string name="openconnect_auth_unsupported">This authentication form is not supported yet.</string>
+    <string name="openconnect_auth_title">OpenConnect authentication</string>
+    <string name="openconnect_browser_required">This server requires authentication in a browser. This sign-in method is not supported yet.</string>
+    <string name="qmobile_logs">Logs</string>
+    <string name="log_empty">No logs yet. Connection events will appear here.</string>
+    <string name="log_clear_confirm">Clear the current and previous session logs?</string>
+</resources>

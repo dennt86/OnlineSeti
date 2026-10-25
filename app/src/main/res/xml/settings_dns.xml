@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto">
+    <PreferenceCategory
+        app:key="dnsServers"
+        app:title="@string/cag_dns_servers">
+        <EditTextPreference
+            app:dialogMessage="@string/dns_address_dialog_message"
+            app:icon="@drawable/ic_action_dns"
+            app:key="remote_dns"
+            app:title="@string/remote_dns"
+            app:useSimpleSummaryProvider="true" />
+        <SwitchPreference
+            app:key="remote_dns_disable_ipv6"
+            app:summary="@string/dns_disable_ipv6_sum"
+            app:title="@string/remote_dns_disable_ipv6" />
+        <EditTextPreference
+            app:dialogMessage="@string/dns_address_dialog_message"
+            app:icon="@drawable/ic_action_dns"
+            app:key="direct_dns"
+            app:title="@string/direct_dns"
+            app:useSimpleSummaryProvider="true" />
+        <SwitchPreference
+            app:key="direct_dns_disable_ipv6"
+            app:summary="@string/dns_disable_ipv6_sum"
+            app:title="@string/direct_dns_disable_ipv6" />
+        <EditTextPreference
+            app:dialogMessage="@string/underlying_dns_sum"
+            app:key="core_box_underlying_dns"
+            app:title="@string/underlying_dns"
+            app:useSimpleSummaryProvider="true" />
+        <moe.matsuri.nb4a.ui.SimpleMenuPreference
+            app:entries="@array/dns_final_out_entries"
+            app:entryValues="@array/dns_final_out_values"
+            app:key="dns_final_out"
+            app:title="@string/dns_final_out"
+            app:useSimpleSummaryProvider="true" />
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        app:key="dnsBehaviour"
+        app:title="@string/cag_behaviour">
+        <SwitchPreference
+            app:icon="@drawable/ic_baseline_camera_24"
+            app:key="enable_dns_routing"
+            app:summary="@string/dns_routing_message"
+            app:title="@string/enable_dns_routing" />
+        <SwitchPreference
+            app:icon="@drawable/ic_action_lock"
+            app:key="fakedns"
+            app:summary="@string/fakedns_message"
+            app:title="@string/enable_fakedns" />
+        <SwitchPreference
+            app:key="fakeip_disable_ipv6"
+            app:summary="@string/fakeip_disable_ipv6_sum"
+            app:title="@string/fakeip_disable_ipv6" />
+        <SwitchPreference
+            app:key="dns_use_hosts"
+            app:summary="@string/dns_use_hosts_sum"
+            app:title="@string/dns_use_hosts" />
+        <SwitchPreference
+            app:icon="@drawable/ic_baseline_transform_24"
+            app:key="dns_predefined_enable"
+            app:title="@string/dns_predefined_enable" />
+        <app.qthrone.mobile.ui.settings.StringListPreference
+            app:dialogMessage="@string/dns_predefined_rules_dialog_message"
+            app:key="dns_predefined_rules"
+            app:title="@string/dns_predefined_rules" />
+    </PreferenceCategory>
+
+    <PreferenceCategory app:title="@string/cag_advanced">
+        <Preference
+            app:fragment="app.qthrone.mobile.ui.settings.DnsAdvancedSettingsFragment"
+            app:icon="@drawable/ic_baseline_tune_24"
+            app:key="dnsAdvanced"
+            app:summary="@string/dns_advanced_sum"
+            app:title="@string/dns_advanced" />
+        <SwitchPreference
+            app:key="use_dns_object"
+            app:summary="@string/use_dns_object_sum"
+            app:title="@string/use_dns_object" />
+        <moe.matsuri.nb4a.ui.EditConfigPreference
+            app:icon="@drawable/ic_baseline_layers_24"
+            app:jsonAllowEmpty="true"
+            app:jsonSchema="#/$defs/DNS"
+            app:key="dns_object"
+            app:title="@string/dns_object" />
+    </PreferenceCategory>
+</PreferenceScreen>

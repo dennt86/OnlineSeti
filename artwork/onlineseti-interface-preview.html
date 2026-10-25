@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OnlineSeti VPN — новый интерфейс</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #06162e;
+      --surface: #0c2241;
+      --surface-2: #102c50;
+      --surface-3: #15375d;
+      --line: #24476d;
+      --text: #f2f7ff;
+      --muted: #9db5d1;
+      --blue: #45c5ff;
+      --blue-soft: #153e62;
+      --green: #55d5a0;
+      --amber: #ffc978;
+      --red: #ff7c8b;
+      --r: 22px;
+      font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh; color: var(--text);
+      background: radial-gradient(ellipse at 50% -15%, #17467b 0, #0a2446 34%, #06162e 75%);
+      display: grid; place-items: center; padding: 22px;
+    }
+    button { color: inherit; font: inherit; }
+    .phone {
+      width: min(100%, 410px); height: min(900px, calc(100dvh - 44px)); min-height: 700px;
+      position: relative; overflow: hidden; border: 1px solid #28517d; border-radius: 38px;
+      background: linear-gradient(165deg, rgba(11,37,71,.94), rgba(5,21,45,.98) 57%);
+      box-shadow: 0 28px 90px #020b18a8, inset 0 0 0 5px #06162e;
+    }
+    .statusbar { height: 30px; padding: 8px 23px 0; display: flex; justify-content: space-between; color: #d9e7f7; font-size: 11px; font-weight: 650; letter-spacing: .2px; }
+    .app { height: calc(100% - 30px); display: flex; flex-direction: column; }
+    header { min-height: 63px; padding: 7px 20px 10px; display: flex; align-items: center; gap: 12px; }
+    .brand-mark { width: 37px; height: 37px; display: grid; place-items: center; border-radius: 14px; color: var(--blue); background: #12345b; }
+    .brand { flex: 1; font-size: 17px; font-weight: 750; letter-spacing: -.3px; }
+    .icon-btn { width: 42px; height: 42px; border: 0; background: transparent; color: #c1d5ec; border-radius: 15px; display: grid; place-items: center; cursor: pointer; }
+    .icon-btn:hover, .nav-btn:hover, .server:hover { background: #17385e; }
+    main { flex: 1; overflow: auto; padding: 8px 19px 24px; scrollbar-width: none; }
+    main::-webkit-scrollbar { display: none; }
+    .eyebrow { color: var(--muted); text-transform: uppercase; font-size: 10px; font-weight: 760; letter-spacing: 1.25px; }
+    .screen { display: none; animation: appear .2s ease-out; }
+    .screen.active { display: block; }
+    @keyframes appear { from { opacity: .45; transform: translateY(5px) } to { opacity: 1; transform: none } }
+    .home-heading { display: flex; justify-content: space-between; align-items: center; padding: 2px 2px 13px; }
+    .status-pill { display: inline-flex; gap: 7px; align-items: center; border: 1px solid #287355; border-radius: 99px; padding: 6px 10px; color: var(--green); font-size: 10px; font-weight: 750; letter-spacing: .45px; background: #0b372e; }
+    .dot { width: 7px; height: 7px; background: var(--green); border-radius: 50%; box-shadow: 0 0 12px #55d5a0a0; }
+    .connect-card { padding: 19px 18px 15px; border: 1px solid #224a72; border-radius: 28px; background: linear-gradient(145deg, #102d52, #0a2040); text-align: center; box-shadow: inset 0 1px #ffffff09; }
+    .power { width: 104px; height: 104px; margin: 1px auto 12px; border: 1px solid #38aee2; border-radius: 50%; color: var(--blue); background: radial-gradient(circle, #17496f 0, #0a2548 68%); display: grid; place-items: center; box-shadow: 0 0 0 9px #45c5ff09, 0 0 38px #36baff18; cursor: pointer; transition: .2s; }
+    .power.off { color: #8da3bd; border-color: #48627c; box-shadow: none; background: #0c203c; }
+    .power:hover { transform: scale(1.035); }
+    .connect-label { font-size: 16px; font-weight: 720; }
+    .connect-time { color: var(--muted); font-size: 12px; margin-top: 5px; }
+    .connection-card { margin-top: 14px; padding: 15px; border-radius: var(--r); border: 1px solid #286247; background: linear-gradient(130deg, #102f47, #0d2842); cursor: pointer; }
+    .connection-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .server-name { font-size: 17px; font-weight: 750; letter-spacing: -.2px; margin-top: 7px; }
+    .server-meta { color: var(--muted); font-size: 12px; margin-top: 4px; }
+    .auto-badge { white-space: nowrap; color: var(--green); font-size: 10px; border: 1px solid #2b7458; background: #123a33; border-radius: 99px; padding: 6px 8px; font-weight: 700; }
+    .connection-footer { border-top: 1px solid #ffffff12; margin-top: 13px; padding-top: 11px; display: flex; justify-content: space-between; align-items: center; color: #b7cbe0; font-size: 11px; }
+    .rtt { color: var(--green); font-size: 13px; font-weight: 720; }
+    .quick-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+    .quick { min-height: 67px; border: 1px solid #213f63; border-radius: 17px; padding: 12px; background: #0c2240; }
+    .quick small { display: block; color: var(--muted); font-size: 10px; margin-bottom: 6px; }
+    .quick strong { font-size: 13px; }
+    .support { display: flex; justify-content: center; align-items: center; gap: 8px; width: 100%; height: 47px; margin-top: 12px; border: 1px solid #24476d; border-radius: 15px; background: transparent; color: #cce2f9; font-size: 13px; font-weight: 650; cursor: pointer; }
+    .screen-title { font-size: 26px; margin: 7px 0 4px; letter-spacing: -.6px; }
+    .screen-sub { color: var(--muted); font-size: 12px; margin-bottom: 16px; }
+    .auto-card { border: 1px solid #2a7254; background: linear-gradient(130deg, #102f47, #0d2842); border-radius: 20px; padding: 14px; margin-bottom: 18px; }
+    .auto-card strong { display: block; margin-top: 8px; font-size: 15px; }
+    .auto-card p { margin: 5px 0 0; color: #b2c7dc; font-size: 11px; }
+    .country { margin: 17px 0 8px; display: flex; justify-content: space-between; align-items: end; }
+    .country strong { font-size: 13px; }
+    .country span { color: var(--muted); font-size: 10px; }
+    .server { min-height: 67px; display: flex; align-items: center; padding: 10px 12px; gap: 11px; border-radius: 16px; border: 1px solid #1e3b5e; background: #0b203d; margin-top: 7px; cursor: pointer; transition: .15s; }
+    .server.selected { border-color: var(--blue); background: #12365a; box-shadow: inset 3px 0 var(--blue); }
+    .flag { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 12px; background: #153454; font-size: 18px; }
+    .server-labels { flex: 1; min-width: 0; }
+    .server-labels b { display: block; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .server-labels small { color: var(--muted); font-size: 10px; display: block; margin-top: 3px; }
+    .server-rtt { text-align: right; font-size: 11px; color: var(--green); }
+    .server-rtt small { display: block; color: var(--muted); margin-top: 3px; font-size: 9px; }
+    .route-card, .more-card { padding: 15px; border-radius: 17px; background: #0c2240; border: 1px solid #203f63; margin-top: 9px; }
+    .route-card { display: flex; justify-content: space-between; align-items: center; }
+    .route-card b { font-size: 13px; }
+    .route-card small { display: block; margin-top: 5px; color: var(--muted); font-size: 11px; }
+    .route-on { color: var(--green); font-size: 10px; font-weight: 700; }
+    .more-card { display: flex; align-items: center; gap: 12px; min-height: 57px; font-size: 13px; }
+    .detail-head { display:flex; align-items:center; gap:9px; margin:2px 0 14px; }
+    .back-btn { width:38px;height:38px;border:1px solid var(--line);border-radius:13px;background:#0c2240;color:var(--text);font-size:20px;cursor:pointer; }
+    .detail-title { font-size:22px;margin:0;letter-spacing:-.4px; }
+    .detail-intro { color:var(--muted);font-size:12px;line-height:1.5;margin:0 0 14px; }
+    .detail-section { color:var(--blue);font-size:10px;font-weight:750;letter-spacing:1px;text-transform:uppercase;margin:18px 2px 7px; }
+    .detail-row { display:flex;align-items:center;gap:11px;min-height:60px;padding:10px 12px;border:1px solid #203f63;border-radius:15px;background:#0c2240;margin-top:7px;cursor:pointer; }
+    .detail-icon { width:34px;height:34px;display:grid;place-items:center;border-radius:12px;background:#153454;color:var(--blue);font-size:16px;flex:none; }
+    .detail-copy { flex:1;min-width:0; }
+    .detail-copy b { display:block;font-size:12px; }
+    .detail-copy small { display:block;color:var(--muted);font-size:10px;margin-top:4px;line-height:1.35; }
+    .detail-arrow { color:#87a3c1;font-size:19px; }
+    .detail-switch { width:36px;height:20px;border-radius:99px;background:#314965;position:relative;flex:none; }
+    .detail-switch::after { content:"";position:absolute;width:16px;height:16px;left:2px;top:2px;border-radius:50%;background:#b9c9d9;transition:.15s; }
+    .detail-switch.on { background:#187d68; }.detail-switch.on::after { left:18px;background:#eafff7; }
+    .detail-primary { width:100%;min-height:46px;margin-top:10px;border:0;border-radius:14px;background:linear-gradient(100deg,#1689b8,#236cb0);font-weight:700;cursor:pointer; }
+    .detail-field { width:100%;min-height:46px;margin-top:8px;padding:11px 12px;border:1px solid #315174;border-radius:13px;background:#091d37;color:var(--text);font:inherit;font-size:13px; }
+    .detail-note { border:1px solid #315174;border-radius:15px;background:#102947;padding:12px;color:#bfd2e7;font-size:11px;line-height:1.5;margin-top:10px; }
+    .detail-note.good { border-color:#286247;background:#102f33; }
+    nav { height: 76px; padding: 7px 13px max(10px, env(safe-area-inset-bottom)); display: grid; grid-template-columns: repeat(4,1fr); gap: 4px; border-top: 1px solid #183858; background: #081b35eb; backdrop-filter: blur(18px); }
+    .nav-btn { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 4px; color: #829bb7; border: 0; border-radius: 16px; background: transparent; font-size: 9px; cursor: pointer; }
+    .nav-btn .nav-icon { width: 40px; height: 26px; display: grid; place-items: center; border-radius: 99px; }
+    .nav-btn.active { color: #e8f6ff; font-weight: 700; }
+    .nav-btn.active .nav-icon { color: var(--blue); background: #173b5e; }
+    .toast { position: absolute; left: 50%; bottom: 88px; transform: translate(-50%, 12px); opacity: 0; pointer-events: none; padding: 10px 14px; border-radius: 99px; background: #dceeff; color: #0b2743; box-shadow: 0 4px 20px #0008; font-size: 12px; transition: .2s; white-space: nowrap; }
+    .toast.show { transform: translate(-50%, 0); opacity: 1; }
+    .modal-back { position: absolute; inset: 30px 0 76px; display: none; place-items: center; padding: 24px; background: #031020a8; backdrop-filter: blur(5px); }
+    .modal-back.show { display: grid; }
+    .modal { border: 1px solid #2a577f; border-radius: 22px; padding: 19px; background: #102a4b; box-shadow: 0 20px 65px #0008; }
+    .modal h3 { margin: 0 0 9px; font-size: 17px; }
+    .modal p { color: #bdd0e5; font-size: 12px; line-height: 1.5; }
+    .modal button { width: 100%; height: 43px; border: 0; border-radius: 13px; background: #1b78a5; font-weight: 700; cursor: pointer; }
+    @media (max-height: 760px) { .phone { min-height: 0; } .power { width: 82px; height: 82px; margin-bottom: 8px; } .connect-card { padding: 14px; } }
+  </style>
+</head>
+<body>
+  <div class="phone">
+    <div class="statusbar"><span>20:42　●●●　4G</span><span>◈　▮▮　52%</span></div>
+    <div class="app">
+      <header>
+        <div class="brand-mark" aria-hidden="true"><svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9.5"/><path d="M2.8 9h18.4M2.8 15h18.4M12 2.5c5 5.3 5 13.7 0 19M12 2.5c-5 5.3-5 13.7 0 19"/><path d="M7 6.2a8 8 0 0 1 10 0M8.7 8.2a5.3 5.3 0 0 1 6.6 0"/></svg></div>
+        <div class="brand">OnlineSeti <span style="color:var(--muted);font-weight:500">VPN</span><span style="display:block;color:var(--muted);font-size:9px;font-weight:600;letter-spacing:.8px;margin-top:3px">ИНТЕРАКТИВНЫЙ МАКЕТ · ДАННЫЕ ПРИМЕРНЫЕ</span></div>
+        <button class="icon-btn" aria-label="Настройки" onclick="openDetail('settings')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 8.2a3.8 3.8 0 1 0 0 7.6 3.8 3.8 0 0 0 0-7.6Z"/><path d="m19.4 13.5 1.1.9-1.5 2.6-1.4-.5a7.8 7.8 0 0 1-1.5.9l-.2 1.5h-3l-.3-1.5a7.8 7.8 0 0 1-1.5-.9l-1.4.5-1.5-2.6 1.1-.9a7 7 0 0 1 0-1.8l-1.1-.9 1.5-2.6 1.4.5a7.8 7.8 0 0 1 1.5-.9l.3-1.5h3l.2 1.5a7.8 7.8 0 0 1 1.5.9l1.4-.5 1.5 2.6-1.1.9a7 7 0 0 1 0 1.8Z" transform="translate(-1 -1) scale(.95)"/></svg></button>
+      </header>
+      <main>
+        <section id="home" class="screen active">
+          <div class="home-heading"><span class="eyebrow">Защищённое соединение</span><span class="status-pill" id="connectionPill"><i class="dot"></i><span>ПОДКЛЮЧЕНО</span></span></div>
+          <div class="connect-card">
+            <button class="power" id="power" aria-label="Отключить VPN" onclick="toggleConnection()"><svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 2v10"/><path d="M6.2 5.8a8 8 0 1 0 11.6 0"/></svg></button>
+            <div class="connect-label" id="connectLabel">Подключено</div><div class="connect-time" id="connectTime">Защита включена · 00:12:48</div>
+          </div>
+          <div class="connection-card" onclick="document.getElementById('modal').classList.add('show')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('modal').classList.add('show')}" role="button" tabindex="0" aria-label="Подробнее о подключении через активный сервер">
+            <div class="connection-top"><span class="eyebrow">Подключено через</span><span class="auto-badge">АВТО · ВКЛЮЧЕНО</span></div>
+            <div class="server-name" id="activeServer">🇫🇮 FI Hysteria–Huawei</div>
+            <div class="server-meta" id="activeServerMeta">Hysteria 2 · Финляндия</div>
+            <div class="connection-footer"><span id="switchText">Последняя смена · 2 мин назад</span><span class="rtt" id="activeRtt">98 мс</span></div>
+          </div>
+          <div class="quick-grid">
+            <div class="quick"><small>Узлов доступно</small><strong>6 из 7</strong></div>
+            <div class="quick"><small>Режим маршрутизации</small><strong>Россия напрямую</strong></div>
+          </div>
+          <button class="support" onclick="openDetail('subscription')"><span>ⓘ</span> Подписка и поддержка <span style="margin-left:auto;color:var(--muted)">›</span></button>
+        </section>
+
+        <section id="servers" class="screen">
+          <div style="display:flex;align-items:center;justify-content:space-between"><div><h1 class="screen-title">Серверы</h1><div class="screen-sub">Текущий узел и доступные подключения</div></div><button class="icon-btn" onclick="showToast('Проверяем серверы…')" aria-label="Обновить"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M5.7 9A7 7 0 0 1 18 6l2 6M4 12l2 6a7 7 0 0 0 12.3-3"/></svg></button></div>
+          <div class="auto-card"><div class="connection-top"><span class="eyebrow" style="color:var(--green)">Автоматический выбор</span><span class="status-pill"><i class="dot"></i>РАБОТАЕТ</span></div><strong id="autoSelected">Сейчас: 🇫🇮 FI Hysteria–Huawei</strong><p>При сбое приложение выберет другой доступный узел</p></div>
+          <div class="country"><strong>🇫🇮　Финляндия</strong><span>2 подключения</span></div>
+          <div class="server selected" data-name="🇫🇮 FI Hysteria–Huawei" data-meta="Hysteria 2 · Финляндия" data-rtt="98 мс" onclick="selectServer(this)"><span class="flag">🇫🇮</span><span class="server-labels"><b>FI Hysteria–Huawei</b><small>Hysteria 2 · выбран сейчас</small></span><span class="server-rtt">98 мс<small>доступен</small></span></div>
+          <div class="server" data-name="🇫🇮 FI XHTTP" data-meta="VLESS · Финляндия" data-rtt="63 мс" onclick="selectServer(this)"><span class="flag">🇫🇮</span><span class="server-labels"><b>FI XHTTP</b><small>VLESS · Финляндия</small></span><span class="server-rtt">63 мс<small>доступен</small></span></div>
+          <div class="country"><strong>🇩🇪　Германия</strong><span>3 подключения</span></div>
+          <div class="server" data-name="🇩🇪 DE-tuic" data-meta="TUIC · Германия" data-rtt="78 мс" onclick="selectServer(this)"><span class="flag">🇩🇪</span><span class="server-labels"><b>DE-tuic</b><small>TUIC · Германия</small></span><span class="server-rtt">78 мс<small>доступен</small></span></div>
+          <div class="server" data-name="🇩🇪 DE Hysteria" data-meta="Hysteria 2 · Германия" data-rtt="79 мс" onclick="selectServer(this)"><span class="flag">🇩🇪</span><span class="server-labels"><b>DE Hysteria</b><small>Hysteria 2 · Германия</small></span><span class="server-rtt">79 мс<small>доступен</small></span></div>
+          <div class="country"><strong>🇳🇱　Нидерланды</strong><span>2 подключения</span></div>
+          <div class="server" data-name="🇳🇱 NL Hysteria" data-meta="Hysteria 2 · Нидерланды" data-rtt="89 мс" onclick="selectServer(this)"><span class="flag">🇳🇱</span><span class="server-labels"><b>NL Hysteria</b><small>Hysteria 2 · Нидерланды</small></span><span class="server-rtt">89 мс<small>доступен</small></span></div>
+          <button class="support" onclick="openDetail('profileEditor')">Настроить выбранный сервер и протокол <span style="margin-left:auto">›</span></button>
+        </section>
+
+        <section id="routes" class="screen">
+          <h1 class="screen-title">Маршрутизация</h1><div class="screen-sub">Куда направлять интернет-трафик</div>
+          <div class="route-card" onclick="openDetail('routeRussia')"><span><b>Российские сервисы</b><small>Напрямую, без VPN</small></span><span class="route-on">ВКЛЮЧЕНО　›</span></div>
+          <div class="route-card" onclick="openDetail('routeVpn')"><span><b>Зарубежные сайты</b><small>Через активный VPN-сервер</small></span><span class="route-on">ВКЛЮЧЕНО　›</span></div>
+          <div class="route-card" onclick="openDetail('routeBlock')"><span><b>Реклама и трекеры</b><small>Блокировка по спискам</small></span><span class="route-on">ВКЛЮЧЕНО　›</span></div>
+          <button class="support" onclick="openDetail('routingSettings')">Все правила маршрутизации <span style="margin-left:auto">›</span></button>
+        </section>
+
+        <section id="more" class="screen">
+          <h1 class="screen-title">Ещё</h1><div class="screen-sub">Управление OnlineSeti VPN</div>
+          <div class="more-card" onclick="openDetail('settings')">⚙️　Настройки приложения <span style="margin-left:auto;color:var(--muted)">›</span></div>
+          <div class="more-card" onclick="openDetail('subscription')">▤　Подписка и трафик <span style="margin-left:auto;color:var(--muted)">›</span></div>
+          <div class="more-card" onclick="openDetail('diagnostics')">◉　Диагностика подключения <span style="margin-left:auto;color:var(--muted)">›</span></div>
+          <div class="more-card" onclick="openDetail('backup')">▣　Резервная копия <span style="margin-left:auto;color:var(--muted)">›</span></div>
+          <div class="more-card" onclick="openDetail('logs')">≡　Журнал событий <span style="margin-left:auto;color:var(--muted)">›</span></div>
+          <div class="more-card" onclick="openDetail('support')">🛟　Поддержка и помощь <span style="margin-left:auto;color:var(--muted)">›</span></div>
+          <div class="more-card" onclick="openDetail('about')">ℹ️　О приложении <span style="margin-left:auto;color:var(--muted)">›</span></div>
+        </section>
+
+        <section id="detail" class="screen"><div id="detailContent"></div></section>
+      </main>
+      <nav aria-label="Разделы">
+        <button class="nav-btn active" data-screen="home" onclick="navigate('home')"><span class="nav-icon">⌂</span><span>Главная</span></button>
+        <button class="nav-btn" data-screen="servers" onclick="navigate('servers')"><span class="nav-icon">◎</span><span>Серверы</span></button>
+        <button class="nav-btn" data-screen="routes" onclick="navigate('routes')"><span class="nav-icon">⇄</span><span>Маршруты</span></button>
+        <button class="nav-btn" data-screen="more" onclick="navigate('more')"><span class="nav-icon">•••</span><span>Ещё</span></button>
+      </nav>
+    </div>
+    <div class="toast" id="toast"></div>
+    <div class="modal-back" id="modal" onclick="if(event.target===this)this.classList.remove('show')"><div class="modal"><h3>Автопереключение</h3><p id="modalText">Сейчас подключено через 🇫🇮 FI Hysteria–Huawei.<br>Если узел станет недоступен, OnlineSeti VPN автоматически переключится на следующий рабочий.</p><button onclick="document.getElementById('modal').classList.remove('show')">Понятно</button></div></div>
+  </div>
+  <script>
+    let connected = true;
+    let detailStack = [];
+    let detailReturnScreen = 'more';
+    let detailActionItem = {title:'Параметр', description:'Значение настройки'};
+    const pages = {
+      settings:{title:'Настройки',intro:'Основные параметры приложения. Редкие и технические опции собраны внутри соответствующих разделов.',sections:[['ПОДКЛЮЧЕНИЕ',[['⚙','Общие','Запуск, уведомления и поведение приложения','general'],['◉','Режим VPN и приложения','TUN, исключения приложений и локальный доступ','tun'],['▣','Ядро и производительность','Версия ядра, фоновые задачи и диагностика','core'],['◎','DNS','Провайдеры, защита от утечек и режим разрешения имён','dns']]],['ПРАВИЛА И ДАННЫЕ',[['⇄','Маршрутизация','Российские сервисы, геоданные и правила трафика','routingSettings'],['▤','Подписки','Обновление списка серверов и срок действия','subscriptionSettings'],['◈','Внешний вид','Тема, цвет и плотность интерфейса','appearance']]],['СЕРВИС И ПОМОЩЬ',[['↻','Обновления','Канал и проверка новых версий','updates'],['▣','Резервное копирование','Экспорт и восстановление настроек','backup'],['≡','Журналы','События подключения и приватность журналов','logs'],['⌁','Дополнительные интеграции','Параметры VK-релея','relay']]]]},
+      general:{title:'Общие настройки',intro:'Поведение OnlineSeti VPN на этом устройстве.',sections:[['ПОДКЛЮЧЕНИЕ',[['◉','Режим службы','VPN-сервис Android','action'],['↻','Подключаться автоматически','Восстанавливать последнее подключение','switch'],['⌁','Всегда включённый VPN','Системная настройка Android','switch'],['↔','Сбрасывать соединения при смене сети','Переподключаться при переходе Wi-Fi ↔ мобильная сеть','switch']]],['ФОНОВАЯ РАБОТА',[['◷','Переподключать после сна','Возобновлять туннель после блокировки экрана','switch'],['▣','Оптимизация батареи','Проверить ограничения Android','action'],['⌁','Ограничения производителя','Разрешить приложению работу в фоне','action'],['◉','Лимитная сеть','Поведение при экономии трафика','action']]],['ПРИЛОЖЕНИЕ',[['♧','Уведомления о состоянии','Показывать статус и ошибки подключения','switch'],['⌖','Язык','Русский','action'],['⌘','Быстрые действия','Кнопка подключения и системные ярлыки','action'],['◌','Скрывать приложение из недавних','Убирать окно из списка последних приложений','switch']]]]},
+      tun:{title:'Режим VPN и приложения',intro:'Основные параметры туннеля, исключения для локальной сети и прокси для других устройств.',sections:[['ИНТЕРФЕЙС',[['◎','IPv6','Обработка IPv6-трафика','switch'],['↔','MTU','Размер пакета туннеля · автоматически','action'],['⌁','Маршрутизация через TUN','Режим захвата системного трафика','switch']]],['ИСКЛЮЧЕНИЯ',[['⌂','Обход локальных сетей','Оставлять домашние IP-адреса напрямую','switch'],['▤','Частные диапазоны','Список локальных IP-сетей','action'],['▣','Приложения через VPN','Выбор приложений и режима исключений','apps']]],['ДОСТУП С УСТРОЙСТВ',[['◉','Доступ по локальной сети','Общий прокси для устройств Wi-Fi','switch'],['↔','Локальный SOCKS и HTTP','Порты и авторизация','inbound'],['⌁','Сбросить пароль прокси','Сменить учётные данные','action']]]]},
+      inbound:{title:'Локальный прокси',intro:'Используйте только в доверенной сети. При включении доступа по Wi-Fi настройте пароль.',sections:[['ПОДКЛЮЧЕНИЕ',[['◉','Разрешить доступ из локальной сети','Слушать подключения с других устройств','switch'],['↔','Порт SOCKS','10808','action'],['↔','Порт HTTP','8080','action']]],['БЕЗОПАСНОСТЬ',[['◉','Требовать пароль','Защита локального прокси','switch'],['⌁','Автоматически менять порт','Использовать новый порт при запуске','switch']]]]},
+      core:{title:'Ядро и производительность',intro:'Технические параметры движка. Частые действия отделены от расширенных сетевых параметров.',sections:[['СОСТОЯНИЕ',[['▣','Движок','sing-box · актуальная сборка','action'],['◉','Работа в фоне','Режим службы Android','action'],['↻','Перезапустить движок','Перезапуск активного подключения','action'],['≡','Журнал ядра','Ошибки и события сетевого движка','logs']]],['ПРОВЕРКА СЕРВЕРОВ',[['⌁','Адрес проверки','HTTPS-проверка доступности узла','action'],['↔','Параллельные проверки','Количество одновременных тестов','action'],['◷','Таймаут проверки','Время ожидания ответа','action']]],['РАСШИРЕННЫЕ ПАРАМЕТРЫ',[['⌁','Статистика трафика','Скорость и переданные данные','switch'],['◉','Clash API и панель','Дополнительный локальный API','switch'],['◉','Проверка сертификатов','Разрешать недоверенные сертификаты','switch'],['⇄','Пресеты транспорта','Мультиплексирование, TLS и QUIC','transports']]]]},
+      transports:{title:'Сетевые параметры',intro:'Эти параметры применяются только к протоколам, которые их поддерживают. Оставьте значения по умолчанию, если нет конкретной причины.',sections:[['ПРОИЗВОДИТЕЛЬНОСТЬ',[['⇄','Мультиплексирование','Протокол и количество потоков','action'],['◉','Пресет по умолчанию','Применять для новых профилей','switch']]],['TLS И ТРАНСПОРТ',[['⌁','Фрагментация TLS','Размер части и задержка отправки','action'],['◉','TLS tricks','Дополнительная обработка рукопожатия','switch'],['◎','uTLS fingerprint','Отпечаток клиентского TLS','action']]],['HYSTERIA И QUIC',[['◷','Таймаут и keep-alive','Параметры долгих соединений','action'],['↔','Окна потока и соединения','Расширенный контроль пропускной способности','action'],['◉','Path MTU discovery','Управление размером QUIC-пакетов','switch']]]]},
+      profileEditor:{title:'Параметры сервера',intro:'Редактор профиля разделён на понятные блоки. Набор полей зависит от выбранного протокола.',sections:[['ОСНОВНОЕ',[['⌖','Название и расположение','Имя, страна и группа профиля','action'],['◎','Протокол','Hysteria, TUIC, VLESS/XHTTP и другие','protocols'],['⌁','Адрес и порт','Домен, порт и параметры подключения','action']]],['ЗАЩИТА И ТРАНСПОРТ',[['♢','TLS и сертификат','SNI, проверка сертификата и отпечаток','action'],['⇄','Транспорт','TCP, TLS, WebSocket, gRPC или XHTTP','profileTransport'],['⚙','Дополнительные параметры','Настройки выбранного протокола','profileTransport']]],['ДЕЙСТВИЯ',[['↻','Проверить подключение','Измерить доступность узла','action'],['▤','Поделиться профилем','Ссылка, QR-код или экспорт','action']]]]},
+      protocols:{title:'Протокол подключения',intro:'Список типов, для которых в приложении есть редакторы профиля. Экран показывает только параметры выбранного протокола.',sections:[['ОСНОВНЫЕ',[['◉','Hysteria 2','UDP · быстрый транспорт','action'],['⇄','TUIC','UDP · транспорт с низкой задержкой','action'],['⌁','VLESS','Xray или sing-box · TCP, TLS, Reality, XHTTP','action'],['▣','VMess','Транспорт и параметры безопасности','action'],['♢','Trojan','TLS и транспорт','action'],['◎','AnyTLS','TLS-прокси','action'],['◉','Juicity','QUIC-транспорт','action'],['⌁','Mieru','Прокси-протокол Mieru','action'],['▣','NaiveProxy','HTTP/2 и TLS','action']]],['ДРУГИЕ ПРОТОКОЛЫ',[['◉','Shadowsocks','Метод шифрования и пароль','action'],['♢','ShadowTLS','Защищённый транспорт','action'],['⌁','Snell','Адрес и ключ','action'],['◎','WireGuard','Ключи, адреса и peer','action'],['▣','OpenVPN','Параметры VPN-подключения','action'],['◉','OpenConnect','Параметры сервера и учётной записи','action'],['♢','TrustTunnel','HTTP-транспорт','action'],['⇄','MASQUE','HTTP/3-транспорт','action']]],['ЛОКАЛЬНЫЕ И СПЕЦИАЛЬНЫЕ',[['⌁','SOCKS и HTTP','Локальный или удалённый прокси','action'],['▤','SSH','Туннель через SSH','action'],['＋','Цепочка прокси','Несколько узлов последовательно','action'],['⌂','Прямое соединение','Правило выхода напрямую','action'],['⚙','Пользовательский JSON','Расширенная конфигурация для экспертов','action']]]]},
+      profileTransport:{title:'Транспорт и TLS',intro:'Ненужные параметры скрыты, а описание объясняет, когда они влияют на соединение.',sections:[['ТРАНСПОРТ',[['⌁','Тип транспорта','TCP, WebSocket, gRPC, HTTPUpgrade или XHTTP','action'],['◎','Путь и Host','Поля для HTTP-транспортов','action'],['◷','Режим XHTTP','Режим передачи данных','action']]],['TLS',[['◉','Включить TLS','Защищённое соединение','switch'],['♢','SNI','Имя сервера для TLS','action'],['⌁','ECH и uTLS','Дополнительная настройка TLS-клиента','action'],['◉','Проверять сертификат','Оставить включённым для безопасности','switch']]]]},
+      dns:{title:'DNS',intro:'Основные серверы, поведение и расширенный кэш сгруппированы отдельно.',sections:[['ПРОВАЙДЕРЫ',[['◎','Удалённый DNS','Cloudflare · защищённый DNS','action'],['◉','DNS прямого трафика','Для локальных и российских адресов','action'],['⌁','Системный DNS','Резервный сервер установления соединения','action']]],['ПОВЕДЕНИЕ',[['♢','DNS-маршрутизация','Отдельные правила для DNS-запросов','switch'],['▣','FakeIP','Режим обработки DNS ядром','switch'],['◉','Использовать hosts','Локальные записи имён','switch'],['↻','Проверить DNS','Тест текущего соединения','diagnostics']]],['ДОПОЛНИТЕЛЬНО',[['⚙','Кэш и расширенные параметры','Таймауты, кэш и обратное сопоставление','dnsAdvanced']]]]},
+      dnsAdvanced:{title:'Расширенные настройки DNS',intro:'Технические параметры кэша и времени ожидания. Рекомендуем оставить значения по умолчанию.',sections:[['КЭШ',[['◉','Сохранять кэш','Использовать записи после перезапуска','switch'],['⌁','Ёмкость кэша','Максимальное число записей','action'],['◷','Срок действия','Уважать TTL ответа DNS','switch'],['◉','Оптимистические ответы','Повторно использовать недавний ответ','switch']]],['ОБРАБОТКА',[['◷','Таймаут DNS-запроса','Время ожидания ответа','action'],['⌁','Обратное сопоставление','Связь IP-адресов с доменами','switch']]]]},
+      routingSettings:{title:'Правила маршрутизации',intro:'Назначайте трафику понятные действия. Изменения применяются после обновления конфигурации.',sections:[['БЫСТРЫЕ РЕЖИМЫ',[['⌂','Россия напрямую','Российские домены и приложения идут без VPN','routeRussia'],['◎','Зарубежный трафик через VPN','Остальные подключения идут через активный сервер','routeVpn'],['⊘','Реклама и трекеры','Фильтрация по локальным спискам','routeBlock']]],['ПРОФИЛИ И ПРАВИЛА',[['⇄','Профили маршрутизации','Текущий профиль и другие наборы правил','routeProfiles'],['⌁','Стратегия выбора IP','Как разрешать имена для исходящего соединения','action'],['▤','Обновление списков','Источники, зеркало и расписание обновления','geo'],['＋','Мои правила','Домены, IP-сети и приложения','rules']]],['ПРИЛОЖЕНИЯ И ДОПОЛНИТЕЛЬНО',[['▣','Приложения','Выбрать приложения через VPN или напрямую','apps'],['⊘','WARP','Дополнительный маршрут для расширенных сценариев','warp']]]]},
+      routeRussia:{title:'Российские сервисы',intro:'Трафик из этого набора направляется напрямую, минуя VPN.',sections:[['ПРАВИЛО',[['◉','Состояние правила','Включено','switch'],['▤','Список доменов','Российские сервисы и локальные ресурсы','geoRussia'],['⌕','Исключения','Добавить домен или приложение','rules']]]]},
+      routeVpn:{title:'Трафик через VPN',intro:'Основной маршрут для сайтов и приложений, которым нужен VPN.',sections:[['ПРАВИЛО',[['◉','Использовать активный сервер','Автопереключение выбирает доступный узел','switch'],['▣','Исключения','Домены и приложения вне туннеля','rules'],['⌕','Проверить маршрут','Показать текущий выход и DNS','diagnostics']]]]},
+      routeBlock:{title:'Фильтрация рекламы',intro:'Управляйте списками блокировки и исключениями.',sections:[['ФИЛЬТРЫ',[['◉','Блокировать рекламу и трекеры','Фильтрация доменов по спискам','switch'],['▤','Списки фильтрации','Источники и время обновления','geo'],['＋','Белый список','Домены, которые не нужно блокировать','rules']]]]},
+      geo:{title:'Геоданные',intro:'Файлы правил определяют категории доменов и IP-адресов.',sections:[['СОСТОЯНИЕ',[['●','База доменов','Загружена · примерное состояние','action'],['●','База IP-сетей','Загружена · примерное состояние','action'],['↻','Проверить обновления','Проверить доступность источников','action']]],['ИСТОЧНИКИ',[['⌁','Источник геоданных','Настроить провайдера и формат','action'],['◉','Обновлять автоматически','Периодическая загрузка новых файлов','switch']]]]},
+      geoRussia:{title:'Список российских доменов',intro:'Набор доменов, который применяется в правиле «Россия напрямую».',sections:[['ПОДБОРКИ',[['●','Российские сервисы','Включено','switch'],['●','Локальные сети','Включено','switch'],['●','Пользовательские исключения','Управлять своим списком','rules']]]]},
+      rules:{title:'Мои правила',intro:'Добавьте домен, IP-сеть или приложение и назначьте ему маршрут.',sections:[['ПРАВИЛА',[['＋','Добавить домен','Например, example.ru','action'],['＋','Добавить IP-сеть','Например, 192.168.0.0/16','action'],['▣','Добавить приложение','Открыть выбор приложений','apps'],['⇄','Импортировать набор правил','Из файла или ссылки','action']]]]},
+      routeProfiles:{title:'Профили маршрутизации',intro:'Выберите набор правил для разных сетей и задач.',sections:[['ПРОФИЛИ',[['◉','Россия напрямую','Текущий профиль','action'],['◎','Всё через VPN','Профиль для полной маршрутизации','action'],['＋','Создать профиль','Настроить собственные правила','action']]]]},
+      warp:{title:'Дополнительный маршрут',intro:'Дополнительный транспорт — необязательная функция. Основной VPN остаётся независимым от этой настройки.',sections:[['РЕЖИМ',[['◉','Использовать дополнительный маршрут','Включает выбранный режим','switch'],['⇄','Способ подключения','WireGuard или MASQUE','action'],['⌁','Параметры соединения','Конечная точка и ключи','action']]],['УЧЁТНАЯ ЗАПИСЬ',[['↻','Создать или обновить параметры','Получить необходимые данные','action']]]]},
+      subscription:{title:'Подписка и трафик',intro:'Состояние подписки и обновление списка серверов.',sections:[['ONLINESETI',[['▤','Активна','Трафик без ограничения · срок из подписки','action'],['↻','Обновить серверы','Получить актуальный список узлов','action'],['↗','Управление подпиской','Открыть бота OnlineSeti','action']]],['ПОМОЩЬ',[['⌁','Инструкция подключения','Как добавить подписку в клиент','support'],['🛟','Связаться с поддержкой','Помощь с доступом и подключением','support']]]]},
+      subscriptionSettings:{title:'Подписки',intro:'Управляйте обновлениями серверов и сетевыми настройками загрузки подписок.',sections:[['ОБНОВЛЕНИЕ',[['◉','Автоматически обновлять','Актуальные узлы загружаются в фоне','switch'],['↻','Интервал обновления','При запуске и далее по расписанию','action'],['⌁','Показывать изменения после обновления','Краткий отчёт о новых и удалённых узлах','switch'],['◉','Останавливать активный профиль при удалении','Защита от подключения к удалённой записи','switch']]],['ИМПОРТ И ПРИВАТНОСТЬ',[['⌁','Идентификатор клиента','Передача HWID настраивается отдельно для источников','action'],['▤','Пользовательский User-Agent','Совместимость с форматом провайдера','action'],['＋','Добавить подписку','Вставить ссылку или отсканировать QR','action'],['▣','Управление источниками','Переименовать, обновить или удалить','action']]],['СЕТЬ ЗАГРУЗКИ',[['◎','Загружать через VPN','Прокси, если прямая сеть недоступна','switch'],['⌁','Проверка TLS','Безопасная проверка сертификатов','switch'],['◷','Версия TLS','Совместимость с сервером подписки','action']]]]},
+      diagnostics:{title:'Диагностика подключения',intro:'Сводка показывает состояние сейчас. Задержки — пример интерфейса, не результат живого теста.',sections:[['СОЕДИНЕНИЕ',[['●','VPN','Подключён · защита активна','action'],['◎','Текущий сервер','FI Hysteria–Huawei · Финляндия','autoStatus'],['↻','Проверить серверы','Запустить тест доступности','action']]],['АВТОПЕРЕКЛЮЧЕНИЕ',[['⇄','Состояние выбора','Автоматический режим включён','autoStatus'],['≡','История смен','Последнее переключение и причина','autoStatus'],['⌁','Подробности соединения','Маршрут, DNS и сетевой интерфейс','core']]]]},
+      autoStatus:{title:'Автопереключение',intro:'Автоматический выбор остаётся включённым и меняет узел при сбое. Здесь видны текущий узел, проверка и причина последнего перехода.',sections:[['СЕЙЧАС',[['●','Активный узел','FI Hysteria–Huawei','action'],['◉','Режим','Автоматический · работает','switch'],['↻','Проверить узлы','Перепроверить список серверов','action'],['⚙','Настройки автопереключения','Состав пула, проверки и пороги смены','autoSettings']]],['ПОСЛЕДНИЕ СОБЫТИЯ',[['↔','Смена сервера','2 минуты назад · автоматически','action'],['≡','Журнал выбора','Проверки, задержки и причина решения','logs']]]]},
+      autoSettings:{title:'Настройки автопереключения',intro:'Выберите, какие профили проверять и когда переходить на другой узел. Текущие значения остаются под контролем движка.',sections:[['СОСТАВ ПУЛА',[['▤','Группа профилей','Основная подписка OnlineSeti','action'],['⌕','Фильтр имён','Включать профили по названию','action'],['◉','Исключать недоступные','Убирать узлы без свежего успешного теста','switch'],['↔','Размер активного пула','Сколько лучших узлов держать проверенными','action']]],['ПРОВЕРКИ',[['◷','Интервал тестирования','Как часто проверять доступность','action'],['◷','Интервал фоновой проверки','Период обновления статуса','action'],['↔','Число проверок','Сколько успешных ответов учитывать','action']]],['ПЕРЕКЛЮЧЕНИЕ',[['⌁','Допустимая задержка','Порог времени ответа','action'],['⌁','Запас для смены узла','Не переключать из-за небольшого колебания пинга','action'],['◉','Прерывать текущие соединения при смене','Политика переподключения приложений','switch']]],['БАЛАНСИРОВКА',[['◉','Распределять подключения между узлами','Балансировка вместо одного активного узла','switch']]]]},
+      appearance:{title:'Внешний вид',intro:'Настройте оформление OnlineSeti под экран и освещение.',sections:[['БРЕНД',[['◈','Цвет акцента','Голубой OnlineSeti','action'],['◐','Цветовая тема','Системная, светлая, тёмная или OLED','action'],['⌖','Язык','Русский или язык системы','action']]],['ЭКРАН',[['Aa','Размер текста','Следовать размеру Android','action'],['⌁','Плотность списка','Компактный или удобный список узлов','action'],['♧','Сезонные иллюстрации','Не показывать на главном экране','action']]],['УВЕДОМЛЕНИЯ',[['◉','Скорость в уведомлении','Показывать текущую скорость передачи','switch']]]]},
+      updates:{title:'Обновления приложения',intro:'Проверяйте подписанные версии OnlineSeti VPN.',sections:[['ВЕРСИЯ',[['●','Установленная версия','OnlineSeti VPN · 0.1.2','action'],['↻','Проверить обновления','Ручная проверка новой сборки','action'],['◉','Канал обновлений','Стабильные версии','action']]],['ПОВЕДЕНИЕ',[['◉','Проверять ежедневно','Показывать уведомление о новой версии','switch'],['⌁','Предварительные версии','Показывать beta-сборки','switch']]]]},
+      backup:{title:'Резервная копия',intro:'Сохраняйте настройки и восстанавливайте их при смене устройства.',sections:[['НА ЭТОМ УСТРОЙСТВЕ',[['↗','Создать копию','Выбрать, куда сохранить файл','action'],['↙','Восстановить копию','Выбрать файл резервной копии','action']]],['ОБЛАКО',[['☁','WebDAV','Настроить удалённое хранилище','action'],['↻','Синхронизировать','Загрузить или скачать последнюю копию','action']]],['СОСТАВ КОПИИ',[['▣','Профили и подписки','Включено в резервную копию','switch'],['⇄','Правила маршрутизации','Включено в резервную копию','switch'],['⚙','Настройки приложения','Включено в резервную копию','switch']]]]},
+      logs:{title:'Журнал событий',intro:'Журнал помогает поддержке понять, где прерывается соединение. Перед отправкой можно скрыть адреса и чувствительные данные.',sections:[['ДЕЙСТВИЯ',[['↻','Обновить журнал','Показать последние события','action'],['↗','Поделиться журналом','Открыть предпросмотр перед отправкой','action'],['▣','Скрывать адреса и секреты','Очистить чувствительные данные в экспорте','switch']]],['ПОСЛЕДНИЕ СОБЫТИЯ',[['●','Соединение','Туннель запущен','action'],['↔','Автовыбор','Активный узел: FI Hysteria–Huawei','action']]]]},
+      relay:{title:'Дополнительные интеграции',intro:'Дополнительные сетевые функции. Выключены, если не используются.',sections:[['ИНТЕГРАЦИИ',[['◉','VK-релей','Состояние, авторизация и настройки транспорта','action'],['⌁','Локальные разрешения','Доступ к нужным системным функциям','action']]]]},
+      apps:{title:'Приложения через VPN',intro:'Выберите, какие приложения должны идти через туннель.',sections:[['РЕЖИМ',[['◉','Только выбранные приложения','Остальные идут напрямую','switch'],['▣','Список приложений','Выбрать установленные приложения','action']]]]},
+      support:{title:'Поддержка и помощь',intro:'Быстрые ответы на частые вопросы и связь с командой OnlineSeti.',sections:[['ПОМОЩЬ',[['▤','Как установить подписку','Пошаговая инструкция для Karing и OnlineSeti VPN','action'],['↻','Не подключается VPN','Проверка сети, сервера и автоматического переключения','diagnostics'],['≡','Отправить журнал','Сначала покажем, какие данные попадут в обращение','logs']]],['СВЯЗЬ',[['✉','Написать в поддержку','Открыть чат с поддержкой OnlineSeti','action'],['⌁','Новости сервиса','Объявления о работах и изменениях','action']]]]},
+      about:{title:'О приложении',intro:'OnlineSeti VPN — единый клиент для подключения, защиты трафика и управления маршрутами.',sections:[['ПРИЛОЖЕНИЕ',[['◉','Версия','0.1.2 · стабильный канал','action'],['▤','Лицензии','Открытые компоненты и лицензии','action'],['⌁','Политика конфиденциальности','Какие данные обрабатываются','action']]],['ПОДДЕРЖКА',[['🛟','Справка и контакты','Связаться с командой OnlineSeti','support']]]]},
+    };
+    function openDetail(id) { if(!detailStack.length) detailReturnScreen=document.querySelector('.screen.active')?.id||'more';detailStack.push(id); renderDetail(id); document.querySelectorAll('.screen').forEach(x=>x.classList.remove('active'));document.getElementById('detail').classList.add('active');document.querySelector('main').scrollTo({top:0,behavior:'smooth'}); }
+    function backDetail() { if(detailStack.length>1){detailStack.pop();renderDetail(detailStack[detailStack.length-1]);}else{detailStack=[];navigate(detailReturnScreen);} }
+    function renderDetail(id) { const page=id==='valueEdit'?{title:detailActionItem.title,intro:detailActionItem.description,sections:[]}:pages[id]||pages.settings;const host=document.getElementById('detailContent');let out=`<div class="detail-head"><button class="back-btn" onclick="backDetail()" aria-label="Назад">‹</button><h1 class="detail-title">${page.title}</h1></div><p class="detail-intro">${page.intro}</p>`;for(const [section,rows] of page.sections){out+=`<div class="detail-section">${section}</div>`;for(const [icon,title,desc,target] of rows){const isSwitch=target==='switch';out+=`<div class="detail-row" ${isSwitch?`onclick="toggleDemoSwitch(this)"`: `onclick="detailAction('${target}',this)"`} role="button" tabindex="0"><span class="detail-icon">${icon}</span><span class="detail-copy"><b>${title}</b><small>${desc}</small></span>${isSwitch?'<i class="detail-switch on"></i>':'<span class="detail-arrow">›</span>'}</div>`;}}if(id==='valueEdit')out+=`<div class="detail-section">ЗНАЧЕНИЕ</div><input id="demoValue" class="detail-field" aria-label="Значение настройки" placeholder="Введите или выберите значение"><button class="detail-primary" onclick="applyDemoSetting()">Сохранить</button>`;out+=`<div class="detail-note good">Это макет: переключатели и действия здесь демонстрационные. В приложении они будут управлять реальными настройками.</div>`;host.innerHTML=out; }
+    function detailAction(target,row) { if(pages[target]){openDetail(target);return;}const title=row?.querySelector('b')?.textContent||'Настройка';const description=row?.querySelector('small')?.textContent||'Выберите значение';detailActionItem={title,description};openDetail('valueEdit'); }
+    function applyDemoSetting(){const value=document.getElementById('demoValue')?.value?.trim();showToast(value?`Сохранено: ${value}`:'Значение не задано');if(value)backDetail();}
+    function toggleDemoSwitch(row) { const sw=row.querySelector('.detail-switch');sw.classList.toggle('on');const small=row.querySelector('small');small.textContent=sw.classList.contains('on')?'Включено':'Выключено';showToast(small.textContent); }
+    function navigate(screen) {
+      detailStack=[];
+      document.querySelectorAll('.screen').forEach(x => x.classList.toggle('active', x.id === screen));
+      document.querySelectorAll('.nav-btn').forEach(x => x.classList.toggle('active', x.dataset.screen === screen));
+      document.querySelector('main').scrollTo({top:0,behavior:'smooth'});
+    }
+    function toggleConnection() {
+      connected = !connected;
+      const power = document.getElementById('power');
+      power.classList.toggle('off', !connected);
+      power.setAttribute('aria-label', connected ? 'Отключить VPN' : 'Подключить VPN');
+      document.getElementById('connectLabel').textContent = connected ? 'Подключено' : 'Отключено';
+      document.getElementById('connectTime').textContent = connected ? 'Защита включена · 00:00:01' : 'Нажмите кнопку, чтобы подключиться';
+      const pill = document.getElementById('connectionPill');
+      pill.innerHTML = connected ? '<i class="dot"></i><span>ПОДКЛЮЧЕНО</span>' : '<span style="color:var(--muted)">ВЫКЛЮЧЕНО</span>';
+      showToast(connected ? 'Подключение установлено' : 'VPN отключён');
+    }
+    function selectServer(el) {
+      document.querySelectorAll('.server').forEach(x => {x.classList.remove('selected'); x.querySelector('.server-labels small').textContent = x.dataset.meta.split(' · ')[0] + ' · ' + x.dataset.meta.split(' · ')[1]});
+      el.classList.add('selected');
+      el.querySelector('.server-labels small').textContent = el.dataset.meta.split(' · ')[0] + ' · выбран сейчас';
+      document.getElementById('activeServer').textContent = el.dataset.name;
+      document.getElementById('activeServerMeta').textContent = el.dataset.meta;
+      document.getElementById('activeRtt').textContent = el.dataset.rtt;
+      document.getElementById('autoSelected').textContent = 'Сейчас: ' + el.dataset.name;
+      document.getElementById('switchText').textContent = 'Текущий узел';
+      navigate('home');
+      showToast('Текущий сервер обновлён');
+    }
+    let toastTimer;
+    function showToast(text) { const toast = document.getElementById('toast'); toast.textContent = text; toast.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => toast.classList.remove('show'), 1900); }
+  </script>
+</body>
+</html>

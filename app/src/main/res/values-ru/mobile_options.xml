@@ -1,0 +1,14 @@
+<resources>
+<string name="qmobile_seasonal">Сезонное украшение</string>
+<string name="qmobile_edit">Редактировать</string>
+<string name="qmobile_pin">Закрепить</string>
+<string name="qmobile_unpin">Открепить</string>
+<string name="qmobile_subscription_name">Название подписки</string>
+<string name="qmobile_subscription_url">Адрес подписки</string>
+<string name="qmobile_auto_update">Автообновление</string>
+<string name="qmobile_save">Сохранить</string>
+<string name="qmobile_server_list">Список серверов</string>
+<string-array name="mobile_theme_names"><item>Красный</item><item>Розовый SSR</item><item>Розовый</item><item>Фиолетовый</item><item>Тёмно-фиолетовый</item><item>Индиго</item><item>Синий</item><item>Голубой</item><item>Бирюзовый</item><item>Морская волна</item><item>Зелёный</item><item>Светло-зелёный</item><item>Лайм</item><item>Жёлтый</item><item>Янтарный</item><item>Оранжевый</item><item>Тёмно-оранжевый</item><item>Коричневый</item><item>Серый</item><item>Серо-голубой</item><item>Чёрный</item><item>Мятный</item><item>Белый</item></string-array>
+<string-array name="qmobile_seasons"><item>Выключено</item><item>Авто</item><item>Осень</item><item>Зима</item><item>Весна</item><item>Лето</item></string-array>
+<string name="provider_profile_source">Источник: %1$s</string>
+</resources>

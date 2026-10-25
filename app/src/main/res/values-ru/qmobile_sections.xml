@@ -1,0 +1,5 @@
+<resources>
+    <string name="qmobile_section_interface">Настройки интерфейса</string>
+    <string name="qmobile_section_connection">Настройки подключения</string>
+    <string name="qmobile_section_other">Другие настройки</string>
+</resources>

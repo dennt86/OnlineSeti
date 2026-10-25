@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto">
+    <PreferenceCategory app:title="@string/cag_connection">
+        <moe.matsuri.nb4a.ui.SimpleMenuPreference
+            app:defaultValue="vpn"
+            app:entries="@array/service_modes"
+            app:entryValues="@array/service_mode_values"
+            app:icon="@drawable/ic_device_developer_mode"
+            app:key="serviceMode"
+            app:title="@string/service_mode"
+            app:useSimpleSummaryProvider="true" />
+        <SwitchPreference
+            app:icon="@drawable/ic_communication_phonelink_ring"
+            app:key="remember_enable"
+            app:summary="@string/auto_connect_summary"
+            app:title="@string/auto_connect" />
+        <Preference
+            app:icon="@drawable/ic_baseline_vpn_key_24"
+            app:key="alwaysOnVpn"
+            app:persistent="false"
+            app:title="@string/always_on_vpn" />
+    </PreferenceCategory>
+
+    <PreferenceCategory app:title="@string/cag_behaviour">
+        <SwitchPreference
+            app:defaultValue="true"
+            app:icon="@drawable/ic_baseline_flip_camera_android_24"
+            app:key="networkChangeResetConnections"
+            app:title="@string/network_change_reset_connections" />
+        <SwitchPreference
+            app:defaultValue="true"
+            app:icon="@drawable/ic_baseline_alarm_24"
+            app:key="wakeResetConnections"
+            app:title="@string/wake_reset_connections" />
+        <Preference
+            app:icon="@drawable/ic_baseline_running_with_errors_24"
+            app:key="batteryOptimization"
+            app:persistent="false"
+            app:title="@string/battery_optimization" />
+        <Preference
+            app:icon="@drawable/ic_baseline_security_24"
+            app:key="backgroundRestrictions"
+            app:persistent="false"
+            app:summary="@string/oem_background_summary"
+            app:title="@string/oem_background" />
+        <SwitchPreference
+            app:icon="@drawable/ic_device_data_usage"
+            app:key="meteredNetwork"
+            app:summary="@string/metered_summary"
+            app:title="@string/metered" />
+        <SwitchPreference
+            app:icon="@drawable/ic_baseline_visibility_off_24"
+            app:key="hideFromRecentApps"
+            app:summary="@string/hide_from_recent_apps_summary"
+            app:title="@string/hide_from_recent_apps" />
+</PreferenceCategory>
+
+
+</PreferenceScreen>
