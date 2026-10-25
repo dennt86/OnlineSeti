@@ -102,6 +102,25 @@ class MobileHomeFragment : ToolbarFragment() {
             } finally { reordering=false;refresh() }
         }
     }
+
+    /** Move a profile dropped onto another group's card, header, or profile list. */
+    private fun moveProfileToGroup(profileId: Long, targetGroupId: Long, targetGroupName: String) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            val moved = runCatching {
+                withContext(Dispatchers.IO) {
+                    ProfileManager.moveToGroup(listOf(profileId), targetGroupId)
+                    SagerDatabase.proxyDao.getById(profileId)?.groupId == targetGroupId
+                }
+            }.getOrDefault(false)
+            reordering = false
+            refresh()
+            Toast.makeText(
+                requireContext(),
+                if (moved) "Профиль перемещён в «$targetGroupName»" else getString(R.string.profile_move_failed),
+                Toast.LENGTH_SHORT,
+            ).show()
+        }
+    }
     /**
      * An expanded subscription can be taller than the screen; dragging it then hides everything
      * and leaves no visible place to drop. Fold every group to its header while a group moves,
@@ -489,7 +508,10 @@ class MobileHomeFragment : ToolbarFragment() {
                 }
                 val box = LinearLayout(requireContext()).apply { orientation = LinearLayout.VERTICAL; background = tile() }
                 val rows = LinearLayout(requireContext()).apply { orientation=LinearLayout.VERTICAL }
-                val profileDrag=MobileReorder(rows,serverScroll,{ reordering=it },{ saveReorder(group.id,it) })
+                val profileDrag=MobileReorder(
+                    rows,serverScroll,{ reordering=it },{ saveReorder(group.id,it) },
+                    onCrossDrop = { profileId -> moveProfileToGroup(profileId,group.id,group.displayName()) },
+                )
                 profileReorders[group.id]=profileDrag
                 val title = LinearLayout(requireContext()).apply { gravity = Gravity.CENTER_VERTICAL }
                 val arrow = ImageView(requireContext()).apply {
@@ -501,6 +523,8 @@ class MobileHomeFragment : ToolbarFragment() {
                 names.addView(text(group.displayName(),17f).apply { setPadding(0,0,0,0); maxLines=1; ellipsize=android.text.TextUtils.TruncateAt.END })
                 if(group.isSubscription && group.subLastUpdate>0) names.addView(text(java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.SHORT,java.text.DateFormat.SHORT).format(java.util.Date(group.subLastUpdate*1000)),10f,muted).apply { setPadding(0,dp(3),0,0) })
                 heading.addView(names,LinearLayout.LayoutParams(0,-2,1f))
+                profileDrag.addDropTarget(heading)
+                profileDrag.addDropTarget(box)
                 heading.setOnClickListener {
                     if (!collapsed.add(group.id)) collapsed.remove(group.id)
                     requireContext().getSharedPreferences("dashboard",Context.MODE_PRIVATE).edit().putStringSet("collapsedGroups",collapsed.map { it.toString() }.toSet()).apply()

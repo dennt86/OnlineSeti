@@ -1,0 +1,12 @@
+<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto">
+    <PreferenceCategory app:title="@string/qmobile_settings_daily">
+        <Preference app:key="qmobileSubscription" app:fragment="app.qthrone.mobile.ui.settings.SubscriptionSettingsFragment" app:widgetLayout="@layout/qmobile_preference_arrow" app:title="@string/qmobile_subscriptions" app:summary="@string/qmobile_subscriptions_sum" />
+        <Preference app:key="qmobileAppearance" app:fragment="app.qthrone.mobile.ui.settings.AppearanceSettingsFragment" app:widgetLayout="@layout/qmobile_preference_arrow" app:title="@string/settings_appearance" app:summary="@string/settings_appearance_sum" />
+    </PreferenceCategory>
+    <PreferenceCategory app:title="@string/qmobile_settings_tools">
+        <Preference app:key="settingsBackup" app:widgetLayout="@layout/qmobile_preference_arrow" app:title="@string/qmobile_backup" />
+        <Preference app:fragment="app.qthrone.mobile.ui.settings.UpdateSettingsFragment" app:widgetLayout="@layout/qmobile_preference_arrow" app:title="@string/qmobile_updates" />
+        <Preference app:key="qmobileLogs" app:widgetLayout="@layout/qmobile_preference_arrow" app:title="@string/qmobile_logs" />
+    </PreferenceCategory>
+    <Preference app:key="qmobileAdvanced" app:fragment="app.qthrone.mobile.ui.AdvancedSettingsPreferenceFragment" app:widgetLayout="@layout/qmobile_preference_arrow" app:title="@string/qmobile_advanced_settings" app:summary="@string/qmobile_advanced_settings_sum" />
+</PreferenceScreen>

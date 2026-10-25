@@ -1,0 +1,6 @@
+<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto">
+    <PreferenceCategory app:title="@string/qmobile_settings_daily">
+        <SwitchPreference app:key="subAutoUpdateEnabled" app:persistent="false" app:title="@string/grp_sub_auto_update" app:summary="@string/qmobile_subscriptions_auto_sum" />
+    </PreferenceCategory>
+    <Preference app:fragment="app.qthrone.mobile.ui.settings.AdvancedSubscriptionSettingsFragment" app:icon="@drawable/ic_baseline_tune_24" app:widgetLayout="@layout/qmobile_preference_arrow" app:title="@string/qmobile_advanced_settings" app:summary="@string/qmobile_advanced_subscription_sum" />
+</PreferenceScreen>

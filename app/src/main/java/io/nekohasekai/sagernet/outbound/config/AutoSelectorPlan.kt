@@ -20,6 +20,7 @@ enum class AutoSelectorSkip(@JvmField val reason: String) {
     ManagementEndpoint("OpenVPN or OpenConnect profile"),
     NameFilter("filtered out by name"),
     CountryFilter("filtered out by country"),
+    MobileNetworkOnly("WDTT Plus requires a mobile network"),
     Unavailable("last test failed"),
     XrayFullChained("Xray full config cannot be combined with the group's proxies"),
 
@@ -51,6 +52,8 @@ class SelectorGroup(
     @JvmField val landingProxy: Outbound?,
     @JvmField val frontProxy: Outbound?,
     @JvmField val members: List<SelectorMember>,
+    /** WDTT Plus is restricted to a cellular default network on Android. */
+    @JvmField val wdttPlusAllowed: Boolean = true,
 )
 
 /** The storage the auto-selector plan reads: the tracked group, or null when it does not exist. */
@@ -195,7 +198,7 @@ class AutoSelectorPlanner @JvmOverloads constructor(
         val now = clock()
         val byId = group.members.associateBy { it.id }
         val staleSet = stale.toHashSet()
-        return eligibleMembers(selectorId, selector, group, now, null).filter {
+        return eligibleMembers(selectorId, selector, group, now, null, staleSet).filter {
             it in staleSet || effectiveLatency(byId[it], selector, now) == 0
         }
     }
@@ -236,9 +239,13 @@ class AutoSelectorPlanner @JvmOverloads constructor(
     }
 
     // eligibilityOf (cpp:50-82); null = eligible.
-    private fun eligibilityOf(member: SelectorMember, selector: AutoSelector, filters: Filters, now: Long): AutoSelectorSkip? {
+    private fun eligibilityOf(
+        member: SelectorMember, selector: AutoSelector, filters: Filters, now: Long, wdttPlusAllowed: Boolean,
+        forceRetest: Boolean,
+    ): AutoSelectorSkip? {
         val outbound = member.outbound ?: return AutoSelectorSkip.Missing
         val type = outbound.type
+        if (type == "wdttplus" && !wdttPlusAllowed) return AutoSelectorSkip.MobileNetworkOnly
         if (type == "chain" || type == "autoselector") return AutoSelectorSkip.MetaType
         if (type == "tailscale") return AutoSelectorSkip.Tailscale
         if (type == "openvpn" || type == "openconnect") return AutoSelectorSkip.ManagementEndpoint
@@ -261,7 +268,7 @@ class AutoSelectorPlanner @JvmOverloads constructor(
             return AutoSelectorSkip.CountryFilter
         }
         // Only a fresh failure excludes a member; an old one would exile it permanently.
-        if (selector.excludeUnavailable && member.latency < 0 && hasFreshResult(member, selector, now)) {
+        if (!forceRetest && selector.excludeUnavailable && member.latency < 0 && hasFreshResult(member, selector, now)) {
             return AutoSelectorSkip.Unavailable
         }
         return null
@@ -270,6 +277,7 @@ class AutoSelectorPlanner @JvmOverloads constructor(
     // eligibleMembers (cpp:139-198) against the given group; [plan] collects the counters when set.
     private fun eligibleMembers(
         selectorId: Long, selector: AutoSelector, group: SelectorGroup, now: Long, plan: AutoSelectorPlan?,
+        forceRetest: Set<Long> = emptySet(),
     ): List<Long> {
         val filters = buildFilters(selector)
         val skips = EnumMap<AutoSelectorSkip, Int>(AutoSelectorSkip::class.java)
@@ -278,7 +286,7 @@ class AutoSelectorPlanner @JvmOverloads constructor(
         for (member in group.members) {
             if (member.id == selectorId) continue
             if (plan != null) plan.membersInGroup++
-            val skip = eligibilityOf(member, selector, filters, now)
+            val skip = eligibilityOf(member, selector, filters, now, group.wdttPlusAllowed, member.id in forceRetest)
             if (skip != null && skip != AutoSelectorSkip.Unavailable) {
                 skips.merge(skip, 1, Int::plus)
                 continue
@@ -319,6 +327,12 @@ class AutoSelectorPlanner @JvmOverloads constructor(
         val eligible = members.toHashSet()
         val ordered = ArrayList<Long>(members.size)
         val placed = HashSet<Long>()
+        if (group.wdttPlusAllowed) {
+            val byId = group.members.associateBy { it.id }
+            members.filter { byId[it]?.outbound?.type == "wdttplus" }
+                .sortedWith(byLatency(selector, group, now))
+                .forEach { if (placed.add(it)) ordered.add(it) }
+        }
         for (id in persistedPool) {
             if (id !in eligible || !placed.add(id)) continue
             ordered.add(id)
@@ -331,6 +345,11 @@ class AutoSelectorPlanner @JvmOverloads constructor(
     private fun byLatency(selector: AutoSelector, group: SelectorGroup, now: Long): Comparator<Long> {
         val byId = group.members.associateBy { it.id }
         return Comparator { left, right ->
+            if (group.wdttPlusAllowed) {
+                val leftWdtt = byId[left]?.outbound?.type == "wdttplus"
+                val rightWdtt = byId[right]?.outbound?.type == "wdttplus"
+                if (leftWdtt != rightWdtt) return@Comparator if (leftWdtt) -1 else 1
+            }
             val leftLatency = effectiveLatency(byId[left], selector, now)
             val rightLatency = effectiveLatency(byId[right], selector, now)
             val leftRank = latencyRank(leftLatency)

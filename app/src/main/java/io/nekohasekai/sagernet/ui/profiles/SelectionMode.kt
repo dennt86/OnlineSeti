@@ -150,9 +150,9 @@ class SelectionMode(private val host: ConfigurationFragment) {
         }
     }
 
-    /** Android extra: to the end of another basic group (as the profile editor's "Move"). */
+    /** Android extra: to the end of another group, including a subscription (where it stays as a local member). */
     private fun moveToGroup(ids: List<Long>) {
-        val targets = host.groups().filter { !it.isSubscription && it.id != groupId }
+        val targets = host.groups().filter { it.id != groupId }
         if (targets.isEmpty()) {
             host.snackbar(R.string.profiles_move_no_target).show()
             return

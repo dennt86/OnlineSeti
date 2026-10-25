@@ -153,7 +153,9 @@ object SubscribeFlows {
                 }
                 if (outbounds.isEmpty()) activity.getString(R.string.no_proxies_found_in_file)
                 else {
-                    ProfileManager.addProfileBatch(outbounds, gid)
+                    val target = if (gid > 0) gid else GroupRepo.currentId()
+                    val added = ProfileManager.addProfileBatch(outbounds, target)
+                    ProfileManager.keepLocalInSubscription(target, added.map { it.id })
                     activity.resources.getQuantityString(R.plurals.added, outbounds.size, outbounds.size)
                 }
             } catch (e: Exception) {

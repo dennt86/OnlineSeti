@@ -24,6 +24,8 @@ import app.qthrone.mobile.bg.proto.urlTestCurrent
 import app.qthrone.mobile.bg.test.TestEngine
 import app.qthrone.mobile.database.DataStore
 import app.qthrone.mobile.database.ProfileOrder
+import app.qthrone.mobile.database.ProfileManager
+import app.qthrone.mobile.database.GroupRepo
 import app.qthrone.mobile.database.ProxyEntity
 import app.qthrone.mobile.database.SagerDatabase
 import app.qthrone.mobile.ktx.*
@@ -31,6 +33,7 @@ import app.qthrone.mobile.outbound.json.jsonObjectOf
 import app.qthrone.mobile.utils.DefaultNetworkListener
 import app.qthrone.mobile.utils.PlatformNotifications
 import app.qthrone.mobile.utils.WifiStateAccess
+import app.qthrone.mobile.utils.WdttPlusNetworkPolicy
 import app.qthrone.core.mobile.Instance
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
@@ -282,6 +285,24 @@ class BaseService {
             }
         }
 
+        private fun wdttWifiFallback(profile: ProxyEntity): ProxyEntity? {
+            val candidates = buildList {
+                addAll(ProfileManager.members(profile.groupId))
+                GroupRepo.all().asSequence().filter { it.id != profile.groupId }.forEach { group ->
+                    addAll(ProfileManager.members(group.id))
+                }
+            }.distinctBy { it.id }
+            val candidate = WdttPlusNetworkPolicy.wifiFallback(
+                profile.id,
+                candidates.map { member ->
+                    WdttPlusNetworkPolicy.FallbackCandidate(
+                        member.id, member.type, usable = !member.outbound.invalid, latencyMs = member.latency,
+                    )
+                },
+            ) ?: return null
+            return SagerDatabase.proxyDao.getById(candidate.id)
+        }
+
         /** Runs [id] instead of the current profile, staying in the foreground; the running profile is left alone. */
         fun switchProfile(id: Long) {
             if (id <= 0L) return
@@ -519,11 +540,21 @@ class BaseService {
             // Tracks the underlying network for VpnService.setUnderlyingNetworks only; the
             // "reset on network change" switch is applied by NativeInterface's monitor callback.
             var observedNetwork=SagerNet.underlyingNetwork
+            var observedCellular: Boolean? = null
             DefaultNetworkListener.start(this) { network ->
                 if (network == null) {
                     observedNetwork=null
                     SagerNet.underlyingNetwork=null
                     DataStore.vpnService?.updateUnderlyingNetwork()
+                    val current = data.proxy?.profile
+                    if (current?.type == "wdttplus") {
+                        val fallback = wdttWifiFallback(current)
+                        if (fallback != null) {
+                            DataStore.selectedProxy = fallback.id
+                            Logs.w("WDTT Plus uplink lost; switching to ${fallback.displayName()}")
+                            if (data.state != State.Stopped) AutoSelectorRuntime.restart(this) { stopRunner(true) }
+                        }
+                    }
                     return@start
                 }
                 SagerNet.connectivity.getLinkProperties(network)?.also { link ->
@@ -531,6 +562,30 @@ class BaseService {
                     observedNetwork=network
                     SagerNet.underlyingNetwork = network
                     DataStore.vpnService?.updateUnderlyingNetwork()
+                    val cellularDefault = WdttPlusNetworkPolicy.isCellularDefault()
+                    val networkTypeChanged = observedCellular != null && observedCellular != cellularDefault
+                    observedCellular = cellularDefault
+                    val current = data.proxy?.profile
+                    if (current?.type == "wdttplus" && !WdttPlusNetworkPolicy.isCellularDefault()) {
+                        val fallback = wdttWifiFallback(current)
+                        if (fallback != null) {
+                            DataStore.selectedProxy = fallback.id
+                            Logs.w("Wi-Fi detected while WDTT Plus is active; switching to ${fallback.displayName()}")
+                            if (data.state != State.Stopped) AutoSelectorRuntime.restart(this) { stopRunner(true) }
+                            return@start
+                        }
+                    }
+                    if (networkTypeChanged && current?.type == "autoselector") {
+                        val selector = current.outbound as? app.qthrone.mobile.outbound.types.AutoSelector
+                        val wdttPlusIds = selector?.let { selected ->
+                            ProfileManager.members(selected.gid).filter { it.type == "wdttplus" }.map { it.id }
+                        }.orEmpty()
+                        if (wdttPlusIds.isNotEmpty()) {
+                            Logs.i("Wi-Fi/cellular state changed; rebuilding auto selector for WDTT Plus availability")
+                            AutoSelectorRuntime.networkChanged(this, wdttPlusIds)
+                            return@start
+                        }
+                    }
                     val oldName = upstreamInterfaceName
                     if (oldName != link.interfaceName || previousNetwork!=network) {
                         Logs.d("Network changed: $oldName -> ${link.interfaceName}")
@@ -596,6 +651,17 @@ class BaseService {
                 stopRunner(false, getString(R.string.profile_empty))
                 return
             }
+            if (profile.type == "wdttplus" && !WdttPlusNetworkPolicy.isCellularDefault()) {
+                val fallbackProfile = wdttWifiFallback(profile)
+                if (fallbackProfile != null) {
+                        DataStore.selectedProxy = fallbackProfile.id
+                        moe.matsuri.nb4a.utils.CoreLog.write(
+                            "[Info] WDTT Plus is cellular-only; Wi-Fi detected, automatically selecting ${fallbackProfile.displayName()} from the same group",
+                        )
+                        startProxy()
+                        return
+                }
+            }
             PlatformNotifications.cancelAlwaysOnNoProfile(this)
 
             val proxy = ProxyInstance(profile, this)
@@ -653,6 +719,10 @@ class BaseService {
                 try {
                     withContext(Dispatchers.IO) { TestEngine.stopAndJoin() }
                     preInit()
+                    if (profile.type == "wdttplus" && !WdttPlusNetworkPolicy.isCellularDefault()) {
+                        failRunner(getString(R.string.wdttplus_mobile_network_required))
+                        return@launch
+                    }
                     moe.matsuri.nb4a.utils.CoreLog.write("[Info] Preparing profile ${profile.id}; protocol=${profile.type}; mode=${DataStore.serviceMode}")
                     proxy.init()
                     moe.matsuri.nb4a.utils.CoreLog.write("[Info] Profile ${profile.id} configuration and assets ready; starting core")

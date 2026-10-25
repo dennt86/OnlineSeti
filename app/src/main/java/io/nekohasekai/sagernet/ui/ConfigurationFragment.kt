@@ -1,8 +1,10 @@
 package app.qthrone.mobile.ui
 
 import android.content.Intent
+import android.content.ClipData
 import android.os.Bundle
 import android.view.Gravity
+import android.view.DragEvent
 import android.view.KeyEvent
 import android.view.MenuItem
 import android.view.View
@@ -36,6 +38,7 @@ import app.qthrone.mobile.aidl.TrafficData
 import app.qthrone.mobile.database.DataStore
 import app.qthrone.mobile.database.GroupRepo
 import app.qthrone.mobile.database.ProfileManager
+import app.qthrone.mobile.database.SagerDatabase
 import app.qthrone.mobile.database.ProxyEntity
 import app.qthrone.mobile.database.ProxyGroup
 import app.qthrone.mobile.database.preference.OnPreferenceDataStoreChangeListener
@@ -44,6 +47,7 @@ import app.qthrone.mobile.ktx.dp2px
 import app.qthrone.mobile.ktx.onMainDispatcher
 import app.qthrone.mobile.ktx.runOnDefaultDispatcher
 import app.qthrone.mobile.ktx.runOnMainDispatcher
+import app.qthrone.mobile.ktx.snackbar
 import app.qthrone.mobile.ui.profiles.GroupMenu
 import app.qthrone.mobile.ui.profiles.ProfileImports
 import app.qthrone.mobile.ui.profiles.ProfileItemMenu
@@ -57,6 +61,7 @@ import app.qthrone.mobile.ui.test.TestPanelController
 import app.qthrone.mobile.ui.test.TestSessionClient
 import app.qthrone.mobile.ui.test.TestUiState
 import app.qthrone.mobile.utils.Theme
+import app.qthrone.mobile.utils.WdttPlusNetworkPolicy
 import app.qthrone.mobile.widget.applyInsetMargin
 import app.qthrone.mobile.widget.applyInsetPadding
 import kotlinx.coroutines.CoroutineScope
@@ -77,6 +82,9 @@ class ConfigurationFragment : ToolbarFragment(R.layout.layout_group_list),
     SearchView.OnQueryTextListener,
     GroupRepo.Listener,
     ProfileManager.Listener {
+
+    private data class ProfileDragPayload(val profileId: Long, val sourceGroupId: Long, var handled: Boolean = false)
+    private var crossGroupDragActive = false
 
     interface SelectCallback {
         fun returnProfile(profileId: Long)
@@ -224,8 +232,8 @@ class ConfigurationFragment : ToolbarFragment(R.layout.layout_group_list),
         header = ProfilesHeader(
             view as ViewGroup, view.findViewById(R.id.toolbar), tabLayout, runtimeStatus, card.view,
             autoHide = config.screenHeightDp < COMPACT_HEIGHT_DP && !SagerNet.isTv,
-            pinned = ::headerPinned,
-            frozen = { lists.any { it.adapter.dragging } },
+            pinned = { crossGroupDragActive || headerPinned() },
+            frozen = { crossGroupDragActive || lists.any { it.adapter.dragging } },
         )
         ViewCompat.setOnApplyWindowInsetsListener(view) { root, insets ->
             if (insets.isVisible(WindowInsetsCompat.Type.ime())) root.post { header?.update() }
@@ -246,6 +254,7 @@ class ConfigurationFragment : ToolbarFragment(R.layout.layout_group_list),
                 true
             }
         }.also { it.attach() }
+        installProfileDropTargets()
         pager.registerOnPageChangeCallback(pageCallback)
         onPageShown()
 
@@ -487,7 +496,67 @@ class ConfigurationFragment : ToolbarFragment(R.layout.layout_group_list),
         toolbar?.elevation = if (single) 0f else dp2px(4).toFloat()
         val index = pagerAdapter.indexOf(targetGroupId).takeIf { it >= 0 } ?: 0
         if (pager.currentItem != index) pager.setCurrentItem(index, false)
+        installProfileDropTargets()
         onPageShown()
+    }
+
+    /** Tabs accept a held profile so it can be dropped directly into another group. */
+    private fun installProfileDropTargets() {
+        if (!::tabLayout.isInitialized || !::pagerAdapter.isInitialized || select) return
+        tabLayout.setOnDragListener(null)
+        // The header auto-hides while a profile list scrolls. Keep it visible throughout a cross-group drag,
+        // and use the root listener to always receive ACTION_DRAG_ENDED even when the pointer misses a tab.
+        view?.setOnDragListener { _, event ->
+            when (event.action) {
+                DragEvent.ACTION_DRAG_STARTED -> event.localState is ProfileDragPayload
+                DragEvent.ACTION_DRAG_ENDED -> {
+                    if (crossGroupDragActive) {
+                        crossGroupDragActive = false
+                        header?.update()
+                    }
+                    true
+                }
+                else -> event.localState is ProfileDragPayload
+            }
+        }
+        for (index in 0 until tabLayout.tabCount) {
+            val tab = tabLayout.getTabAt(index) ?: continue
+            val group = pagerAdapter.groups.getOrNull(index) ?: continue
+            fun attach(view: View) {
+                view.setOnDragListener { _, event ->
+                    val payload = event.localState as? ProfileDragPayload
+                    when (event.action) {
+                        DragEvent.ACTION_DRAG_STARTED -> payload != null && payload.sourceGroupId != group.id
+                        DragEvent.ACTION_DRAG_ENTERED -> { tab.view.alpha = 0.65f; true }
+                        DragEvent.ACTION_DRAG_EXITED -> { tab.view.alpha = 1f; true }
+                        DragEvent.ACTION_DROP -> {
+                            tab.view.alpha = 1f
+                            if (payload != null && !payload.handled && payload.sourceGroupId != group.id) {
+                                payload.handled = true
+                                launchIo {
+                                    val moved = runCatching {
+                                        ProfileManager.moveToGroup(listOf(payload.profileId), group.id)
+                                        SagerDatabase.proxyDao.getById(payload.profileId)?.groupId == group.id
+                                    }.getOrDefault(false)
+                                    onUi {
+                                        if (moved) {
+                                            snackbar(resources.getQuantityString(R.plurals.profiles_moved, 1, 1, group.displayName())).show()
+                                        } else {
+                                            snackbar(R.string.profile_move_failed).show()
+                                        }
+                                    }
+                                }
+                            }
+                            true
+                        }
+                        DragEvent.ACTION_DRAG_ENDED -> { tab.view.alpha = 1f; true }
+                        else -> true
+                    }
+                }
+                if (view is ViewGroup) for (child in 0 until view.childCount) attach(view.getChildAt(child))
+            }
+            attach(tab.view)
+        }
     }
 
     private val pageCallback = object : ViewPager2.OnPageChangeCallback() {
@@ -593,7 +662,30 @@ class ConfigurationFragment : ToolbarFragment(R.layout.layout_group_list),
         when {
             select -> (activity as? SelectCallback)?.returnProfile(profile.id)
             selection.active -> selection.toggle(profile.id)
+            profile.type == "wdttplus" && !WdttPlusNetworkPolicy.isCellularDefault() -> connectWifiFallback(profile)
             else -> selectProfile(profile.id, toggleOnTv = true)
+        }
+    }
+
+    private fun connectWifiFallback(profile: ProxyEntity) {
+        val candidates = buildList {
+            addAll(ProfileManager.members(profile.groupId))
+            groups().asSequence().filter { it.id != profile.groupId }.forEach { addAll(ProfileManager.members(it.id)) }
+        }.distinctBy { it.id }
+        val fallback = WdttPlusNetworkPolicy.wifiFallback(
+            profile.id,
+            candidates.map { WdttPlusNetworkPolicy.FallbackCandidate(it.id, it.type, !it.outbound.invalid, it.latency) },
+        )?.let { candidate -> candidates.firstOrNull { it.id == candidate.id } }
+        if (fallback == null) {
+            snackbar(R.string.wdttplus_mobile_network_required).show()
+            return
+        }
+        val last = DataStore.selectedProxy
+        applyProfileState(fallback.id, currentProfile, serviceStarted)
+        runOnDefaultDispatcher {
+            DataStore.selectedProxy = fallback.id
+            ProfileManager.postUpdate(last, noTraffic = true)
+            if (DataStore.serviceState.canStop) SagerNet.reloadService() else SagerNet.startService()
         }
     }
 
@@ -609,7 +701,16 @@ class ConfigurationFragment : ToolbarFragment(R.layout.layout_group_list),
             selection.toggle(profile.id)
             return true
         }
-        if (touch && list?.startDrag(holder) == true) return true
+        if (touch && profile.type != "autoselector" && groups().any { it.id != profile.groupId }) {
+            val payload = ProfileDragPayload(profile.id, profile.groupId)
+            val clip = ClipData.newPlainText("OnlineSeti profile", profile.id.toString())
+            // Tabs can be hidden by the compact-screen scroll header. Reveal them before Android chooses
+            // drag targets, then pin the header until ACTION_DRAG_ENDED.
+            header?.show()
+            crossGroupDragActive = true
+            if (holder.itemView.startDragAndDrop(clip, View.DragShadowBuilder(holder.itemView), payload, 0)) return true
+            crossGroupDragActive = false
+        }
         selection.start(profile)
         return true
     }

@@ -1,6 +1,7 @@
 package app.qthrone.mobile.database
 
 import app.qthrone.mobile.Key
+import app.qthrone.mobile.BuildConfig
 import app.qthrone.mobile.SpeedTestSettings
 import app.qthrone.mobile.database.preference.SettingsStore
 import app.qthrone.mobile.outbound.link.Hosts
@@ -263,7 +264,7 @@ object SettingsRegistry {
     @JvmField val NET_USE_PROXY = bool("net_use_proxy", false)
     @JvmField val NET_INSECURE = bool("net_insecure", false)
     /** Sign-encoded minutes like [ROUTE_AUTO_UPDATE]. */
-    @JvmField val SUB_AUTO_UPDATE = int("sub_auto_update", -30)
+    @JvmField val SUB_AUTO_UPDATE = int("sub_auto_update", if (BuildConfig.BUILD_TYPE == "client") 1440 else -30)
     /** Epoch seconds. */
     @JvmField val SUB_AUTO_UPDATE_LAST = long("sub_auto_update_last", 0L) { it >= 0 }
     @JvmField val SUB_CLEAR = bool("sub_clear", false)

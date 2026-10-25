@@ -918,7 +918,7 @@
     <string name="profiles_empty_subscription_hint">Обновите подписку, чтобы загрузить её профили.</string>
     <string name="profiles_more_options">Другие параметры</string>
     <string name="profiles_move_down">Переместить вниз</string>
-    <string name="profiles_move_no_target">Нет другой базовой группы для перемещения.</string>
+    <string name="profiles_move_no_target">Нет другой группы для перемещения.</string>
     <string name="profiles_move_to_group">Переместить в группу</string>
     <string name="profiles_move_up">Переместить вверх</string>
     <string name="profiles_no_duplicates">Дублирующиеся профили не найдены.</string>
@@ -1589,6 +1589,7 @@
         <item quantity="many">%1$d профилей перемещено в %2$s</item>
         <item quantity="other">%1$d профилей перемещено в %2$s</item>
     </plurals>
+    <string name="profile_move_failed">Не удалось перенести профиль в эту группу</string>
     <plurals name="profiles_selected">
         <item quantity="one">Выбран %d</item>
         <item quantity="few">Выбрано %d</item>
@@ -1779,4 +1780,5 @@
     <string name="qmobile_vk_captcha">Подтверждение VK…</string>
     <string name="qmobile_vk_waiting">Ожидание VK…</string>
     <string name="qmobile_reconnecting">Переподключение…</string>
+    <string name="wdttplus_mobile_network_required">WDTT Plus работает только через мобильную сеть. Отключите Wi-Fi или выберите другой сервер.</string>
 </resources>

@@ -18,6 +18,7 @@ internal class MobileReorder(
     // Lets the owner shrink tall items (expanded subscriptions) for the gesture and restore them afterwards.
     private val prepare: (View) -> Unit = {},
     private val release: (View) -> Unit = {},
+    private val onCrossDrop: ((Long) -> Unit)? = null,
 ) {
     private val ids=linkedMapOf<View,Long>()
     private var source: View?=null
@@ -25,6 +26,7 @@ internal class MobileReorder(
     private var accepted=false
     private var pointerY=0f
     private var pendingMove=false
+    private val draggedId: Long? get() = source?.let(ids::get)
     private val scrollStep=object: Runnable {
         override fun run() {
             val dragged=source ?: return
@@ -45,20 +47,40 @@ internal class MobileReorder(
     }
 
     init {
-        container.setOnDragListener { _,event ->
-            if(event.localState !== this) false else {
-                when(event.action) {
-                    DragEvent.ACTION_DRAG_STARTED -> true
-                    DragEvent.ACTION_DRAG_LOCATION -> {
-                        pointerY=event.y
-                        source?.let { move(it,event.y) }
-                        true
-                    }
-                    DragEvent.ACTION_DROP -> { accepted=true;true }
-                    DragEvent.ACTION_DRAG_ENDED -> { finish(accepted && event.result);true }
-                    else -> true
+        container.setOnDragListener { _,event -> onDragEvent(event) }
+    }
+
+    /** Let another group's heading/card receive a profile drag as well as its profile list. */
+    fun addDropTarget(view: View) {
+        view.setOnDragListener { _, event -> onDragEvent(event) }
+    }
+
+    private fun onDragEvent(event: DragEvent): Boolean {
+        val origin = event.localState as? MobileReorder ?: return false
+        if (origin === this) {
+            return when(event.action) {
+                DragEvent.ACTION_DRAG_STARTED -> true
+                DragEvent.ACTION_DRAG_LOCATION -> {
+                    pointerY=event.y
+                    source?.let { move(it,event.y) }
+                    true
                 }
+                DragEvent.ACTION_DROP -> { accepted=true;true }
+                DragEvent.ACTION_DRAG_ENDED -> { finish(accepted && event.result);true }
+                else -> true
             }
+        }
+        // Group-order handles and non-profile reorderers must not accept profile drops.
+        if (origin.draggedId == null || onCrossDrop == null) return false
+        return when (event.action) {
+            DragEvent.ACTION_DRAG_STARTED -> true
+            DragEvent.ACTION_DROP -> {
+                val id = origin.draggedId ?: return false
+                origin.accepted = true
+                onCrossDrop.invoke(id)
+                true
+            }
+            else -> true
         }
     }
 

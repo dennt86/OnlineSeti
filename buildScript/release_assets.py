@@ -2,7 +2,7 @@
 """Collects the per-ABI release APKs of one build into a directory ready for a GitHub release: the APKs, SHA256SUMS and
 onlineseti-update.json, the manifest the in-app updater reads (io.nekohasekai.sagernet.update.UpdateChecker).
 
-Usage: release_assets.py <apk-dir> <dist-dir> <stable|preview>
+Usage: release_assets.py <apk-dir> <dist-dir> <stable|preview> [update-manifest-name]
 
 <apk-dir> is AGP's output directory (app/build/outputs/apk/oss/release) with output-metadata.json. Every APK must be
 signed by exactly one key and must agree with the metadata, the others and the expected ABI list.
@@ -94,9 +94,12 @@ def sha256(path):
 
 
 def main():
-    if len(sys.argv) != 4 or sys.argv[3] not in ("stable", "preview"):
-        fail("usage: release_assets.py <apk-dir> <dist-dir> <stable|preview>")
+    if len(sys.argv) not in (4, 5) or sys.argv[3] not in ("stable", "preview"):
+        fail("usage: release_assets.py <apk-dir> <dist-dir> <stable|preview> [update-manifest-name]")
     apk_dir, dist, channel = Path(sys.argv[1]), Path(sys.argv[2]), sys.argv[3]
+    manifest_name = sys.argv[4] if len(sys.argv) == 5 else "onlineseti-update.json"
+    if Path(manifest_name).name != manifest_name or not manifest_name.endswith(".json"):
+        fail("update-manifest-name must be a JSON filename")
     metadata = json.loads((apk_dir / "output-metadata.json").read_text())
     apksigner, aapt2 = build_tool("apksigner"), build_tool("aapt2")
 
@@ -162,7 +165,7 @@ def main():
         "signerSha256": manifest["signerSha256"],
         "assets": assets,
     }
-    (dist / "onlineseti-update.json").write_text(json.dumps(update, indent=2) + "\n", newline="\n")
+    (dist / manifest_name).write_text(json.dumps(update, indent=2) + "\n", newline="\n")
     print(json.dumps(update, indent=2))
 
 

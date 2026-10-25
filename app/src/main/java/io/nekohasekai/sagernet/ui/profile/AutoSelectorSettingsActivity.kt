@@ -410,5 +410,6 @@ class AutoSelectorSettingsActivity : BindingSettingsActivity<AutoSelector>() {
         AutoSelectorSkip.Unavailable -> R.string.autosel_skip_unavailable
         AutoSelectorSkip.XrayFullChained -> R.string.autosel_skip_xray_chained
         AutoSelectorSkip.Unsupported -> R.string.autosel_skip_unsupported
+        AutoSelectorSkip.MobileNetworkOnly -> R.string.autosel_skip_mobile_network
     }
 }

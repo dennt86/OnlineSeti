@@ -192,6 +192,19 @@ object AutoSelectorRuntime {
         }
     }
 
+    /** Rebuild a running selector after the default network changes between Wi-Fi and cellular. */
+    fun networkChanged(service: BaseService.Interface, networkSensitiveProfileIds: Collection<Long>) {
+        if (networkSensitiveProfileIds.isEmpty()) return
+        val target = DataStore.selectedProxy
+        if (!runCatching { ProfileManager.getProfile(target)?.type == AutoSelectorProfiles.TYPE }.getOrDefault(false)) return
+        launchPending {
+            if (!service.data.state.canStop) return@launchPending
+            Logs.i("[Auto selector] Network type changed; rechecking network-dependent profiles and rebuilding.")
+            measure(service, target, networkSensitiveProfileIds)
+            if (claim() && service.data.state.canStop && DataStore.selectedProxy == target) service.stopRunner(true)
+        }
+    }
+
     // ------------------------------------------------------------------------------------------------ actions
 
     /**

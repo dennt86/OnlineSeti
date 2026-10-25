@@ -107,9 +107,11 @@ internal object SubscriptionRefresh {
         SagerDatabase.groupDao.setSubscriptionInfo(gid, System.currentTimeMillis() / 1000, fetched.subInfo.toJsonString())
         GroupRepo.postUpdate(gid)
 
-        // Auto selectors are local state, not servers the remote sent: keep them out of the diff.
+        // Auto selectors and profiles imported locally into this subscription are local state, not servers the
+        // remote sent: keep them out of the diff and retain their relative positions on every refresh.
+        val localIds = group.subOptions.localProfileIds.toHashSet()
         val sticky = ProfileManager.members(gid).withIndex()
-            .filter { it.value.type == AUTOSELECTOR }
+            .filter { it.value.type == AUTOSELECTOR || it.value.id in localIds }
             .map { it.index to it.value.id }
         val stickyIds = sticky.mapTo(HashSet()) { it.second }
         fun members(): List<ProxyEntity> = ProfileManager.members(gid).filter { it.id !in stickyIds }
@@ -267,6 +269,7 @@ internal object SubscriptionRefresh {
         }
         sink.flush()
         Logs.i(">>>>>>>> " + str(R.string.subs_process_complete))
+        ProfileManager.keepLocalInSubscription(target, sink.entries.map { it.id })
         val count = sink.entries.count { it.id > 0 }
         Logs.i(str(R.string.subs_imported, count))
         return ImportResult(target, count)

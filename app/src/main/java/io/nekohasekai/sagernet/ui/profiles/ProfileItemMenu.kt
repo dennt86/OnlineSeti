@@ -19,6 +19,7 @@ import app.qthrone.mobile.ktx.showAllowingStateLoss
 import app.qthrone.mobile.ktx.snackbar
 import app.qthrone.mobile.ktx.startFilesForResult
 import app.qthrone.mobile.ui.ConfigurationFragment
+import app.qthrone.mobile.ui.MobileAlertDialogBuilder as MaterialAlertDialogBuilder
 import app.qthrone.mobile.ui.profile.ProfileConfigExport
 import app.qthrone.mobile.ui.profile.ProfileSettingsActivity
 import app.qthrone.mobile.ui.profile.profileSettingsIntent
@@ -59,6 +60,8 @@ class ProfileItemMenu(private val host: ConfigurationFragment) {
         // the compact card has no edit / share buttons
         menu.findItem(R.id.action_edit).isVisible = adapter.isCompact
         menu.findItem(R.id.action_share).isVisible = adapter.isCompact && !profile.isChain()
+        val moveTargets = host.groups().filter { it.id != profile.groupId }
+        menu.findItem(R.id.action_move_to_group).isVisible = moveTargets.isNotEmpty() && profile.type != "autoselector"
         // positions of the stored order: a filtered list says nothing about it (like the desktop's drag and drop)
         val index = adapter.memberIds.indexOf(profile.id)
         val movable = !adapter.isFiltered && index >= 0
@@ -75,6 +78,7 @@ class ProfileItemMenu(private val host: ConfigurationFragment) {
             when (item.itemId) {
                 R.id.action_edit -> edit(profile, adapter.group)
                 R.id.action_share -> showShare(anchor, profile)
+                R.id.action_move_to_group -> moveToGroup(profile, moveTargets)
                 R.id.action_test_url -> test(profile, TestSpec.KIND_URL)
                 R.id.action_test_ip -> test(profile, TestSpec.KIND_IP)
                 R.id.action_test_speed -> test(profile, TestSpec.KIND_SPEED)
@@ -103,6 +107,27 @@ class ProfileItemMenu(private val host: ConfigurationFragment) {
             // EmplaceProfile lands a downward move on its target; moving up is the upper neighbour moving down
             if (step > 0) ProfileManager.emplace(groupId, from, to) else ProfileManager.emplace(groupId, to, from)
         }
+    }
+
+    /** Move one profile, including a locally added node into a subscription group. */
+    private fun moveToGroup(profile: ProxyEntity, targets: List<ProxyGroup>) {
+        if (targets.isEmpty()) {
+            host.snackbar(R.string.profiles_move_no_target).show()
+            return
+        }
+        MaterialAlertDialogBuilder(host.requireContext())
+            .setTitle(R.string.profiles_move_to_group)
+            .setItems(targets.map { it.displayName() }.toTypedArray()) { _, which ->
+                val target = targets[which]
+                host.launchIo {
+                    ProfileManager.moveToGroup(listOf(profile.id), target.id)
+                    host.onUi {
+                        snackbar(resources.getQuantityString(R.plurals.profiles_moved, 1, 1, target.displayName())).show()
+                    }
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 
     private fun delete(profile: ProxyEntity, adapter: ProfileListAdapter) {

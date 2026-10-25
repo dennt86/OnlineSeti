@@ -48,7 +48,7 @@ jobs:
       - name: Build
         uses: ./.github/actions/android-build
         with:
-          tasks: app:testOssDebugUnitTest app:assembleOssRelease
+          tasks: app:testOssDebugUnitTest app:assembleOssRelease app:assembleOssClient
           channel: stable
           build-number: ${{ steps.version.outputs.build }}
           sign: 'true'
@@ -62,13 +62,24 @@ jobs:
           path: app/build/reports/tests/
           if-no-files-found: ignore
       - name: Release assets
-        run: python3 buildScript/release_assets.py app/build/outputs/apk/oss/release dist stable
+        run: |
+          set -euo pipefail
+          python3 buildScript/release_assets.py app/build/outputs/apk/oss/release dist/pro stable
+          python3 buildScript/release_assets.py app/build/outputs/apk/oss/client dist/client stable onlineseti-update-client.json
+          mkdir -p dist/final
+          cp dist/pro/*.apk dist/final/
+          cp dist/pro/onlineseti-update.json dist/final/
+          cp dist/pro/SHA256SUMS dist/final/SHA256SUMS-pro.txt
+          cp dist/client/*.apk dist/final/
+          cp dist/client/onlineseti-update-client.json dist/final/
+          cp dist/client/SHA256SUMS dist/final/SHA256SUMS-client.txt
+          cp app/build/outputs/apk/oss/client/OnlineSetiVPN-*-arm64-v8a-client.apk dist/final/OnlineSetiVPN-client.apk
       - name: Upload artifact
         if: ${{ github.event_name != 'push' && !inputs.publish }}
         uses: actions/upload-artifact@v7
         with:
           name: OnlineSetiVPN-${{ steps.version.outputs.tag }}
-          path: dist/
+          path: dist/final/
           if-no-files-found: error
           retention-days: 14
       - name: Publish release
@@ -81,7 +92,7 @@ jobs:
         run: |
           set -euo pipefail
           if [[ "$TAG" == *-beta.* || "$TAG" == *-rc.* ]]; then
-            gh release create "$TAG" dist/* --target "$GITHUB_SHA" --title "$RELEASE_NAME" --prerelease --latest=false --notes-file RELEASE_NOTES.md
+            gh release create "$TAG" dist/final/* --target "$GITHUB_SHA" --title "$RELEASE_NAME" --prerelease --latest=false --notes-file RELEASE_NOTES.md
           else
-            gh release create "$TAG" dist/* --target "$GITHUB_SHA" --title "$RELEASE_NAME" --latest --notes-file RELEASE_NOTES.md
+            gh release create "$TAG" dist/final/* --target "$GITHUB_SHA" --title "$RELEASE_NAME" --latest --notes-file RELEASE_NOTES.md
           fi

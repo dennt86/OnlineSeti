@@ -247,6 +247,14 @@ class ConfigGenerator @JvmOverloads constructor(
                 if (entry.isEmpty()) continue
                 val tag = RuleSets.tagFor(entry)
                 if (sets.containsKey(tag)) continue
+                // OnlineSeti's built-in Russia profile ships these rule sets inside the APK. Resolve
+                // them from the app's own asset list before consulting the optional remote catalog:
+                // the catalog can be empty/offline, but these files are still available locally.
+                val bundledSeed = app.qthrone.mobile.route.OnlinesetiRouting.seedPath(entry)
+                if (bundledSeed != null) {
+                    sets[tag] = "file://$bundledSeed"
+                    continue
+                }
                 if (RuleSets.isUrl(entry)) {
                     sets[tag] = entry
                     continue

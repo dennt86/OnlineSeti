@@ -374,6 +374,7 @@ class GroupSettingsActivity : ThemedActivity(R.layout.layout_config_settings), O
                 it.providerRouting = group.subOptions.providerRouting
                 it.providerRoutingProfiles = group.subOptions.providerRoutingProfiles
                 it.providerIgnoreImport = group.subOptions.providerIgnoreImport
+                it.localProfileIds = group.subOptions.localProfileIds
             }
             group.frontProxyId = proxyId(KEY_FRONT)
             group.landingProxyId = proxyId(KEY_LANDING)

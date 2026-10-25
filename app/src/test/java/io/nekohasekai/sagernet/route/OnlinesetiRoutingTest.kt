@@ -59,4 +59,18 @@ class OnlinesetiRoutingTest {
         assertNull(OnlinesetiRouting.seedPath("geosite-unknown"))
         assertEquals("onlineseti-rules/geoip-ru.srs", OnlinesetiRouting.seedPath("geoip-ru"))
     }
+
+    @Test fun defaultRussiaRulesWorkWhenRemoteCatalogIsEmpty() {
+        val proxy = Socks().apply { server = "192.0.2.1"; serverPort = 1080 }
+        val generated = ConfigGenerator(ProfileProvider { proxy }, GeneratorSettings(vpnMode = true),
+            routing = RoutingInput(OnlinesetiRouting.defaultProfile(), RuleSetCatalog(emptyList()))).build(1)
+        assertNull(generated.error)
+        val ruleSets = JsonInput.parseObject(generated.coreConfig).obj("route").array("rule_set")
+            .filterIsInstance<JsonObject>()
+        assertEquals(OnlinesetiRouting.bundledTags.toSet(), ruleSets.map { it.string("tag") }.toSet())
+        ruleSets.forEach {
+            assertEquals("local", it.string("type"))
+            assertEquals(OnlinesetiRouting.seedPath(it.string("tag")), it.string("path"))
+        }
+    }
 }

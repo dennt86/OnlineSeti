@@ -105,6 +105,11 @@ fun Project.setupCommon() {
                     debuggable(true)
                     jniDebuggable(true)
                 }
+            create("client") {
+                initWith(getByName("release"))
+                applicationIdSuffix = ".client"
+                matchingFallbacks += listOf("release")
+            }
             }
         }
     }

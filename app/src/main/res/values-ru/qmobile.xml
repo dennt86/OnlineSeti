@@ -39,4 +39,7 @@
 <string name="qmobile_route_advanced">Подробный редактор маршрутов</string>
 <string name="qmobile_route_invalid">Введите корректные домены или IP-сети</string>
 <string name="qmobile_advanced_settings">Дополнительно</string>
+<string name="qmobile_subscriptions_auto_sum">Автоматически обновлять серверы раз в день</string>
+<string name="qmobile_subscriptions_auto_off_sum">Включите, чтобы серверы обновлялись автоматически раз в день</string>
+<string name="qmobile_subscriptions_daily">Каждый день</string>
 </resources>

@@ -15,6 +15,7 @@ import app.qthrone.mobile.outbound.json.JsonArray
 import app.qthrone.mobile.outbound.json.jsonObjectOf
 import app.qthrone.mobile.outbound.types.AutoSelector
 import app.qthrone.mobile.outbound.types.Custom
+import app.qthrone.mobile.utils.WdttPlusNetworkPolicy
 import app.qthrone.core.mobile.Mobile
 import java.util.concurrent.Callable
 import java.util.concurrent.Executors
@@ -183,7 +184,10 @@ object SettingsMapper {
             val landing = group.landingProxyId.takeIf { it > 0 } ?: -1L
             val front = group.frontProxyId.takeIf { it > 0 } ?: -1L
             fun outbound(id: Long): Outbound? = if (id > 0) SagerDatabase.proxyDao.getById(id)?.outbound else null
-            return SelectorGroup(group.id, group.name, landing, front, outbound(landing), outbound(front), members)
+            return SelectorGroup(
+                group.id, group.name, landing, front, outbound(landing), outbound(front), members,
+                wdttPlusAllowed = WdttPlusNetworkPolicy.isCellularDefault(),
+            )
         }
     }
 

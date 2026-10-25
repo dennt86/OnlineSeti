@@ -7,6 +7,9 @@
         android:id="@+id/action_share"
         android:title="@string/share" />
     <item
+        android:id="@+id/action_move_to_group"
+        android:title="@string/profiles_move_to_group" />
+    <item
         android:id="@+id/action_test"
         android:title="@string/profiles_test">
         <menu>

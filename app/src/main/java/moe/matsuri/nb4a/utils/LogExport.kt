@@ -38,7 +38,7 @@ object LogExport {
         SettingsRegistry.CURRENT_ROUTE_ID,
     ).map { it.key } + listOf(Key.PROXY_APPS, Key.BYPASS_MODE, Key.METERED_NETWORK)
 
-    fun fileName(): String = "qThrone-log-${SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date())}.txt"
+    fun fileName(): String = "OnlineSeti-VPN-log-${SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date())}.txt"
 
     /** Writes cacheDir/log/<[fileName]> (shared through the FileProvider). Blocking: call it off the main thread. */
     fun build(context: Context, redact: Boolean, hideDestinations: Boolean): File {
@@ -81,13 +81,13 @@ object LogExport {
             else -> "on (best effort: review before sharing)"
         }
         return buildString {
-            appendLine("===== qThrone log export =====")
+            appendLine("===== OnlineSeti VPN log export =====")
             appendLine("exported  : ${utc.format(Date())}")
             appendLine(
                 "app       : ${SagerNet.appVersionNameForDisplay} (versionCode ${BuildConfig.VERSION_CODE}), " +
                         "flavor ${BuildConfig.FLAVOR}, $buildType, package ${BuildConfig.APPLICATION_ID}"
             )
-            appendLine("core      : ThroneCore ${BuildConfig.THRONE_CORE_REF} (versions: the \"core:\" line of core.log)")
+            appendLine("core      : OnlineSeti VPN core build ${BuildConfig.THRONE_CORE_REF} (versions: the \"core:\" line of core.log)")
             appendLine(
                 "android   : ${Build.VERSION.RELEASE} (SDK ${Build.VERSION.SDK_INT}), " +
                         "security patch ${Build.VERSION.SECURITY_PATCH}"
@@ -111,7 +111,7 @@ object LogExport {
             .redirectErrorStream(true)
             .start()
         val read=java.util.concurrent.FutureTask { process.inputStream.bufferedReader().use { it.readText() } }
-        Thread(read,"qThrone-logcat-export").apply { isDaemon=true;start() }
+        Thread(read,"onlineseti-logcat-export").apply { isDaemon=true;start() }
         try { read.get(3,java.util.concurrent.TimeUnit.SECONDS) }
         catch(_: java.util.concurrent.TimeoutException) { "logcat snapshot timed out" }
         finally { process.destroy();read.cancel(true) }

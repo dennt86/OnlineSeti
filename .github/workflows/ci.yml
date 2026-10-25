@@ -24,13 +24,19 @@ jobs:
       - name: Build
         uses: ./.github/actions/android-build
         with:
-          tasks: app:testOssDebugUnitTest app:assembleOssDebug app:assembleOssDebugAndroidTest
+          tasks: app:testOssDebugUnitTest app:assembleOssDebug app:assembleOssClient app:assembleOssDebugAndroidTest
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v7
         with:
           name: OnlineSetiVPN-debug
           path: app/build/outputs/apk/oss/debug/*.apk
+          if-no-files-found: error
+      - name: Upload client APK
+        uses: actions/upload-artifact@v7
+        with:
+          name: OnlineSetiVPN-client-debug
+          path: app/build/outputs/apk/oss/client/*.apk
           if-no-files-found: error
       - name: Upload test reports
         if: always()

@@ -40,4 +40,7 @@
 <string name="qmobile_route_advanced">Advanced routing editor</string>
 <string name="qmobile_route_invalid">Enter valid domains or IP networks</string>
 <string name="qmobile_advanced_settings">Advanced</string>
+<string name="qmobile_subscriptions_auto_sum">Automatically update servers once a day</string>
+<string name="qmobile_subscriptions_auto_off_sum">Turn this on to update servers automatically once a day</string>
+<string name="qmobile_subscriptions_daily">Every day</string>
 </resources>

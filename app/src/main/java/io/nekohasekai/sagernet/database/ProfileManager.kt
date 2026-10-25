@@ -140,11 +140,25 @@ object ProfileManager {
             profile.userOrder = dao.nextOrder(gid)
             profile.id = dao.addProxy(profile)
         }
+        keepLocalInSubscription(gid, listOf(profile.id))
         iterator { onAdd(profile) }
         return profile
     }
 
     suspend fun createProfile(groupId: Long, outbound: Outbound): ProxyEntity = addProfile(outbound, groupId)
+
+    /** Locally imported members of a subscription are overlaid on its remote list and survive refreshes. */
+    suspend fun keepLocalInSubscription(groupId: Long, profileIds: List<Long>) {
+        if (profileIds.isEmpty()) return
+        val group = GroupRepo.get(groupId)?.takeIf { it.isSubscription } ?: return
+        val validIds = profileIds.filter { id -> id > 0 && dao.getById(id)?.groupId == groupId }
+        if (validIds.isEmpty()) return
+        val merged = (group.subOptions.localProfileIds + validIds).distinct()
+        if (merged == group.subOptions.localProfileIds) return
+        group.subOptions = group.subOptions.copy(localProfileIds = merged)
+        SagerDatabase.groupDao.update(group)
+        GroupRepo.postUpdate(group)
+    }
 
     /**
      * ProfilesRepo::AddProfileBatch: appended to group [groupId] (the current group when <= 0) in input order,
@@ -317,6 +331,7 @@ object ProfileManager {
         }
         for (gid in sources) GroupRepo.postReload(gid)
         GroupRepo.postReload(groupId)
+        keepLocalInSubscription(groupId, profileIds)
     }
 
     /** Renumbers the group's members 0..n-1 in their current order. */

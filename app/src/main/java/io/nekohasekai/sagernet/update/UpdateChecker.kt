@@ -28,7 +28,8 @@ object UpdateChecker {
     const val REPOSITORY = "dennt86/OnlineSeti"
     const val RELEASES_PAGE = "https://github.com/$REPOSITORY/releases"
     private const val RELEASES_API = "https://api.github.com/repos/$REPOSITORY/releases?per_page=20"
-    private const val MANIFEST = "onlineseti-update.json"
+    private val manifestName: String
+        get() = if (BuildConfig.BUILD_TYPE == "client") "onlineseti-update-client.json" else "onlineseti-update.json"
     private const val MAX_MANIFESTS = 5
     private const val MAX_MANIFEST_BYTES = 256 * 1024
 
@@ -84,15 +85,15 @@ object UpdateChecker {
         val candidates = fetchReleases(context, client)
             .filter { release -> allowBeta || !release.prerelease }
             .mapNotNull { release -> Semver.parse(release.tag)?.let { release to it } }
-            .filter { (release, version) -> release.assets.any { it.name == MANIFEST } || installed == null || Semver.compare(version, installed) > 0 }
+            .filter { (release, version) -> release.assets.any { it.name == manifestName } || installed == null || Semver.compare(version, installed) > 0 }
             .sortedWith { a, b -> Semver.compare(b.second, a.second) }
             .map { it.first }
         if (candidates.isEmpty()) return Result.UpToDate
 
         var best: Pair<Release, JSONObject>? = null
-        for (release in candidates.filter { r -> r.assets.any { it.name == MANIFEST } }.take(MAX_MANIFESTS)) {
+        for (release in candidates.filter { r -> r.assets.any { it.name == manifestName } }.take(MAX_MANIFESTS)) {
             val manifest = try {
-                fetchManifest(client, release.assets.first { it.name == MANIFEST })
+                fetchManifest(client, release.assets.first { it.name == manifestName })
             } catch (e: Exception) {
                 Logs.w("Update manifest of ${release.tag}: ${e.readableMessage}")
                 continue
@@ -105,7 +106,7 @@ object UpdateChecker {
         best?.let { (release, manifest) -> return Result.Available(offerOf(context, release, manifest)) }
 
         // Releases without a manifest predate the in-app updater: open them in the browser.
-        val legacy = candidates.firstOrNull { r -> r.assets.none { it.name == MANIFEST } } ?: return Result.UpToDate
+        val legacy = candidates.firstOrNull { r -> r.assets.none { it.name == manifestName } } ?: return Result.UpToDate
         return Result.Available(
             Offer(
                 legacy, legacy.tag.removePrefix("v"), 0, null, null, null,

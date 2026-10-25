@@ -91,6 +91,8 @@ data class SubscriptionOptions(
     var providerRoutingProfiles: String = "[]",
     var providerIgnoreImport: Boolean = false,
     var providerRoutingManual: Boolean = false,
+    /** Profile ids imported locally into a subscription group; refreshes preserve these beside remote nodes. */
+    var localProfileIds: List<Long> = emptyList(),
 ) : Parcelable {
 
     fun toJson(): JsonObject {
@@ -119,6 +121,9 @@ data class SubscriptionOptions(
             json["provider_routing_profiles"] = providerRoutingProfiles
             if (providerIgnoreImport) json["provider_ignore_import"] = true
             if (providerRoutingManual) json["provider_routing_manual"] = true
+        }
+        if (localProfileIds.isNotEmpty()) json["local_profile_ids"] = app.qthrone.mobile.outbound.json.JsonArray().also { array ->
+            localProfileIds.distinct().filter { it > 0 }.forEach(array::add)
         }
         return json
     }
@@ -156,6 +161,9 @@ data class SubscriptionOptions(
                 providerRoutingProfiles = json.string("provider_routing_profiles").ifBlank { "[]" },
                 providerIgnoreImport = json.bool("provider_ignore_import"),
                 providerRoutingManual = json.bool("provider_routing_manual"),
+                localProfileIds = if (json.isArray("local_profile_ids")) json.array("local_profile_ids").mapNotNull {
+                    (it as? Long)?.takeIf { id -> id > 0 }
+                }.distinct() else emptyList(),
             )
         }
 

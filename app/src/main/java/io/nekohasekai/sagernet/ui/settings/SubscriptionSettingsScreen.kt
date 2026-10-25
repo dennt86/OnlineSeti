@@ -17,61 +17,70 @@ import kotlin.math.abs
  * Basic Settings › Subscription (dialog_basic_settings.ui, Subscription tab) and the network knobs of the app's own
  * requests (Use proxy, Ignore TLS errors, the Android-only minimum TLS version).
  */
-class SubscriptionSettingsFragment : SettingsScreenFragment(R.xml.settings_subscriptions) {
+open class SubscriptionSettingsFragment(advanced: Boolean = false) :
+    SettingsScreenFragment(if (advanced) R.xml.settings_subscriptions_advanced else R.xml.settings_subscriptions) {
 
     override fun bind() {
-        val userAgent = pref<EditTextPreference>(SettingsRegistry.USER_AGENT2.key)
-        userAgent.summaryProvider = DefaultSummaryProvider(USER_AGENT)
-        userAgent.setOnBindEditTextListener {
-            it.setSingleLine()
-            it.hint = USER_AGENT
+        findPreference<EditTextPreference>(SettingsRegistry.USER_AGENT2.key)?.let { userAgent ->
+            userAgent.summaryProvider = DefaultSummaryProvider(USER_AGENT)
+            userAgent.setOnBindEditTextListener {
+                it.setSingleLine()
+                it.hint = USER_AGENT
+            }
+            checkText(userAgent.key, R.string.invalid_value, reload = false) { true }
         }
-        checkText(userAgent.key, R.string.invalid_value, reload = false) { true }
 
         bindAutoUpdate()
 
-        val sendHwid = pref<SwitchPreference>(SettingsRegistry.SUB_SEND_HWID.key)
-        sendHwid.summary = hwidSummary(DataStore.subCustomHwidParams)
-        val params = pref<EditTextPreference>(SettingsRegistry.SUB_CUSTOM_HWID_PARAMS.key)
-        params.summaryProvider = EditTextPreference.SimpleSummaryProvider.getInstance()
-        params.setOnBindEditTextListener {
-            it.setSingleLine()
-            it.hint = getString(R.string.grp_sub_custom_hwid_params_hint)
-        }
-        params.setOnPreferenceChangeListener { _, newValue ->
-            val raw = newValue?.toString().orEmpty()
-            val value = raw.trim()
-            sendHwid.summary = hwidSummary(value)
-            if (value != raw) {
-                params.text = value
-                return@setOnPreferenceChangeListener false
+        val sendHwid = findPreference<SwitchPreference>(SettingsRegistry.SUB_SEND_HWID.key)
+        val params = findPreference<EditTextPreference>(SettingsRegistry.SUB_CUSTOM_HWID_PARAMS.key)
+        if (sendHwid != null && params != null) {
+            sendHwid.summary = hwidSummary(DataStore.subCustomHwidParams)
+            params.summaryProvider = EditTextPreference.SimpleSummaryProvider.getInstance()
+            params.setOnBindEditTextListener {
+                it.setSingleLine()
+                it.hint = getString(R.string.grp_sub_custom_hwid_params_hint)
             }
-            true
+            params.setOnPreferenceChangeListener { _, newValue ->
+                val raw = newValue?.toString().orEmpty()
+                val value = raw.trim()
+                sendHwid.summary = hwidSummary(value)
+                if (value != raw) {
+                    params.text = value
+                    return@setOnPreferenceChangeListener false
+                }
+                true
+            }
         }
     }
 
     /** sub_auto_update is sign-encoded minutes: negative is off, the magnitude is kept while off. */
     private fun bindAutoUpdate() {
         val enabled = pref<SwitchPreference>(KEY_AUTO_UPDATE)
-        val interval = pref<EditTextPreference>(KEY_AUTO_UPDATE_INTERVAL)
-        fun minutes() = abs(DataStore.subAutoUpdate).takeIf { it > 0 } ?: -SettingsRegistry.SUB_AUTO_UPDATE.default
+        val interval = findPreference<EditTextPreference>(KEY_AUTO_UPDATE_INTERVAL)
+        fun minutes() = abs(DataStore.subAutoUpdate).takeIf { it > 0 } ?: abs(SettingsRegistry.SUB_AUTO_UPDATE.default)
 
         enabled.isChecked = DataStore.subAutoUpdate > 0
-        interval.text = minutes().toString()
-        interval.isEnabled = enabled.isChecked
-        interval.summaryProvider = Preference.SummaryProvider<EditTextPreference> {
-            getString(R.string.auto_update_interval_sum, minutes())
+        enabled.summary = getString(if (enabled.isChecked) R.string.qmobile_subscriptions_auto_sum else R.string.qmobile_subscriptions_auto_off_sum)
+        interval?.let {
+            it.text = minutes().toString()
+            it.isEnabled = enabled.isChecked
+            it.summaryProvider = Preference.SummaryProvider<EditTextPreference> {
+                if (minutes() == 1440) getString(R.string.qmobile_subscriptions_daily)
+                else getString(R.string.auto_update_interval_sum, minutes())
+            }
+            it.setOnBindEditTextListener(EditTextPreferenceModifiers.Number)
         }
-        interval.setOnBindEditTextListener(EditTextPreferenceModifiers.Number)
 
         enabled.setOnPreferenceChangeListener { _, newValue ->
             val on = newValue as Boolean
             DataStore.subAutoUpdate = if (on) minutes() else -minutes()
-            interval.isEnabled = on
+            enabled.summary = getString(if (on) R.string.qmobile_subscriptions_auto_sum else R.string.qmobile_subscriptions_auto_off_sum)
+            interval?.isEnabled = on
             SubscriptionScheduler.schedule()
             true
         }
-        interval.setOnPreferenceChangeListener { _, newValue ->
+        interval?.setOnPreferenceChangeListener { _, newValue ->
             val value = newValue?.toString()?.trim()?.toIntOrNull()
             if (value == null || value < SettingsRegistry.MIN_AUTO_UPDATE_MINUTES) {
                 toast(R.string.auto_update_interval_invalid, SettingsRegistry.MIN_AUTO_UPDATE_MINUTES)
@@ -98,3 +107,5 @@ class SubscriptionSettingsFragment : SettingsScreenFragment(R.xml.settings_subsc
         const val KEY_AUTO_UPDATE_INTERVAL = "subAutoUpdateInterval"
     }
 }
+
+class AdvancedSubscriptionSettingsFragment : SubscriptionSettingsFragment(advanced = true)

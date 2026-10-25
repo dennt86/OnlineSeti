@@ -1,0 +1,12 @@
+<resources>
+    <string name="qmobile_settings_daily">Основное</string>
+    <string name="qmobile_settings_tools">Инструменты</string>
+    <string name="qmobile_settings_technical">Сетевые и системные параметры</string>
+    <string name="qmobile_advanced_settings_sum">DNS, маршруты и другие параметры для опытных пользователей</string>
+    <string name="qmobile_advanced_subscription_sum">Интервал обновления и служебные параметры</string>
+    <string name="qmobile_subscriptions_sum">Серверы будут обновляться автоматически каждый день</string>
+    <string name="qmobile_subscriptions_auto_sum">Автоматически обновлять серверы раз в день</string>
+    <string name="qmobile_subscriptions_auto_off_sum">Включите, чтобы серверы обновлялись автоматически раз в день</string>
+    <string name="qmobile_subscriptions_daily">Каждый день</string>
+    <string name="qmobile_vk_relay">VK-релей</string>
+</resources>
