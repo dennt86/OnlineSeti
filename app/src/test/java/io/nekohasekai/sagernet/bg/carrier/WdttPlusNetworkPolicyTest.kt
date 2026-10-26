@@ -6,6 +6,16 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class WdttPlusNetworkPolicyTest {
+
+    @Test
+    fun firstObservedNetworkRequiresAutoSelectorRecheck() {
+        assertTrue(WdttPlusNetworkPolicy.needsAutoSelectorRecheck(null, true))
+        assertTrue(WdttPlusNetworkPolicy.needsAutoSelectorRecheck(null, false))
+        assertFalse(WdttPlusNetworkPolicy.needsAutoSelectorRecheck(true, true))
+        assertFalse(WdttPlusNetworkPolicy.needsAutoSelectorRecheck(false, false))
+        assertTrue(WdttPlusNetworkPolicy.needsAutoSelectorRecheck(true, false))
+        assertTrue(WdttPlusNetworkPolicy.needsAutoSelectorRecheck(false, true))
+    }
     @Test
     fun onlyCellularDefaultIsAllowed() {
         assertTrue(WdttPlusNetworkPolicy.isCellularDefault(hasCellular = true, hasWifi = false))

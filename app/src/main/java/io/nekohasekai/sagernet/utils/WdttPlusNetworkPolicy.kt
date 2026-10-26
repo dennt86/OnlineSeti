@@ -12,6 +12,10 @@ object WdttPlusNetworkPolicy {
     /** Pure policy function kept separate so the fail-closed transport rule is straightforward to verify. */
     fun isCellularDefault(hasCellular: Boolean, hasWifi: Boolean): Boolean = hasCellular && !hasWifi
 
+    /** The first observed default network matters too: an auto-selector may have started before Android reported it. */
+    fun needsAutoSelectorRecheck(previousCellularDefault: Boolean?, cellularDefault: Boolean): Boolean =
+        previousCellularDefault == null || previousCellularDefault != cellularDefault
+
     /** Unknown, disconnected, Wi-Fi, Ethernet and other upstreams are denied. */
     fun isCellularDefault(): Boolean {
         // Before VpnService publishes its underlying network, Android's default network is the

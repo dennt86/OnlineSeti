@@ -583,7 +583,12 @@ class BaseService {
                     SagerNet.underlyingNetwork = network
                     DataStore.vpnService?.updateUnderlyingNetwork()
                     val cellularDefault = WdttPlusNetworkPolicy.isCellularDefault()
-                    val networkTypeChanged = observedCellular != null && observedCellular != cellularDefault
+                    // Recheck on the first observed network as well: the selector may have been
+                    // built before Android exposed the physical default network to the service.
+                    val networkNeedsRecheck = WdttPlusNetworkPolicy.needsAutoSelectorRecheck(
+                        observedCellular,
+                        cellularDefault,
+                    )
                     observedCellular = cellularDefault
                     val current = data.proxy?.profile
                     if (current?.type == "wdttplus" && !WdttPlusNetworkPolicy.isCellularDefault()) {
@@ -604,7 +609,7 @@ class BaseService {
                             return@start
                         }
                     }
-                    if (networkTypeChanged && current?.type == "autoselector") {
+                    if (networkNeedsRecheck && current?.type == "autoselector") {
                         val selector = current.outbound as? app.qthrone.mobile.outbound.types.AutoSelector
                         val wdttPlusIds = selector?.let { selected ->
                             ProfileManager.members(selected.gid).filter { it.type == "wdttplus" }.map { it.id }
