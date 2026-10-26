@@ -25,6 +25,14 @@ class WdttPlusNetworkPolicyTest {
     }
 
     @Test
+    fun onlyPersistedWdttPinIsClearedOnCellular() {
+        assertTrue(WdttPlusNetworkPolicy.shouldClearCellularWdttPin(true, 42L, listOf(42L, 43L)))
+        assertFalse(WdttPlusNetworkPolicy.shouldClearCellularWdttPin(true, 7L, listOf(42L, 43L)))
+        assertFalse(WdttPlusNetworkPolicy.shouldClearCellularWdttPin(false, 42L, listOf(42L, 43L)))
+        assertFalse(WdttPlusNetworkPolicy.shouldClearCellularWdttPin(true, -1L, listOf(42L, 43L)))
+    }
+
+    @Test
     fun wifiFallbackPrefersAutomaticSelectorOverIndividualServers() {
         val fallback = WdttPlusNetworkPolicy.wifiFallback(
             selectedId = 1,

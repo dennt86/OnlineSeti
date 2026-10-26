@@ -15,6 +15,10 @@ object WdttPlusNetworkPolicy {
     fun needsAutoSelectorRecheck(previousCellularDefault: Boolean?, cellularDefault: Boolean): Boolean =
         previousCellularDefault == null || previousCellularDefault != cellularDefault
 
+    /** A persisted manual WDTT pin must not survive startup on cellular, where WDTT is eligible. */
+    fun shouldClearCellularWdttPin(cellularDefault: Boolean, pinnedId: Long, wdttProfileIds: Collection<Long>): Boolean =
+        cellularDefault && pinnedId != -1L && pinnedId in wdttProfileIds
+
     /** Unknown, disconnected, Wi-Fi, Ethernet and other upstreams are denied. */
     fun isCellularDefault(): Boolean {
         // Before VpnService publishes its underlying network, Android's default network is the

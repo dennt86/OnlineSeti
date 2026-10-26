@@ -584,21 +584,29 @@ class BaseService {
                             return@start
                         }
                     }
-                    if (networkNeedsRecheck && current?.type == "autoselector") {
+                    if (current?.type == "autoselector") {
                         val selector = current.outbound as? app.qthrone.mobile.outbound.types.AutoSelector
                         val wdttPlusIds = selector?.let { selected ->
                             ProfileManager.members(selected.gid).filter { it.type == "wdttplus" }.map { it.id }
                         }.orEmpty()
                         if (wdttPlusIds.isNotEmpty()) {
-                            if (cellularDefault) {
-                                AutoSelectorProfiles.load(current.id)?.takeIf { it.pinnedID != -1L }?.let { selector ->
-                                    selector.pinnedID = -1L
-                                    AutoSelectorProfiles.save(current.id, selector)
-                                }
+                            // A previous manual WDTT choice is persisted as an auto-selector pin. On a
+                            // cellular startup there may be no network-type transition callback, so clear
+                            // it before proxy.init() builds the selector from saved settings.
+                            AutoSelectorProfiles.load(current.id)?.takeIf { settings ->
+                                WdttPlusNetworkPolicy.shouldClearCellularWdttPin(
+                                    cellularDefault, settings.pinnedID, wdttPlusIds,
+                                )
+                            }?.let { settings ->
+                                settings.pinnedID = -1L
+                                AutoSelectorProfiles.save(current.id, settings)
+                                Logs.i("Cleared persisted WDTT pin; automatic selection is enabled on cellular")
                             }
-                            Logs.i("Wi-Fi/cellular state changed; rebuilding auto selector for WDTT Plus availability")
-                            AutoSelectorRuntime.networkChanged(this, wdttPlusIds)
-                            return@start
+                            if (networkNeedsRecheck) {
+                                Logs.i("Wi-Fi/cellular state changed; rebuilding auto selector for WDTT Plus availability")
+                                AutoSelectorRuntime.networkChanged(this, wdttPlusIds)
+                                return@start
+                            }
                         }
                     }
                     val oldName = upstreamInterfaceName

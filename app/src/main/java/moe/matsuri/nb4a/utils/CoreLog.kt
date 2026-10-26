@@ -23,6 +23,9 @@ object CoreLog {
     private const val MIN_SIZE_KB = 50
 
     private val lock = Any()
+    // Core logs include DNS lookups and connection destinations; keep credentials and browsing
+    // destinations out of the private log file itself, not only out of exported copies.
+    private val secretRedactor = LogRedactor(true)
     private var stream: FileOutputStream? = null
     // Local time like the desktop's log.
     private val timestamp = SimpleDateFormat("yyyy/MM/dd HH:mm:ss", Locale.US)
@@ -59,7 +62,10 @@ object CoreLog {
         val policy = policy()
         if (!policy.enabled) return
         val stamp = synchronized(timestamp) { timestamp.format(Date()) }
-        val text = if (line.indexOf('\u001B') >= 0) ansiColor.replace(line, "") else line
+        val clean = if (line.indexOf('\u001B') >= 0) ansiColor.replace(line, "") else line
+        // Sanitize before persistence so raw core config dumps and native diagnostics are safe
+        // in both app variants, including logs viewed before export.
+        val text = clean.split('\n').joinToString("\n", transform = secretRedactor::redact)
         val bytes = "$stamp $text\n".toByteArray()
         synchronized(lock) {
             runCatching {
@@ -98,8 +104,12 @@ object CoreLog {
                 val fileLock = channel.lock()
                 try {
                     if (channel.size() > 0) {
-                        file.copyTo(previousFile, overwrite = true)
+                        // Migrate logs written by older app versions, which persisted raw configs.
+                        previousFile.writeBytes(sanitize(file.readBytes()))
                         channel.truncate(0)
+                    } else if (previousFile.isFile) {
+                        // A previous log may outlive a process restart even when this session has no entries.
+                        previousFile.writeBytes(sanitize(previousFile.readBytes()))
                     }
                 } finally {
                     fileLock.release()
@@ -124,15 +134,18 @@ object CoreLog {
         return try {
             val length = target.length()
             FileInputStream(target).use { input ->
-                if (maxBytes !in 1 until length) return input.readBytes()
+                if (maxBytes !in 1 until length) return sanitize(input.readBytes())
                 input.skip(length - maxBytes)
                 val tail = input.readBytes()
                 // The cut lands mid-line: start at the next full line.
                 val start = tail.indexOf('\n'.code.toByte()) + 1
-                tail.copyOfRange(start, tail.size)
+                sanitize(tail.copyOfRange(start, tail.size))
             }
         } catch (e: Exception) {
-            e.stackTraceToString().toByteArray()
+            sanitize(e.stackTraceToString().toByteArray())
         }
     }
+
+    private fun sanitize(bytes: ByteArray): ByteArray = String(bytes).split('\n')
+        .joinToString("\n", transform = secretRedactor::redact).toByteArray()
 }
