@@ -12,6 +12,13 @@ class OnlinesetiAutoSetupTest {
         assertFalse(OnlinesetiAutoSetup.shouldActivateSelector(9, 13, 7, 42))
     }
 
+    @Test fun selectorRepairsMissingOrEmptySubscriptionGroups() {
+        assertTrue(OnlinesetiAutoSetup.needsGroupRepair(false, 0))
+        assertTrue(OnlinesetiAutoSetup.needsGroupRepair(true, 0))
+        assertTrue(OnlinesetiAutoSetup.needsGroupRepair(true, -1))
+        assertFalse(OnlinesetiAutoSetup.needsGroupRepair(true, 1))
+    }
+
     @Test fun selectorTracksSubscriptionAndKeepsFailoverEnabled() {
         val policy = OnlinesetiAutoSetup.policy(42)
         assertEquals(42L, policy.gid)

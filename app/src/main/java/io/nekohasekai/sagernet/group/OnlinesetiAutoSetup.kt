@@ -49,10 +49,18 @@ object OnlinesetiAutoSetup {
         return true
     }
 
+    fun needsGroupRepair(boundGroupExists: Boolean, boundMemberCount: Int): Boolean =
+        !boundGroupExists || boundMemberCount <= 0
+
     /** Repair an app-managed selector from its current Onlineseti subscription before attempting to connect. */
     fun repairOrphan(profile: ProxyEntity): Boolean {
         val selector = profile.outbound as? AutoSelector ?: return false
-        if (selector.name != SELECTOR_NAME || GroupRepo.get(selector.gid) != null) return false
+        if (selector.name != SELECTOR_NAME) return false
+        val boundGroup = GroupRepo.get(selector.gid)
+        // A subscription refresh can preserve an empty group after receiving an unusable response. If this device
+        // already has another populated first-party subscription (for example, the old group before recreation),
+        // do not leave Auto mode bound to the empty one.
+        if (!needsGroupRepair(boundGroup != null, boundGroup?.let { ProfileManager.memberIds(it.id).size } ?: 0)) return false
         val group = GroupRepo.all().firstOrNull {
             it.isSubscription && owns(it.url) && ProfileManager.memberIds(it.id).isNotEmpty()
         } ?: return false

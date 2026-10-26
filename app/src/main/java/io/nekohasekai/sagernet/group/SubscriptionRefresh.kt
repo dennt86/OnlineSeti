@@ -60,6 +60,7 @@ internal object SubscriptionRefresh {
         }
         val parsed = parse(payload.body)
         if (parsed.isEmpty()) {
+            Logs.w("${group.name}: subscription import produced 0 profiles; ${emptyImportDiagnostic(payload.body)}")
             // GroupUpdater.cpp:746-752: panels answer a device or quota limit with an empty list and an announcement
             // saying why.
             val info = fetched.subInfo
@@ -306,6 +307,26 @@ internal object SubscriptionRefresh {
         val result = ProfileImport.parse(body, SettingsMapper.xrayVlessPreference())
         for (message in result.messages) Logs.w(message)
         return result.outbounds
+    }
+
+    /** Log only safe shape metadata when a successful HTTP response contains no importable profile. */
+    private fun emptyImportDiagnostic(body: String): String {
+        val text = body.trimStart('\uFEFF', ' ', '\t', '\r', '\n')
+        val format = when {
+            text.isEmpty() -> "empty body"
+            text.startsWith("<!doctype", true) || text.startsWith("<html", true) -> "HTML response"
+            text.startsWith("{") || text.startsWith("[") -> {
+                val json = JsonInput.parseObjectOrNull(text)
+                val safeKeys = setOf("profiles", "servers", "outbounds", "proxies", "endpoints", "type", "protocol")
+                val keys = json?.keys()?.filter { it in safeKeys }?.sorted().orEmpty()
+                if (json == null) "unrecognized JSON" else "JSON profile keys=${keys.joinToString(",").ifEmpty { "none" }}"
+            }
+            text.startsWith("#EXTM3U", true) -> "M3U response"
+            else -> "text response"
+        }
+        val links = listOf("hysteria2", "hysteria", "tuic", "vless", "vmess", "trojan", "ss", "socks", "wdtt", "qwdtt")
+            .sumOf { scheme -> Regex("(?i)(?:^|[\\s\\r\\n])$scheme://").findAll(text).count() }
+        return "bodyBytes=${body.toByteArray(Charsets.UTF_8).size}, lines=${body.count { it == '\n' } + if (body.isEmpty()) 0 else 1}, format=$format, recognizedLinks=$links"
     }
 
     /** The stored JSON of a type this build cannot parse is kept as is (re-exporting would drop its fields). */
