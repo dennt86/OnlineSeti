@@ -211,8 +211,10 @@ object AutoSelectorRuntime {
                 if (!connected) return@launchPending
             }
             if (service.data.state != BaseService.State.Connected || DataStore.selectedProxy != target) return@launchPending
-            Logs.i("[Auto selector] Network type changed; rechecking network-dependent profiles and rebuilding.")
-            measure(service, target, networkSensitiveProfileIds)
+            Logs.i("[Auto selector] Network type changed; clearing network-dependent results and rebuilding immediately.")
+            withContext(Dispatchers.IO) {
+                AutoSelectorProfiles.clearNetworkDependentResults(networkSensitiveProfileIds)
+            }
             if (claim() && service.data.state == BaseService.State.Connected && DataStore.selectedProxy == target) service.stopRunner(true)
         }
     }

@@ -58,6 +58,15 @@ object AutoSelectorProfiles {
         }
     }
 
+    /** Clear only the network-dependent latency verdicts before rebuilding on a different uplink. */
+    fun clearNetworkDependentResults(profileIds: Collection<Long>) {
+        if (profileIds.isEmpty()) return
+        val dao = SagerDatabase.proxyDao
+        SagerDatabase.instance.runInTransaction {
+            for (id in profileIds.distinct()) dao.updateLatency(id, 0, 0L, null)
+        }
+    }
+
     /** profile_start (mainwindow_profile_lifecycle.cpp:206-221): the plan succeeds and wants measurements first. */
     fun needsRanking(id: Long): Boolean {
         val selector = load(id) ?: return false

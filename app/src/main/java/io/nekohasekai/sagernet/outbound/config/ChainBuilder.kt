@@ -228,6 +228,16 @@ internal class ChainBuilder(
     }
 
     /**
+     * The outbound to pass to the loaded core's single-member schema check. Native carriers are represented in
+     * sing-box by the authenticated loopback SOCKS adapter that resolveHops creates, not by their app-only type.
+     */
+    fun memberCheckOutbound(hopIds: List<Long>): Outbound? {
+        val hops = ArrayList<Hop>()
+        if (resolveHops(hopIds, hops).isNotEmpty() || hops.size != 1) return null
+        return hops.single().outbound
+    }
+
+    /**
      * buildOutboundChain (:1430-1560). Returns the ingress tag (the hop the rules name) and reports failures through
      * [BuildState.error].
      *

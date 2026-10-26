@@ -36,6 +36,16 @@ class AutoSelectorNetworkPolicyTest {
         assertEquals(-1L, effectivePinnedMember(-1L, wdttPlusAllowed = false, builtMembers = members.filter { it.id != 2L }))
     }
 
+    @Test
+    fun unmeasuredCellularWdttDoesNotBlockAutoSelectorStartup() {
+        val selector = selector().apply { buildLimit = 2; poolCap = 10; pool = mutableListOf(1L, 3L) }
+        val group = selectorGroup(wdttPlusAllowed = true, wdttLatency = 0)
+        val plan = AutoSelectorPlanner(SelectorStore { group }, { 1_000L }).plan(99L, selector)
+
+        assertEquals(listOf(2L, 1L), plan.build)
+        assertEquals(false, plan.needsRanking)
+    }
+
     private fun selector() = AutoSelector().apply {
         gid = 7L
         buildLimit = 3

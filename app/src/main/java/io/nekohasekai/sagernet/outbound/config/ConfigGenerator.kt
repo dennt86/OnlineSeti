@@ -763,7 +763,18 @@ class ConfigGenerator @JvmOverloads constructor(
         for (id in ids) {
             val outbound = reads.get(id) ?: continue
             val error = chains.candidateError(listOf(id))
-            if (error.isNotEmpty()) rejected[id] = error else valid.add(id to outbound)
+            if (error.isNotEmpty()) {
+                rejected[id] = error
+            } else {
+                // The core doesn't know app-native types such as WDTT Plus. Check the generated loopback SOCKS
+                // adapter that will actually be included in the selector; checking the stored outbound produces
+                // "unknown outbound type" and silently removes an otherwise valid native member from Auto.
+                val checkOutbound = if (outbound is app.qthrone.mobile.bg.carrier.NativeCarrier) {
+                    chains.memberCheckOutbound(listOf(id))
+                } else outbound
+                if (checkOutbound == null) rejected[id] = "Could not resolve the profile's generated core outbound"
+                else valid.add(id to checkOutbound)
+            }
         }
         val check = routing.memberCheck ?: return rejected
         if (valid.isNotEmpty()) rejected.putAll(check.rejected(valid, buildContext))

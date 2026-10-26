@@ -187,7 +187,13 @@ class AutoSelectorPlanner @JvmOverloads constructor(
         plan.build = ordered.take(selector.buildLimit)
         if (ordered.size > selector.buildLimit) {
             val byId = group.members.associateBy { it.id }
-            plan.needsRanking = plan.build.any { effectiveLatency(byId[it], selector, now) == 0 }
+            val networkPinnedWdtt = group.wdttPlusAllowed && plan.build.any { byId[it]?.outbound?.type == "wdttplus" }
+            // WDTT is deliberately first and pinned on cellular. Its fresh probe is performed by the running core;
+            // waiting for the app's separate URL-test here can strand a network-change rebuild on a long timeout.
+            plan.needsRanking = plan.build.any {
+                !(networkPinnedWdtt && byId[it]?.outbound?.type == "wdttplus") &&
+                    effectiveLatency(byId[it], selector, now) == 0
+            }
         }
         return plan
     }
