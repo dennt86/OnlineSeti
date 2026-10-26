@@ -7,6 +7,7 @@ import app.qthrone.mobile.SagerNet
 object WdttPlusNetworkPolicy {
 
     data class FallbackCandidate(val id: Long, val type: String, val usable: Boolean, val latencyMs: Int)
+    data class AutoSelectorCandidate(val id: Long, val trackedGroupId: Long, val usable: Boolean)
 
     /** Pure policy function kept separate so the fail-closed transport rule is straightforward to verify. */
     fun isCellularDefault(hasCellular: Boolean, hasWifi: Boolean): Boolean = hasCellular && !hasWifi
@@ -21,6 +22,16 @@ object WdttPlusNetworkPolicy {
             capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR),
             capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI),
         )
+    }
+
+    /** A direct WDTT Plus selection on cellular should return to the selector tracking the same subscription. */
+    fun cellularAutoSelectorId(
+        profileGroupId: Long,
+        isCellularDefault: Boolean,
+        candidates: List<AutoSelectorCandidate>,
+    ): Long? {
+        if (!isCellularDefault) return null
+        return candidates.firstOrNull { it.usable && it.trackedGroupId == profileGroupId }?.id
     }
 
     /** Prefer the configured automatic selector on Wi-Fi, then fall back to the best usable normal profile. */

@@ -49,4 +49,16 @@ class WdttPlusNetworkPolicyTest {
         )
         assertTrue(fallback?.id == 3L)
     }
+
+    @Test
+    fun cellularWdttSelectionUsesOnlyUsableSelectorForTheSameSubscription() {
+        val candidates = listOf(
+            WdttPlusNetworkPolicy.AutoSelectorCandidate(10, trackedGroupId = 7, usable = true),
+            WdttPlusNetworkPolicy.AutoSelectorCandidate(11, trackedGroupId = 8, usable = true),
+            WdttPlusNetworkPolicy.AutoSelectorCandidate(12, trackedGroupId = 7, usable = false),
+        )
+        assertTrue(WdttPlusNetworkPolicy.cellularAutoSelectorId(7, true, candidates) == 10L)
+        assertTrue(WdttPlusNetworkPolicy.cellularAutoSelectorId(7, false, candidates) == null)
+        assertTrue(WdttPlusNetworkPolicy.cellularAutoSelectorId(9, true, candidates) == null)
+    }
 }
