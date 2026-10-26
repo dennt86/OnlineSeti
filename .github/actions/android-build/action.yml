@@ -30,7 +30,21 @@ runs:
     - name: Install Android NDK for native transports
       shell: bash
       run: |
-        echo y | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install 'ndk;28.2.13676358'
+        set -euo pipefail
+        SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+        for attempt in 1 2 3; do
+          if echo y | "$SDKMANAGER" --install 'ndk;28.2.13676358'; then
+            break
+          fi
+          if [ "$attempt" -eq 3 ]; then
+            echo "::error::Android NDK installation failed after $attempt attempts"
+            exit 1
+          fi
+          echo "Android NDK download failed (attempt $attempt); removing the partial archive before retrying"
+          rm -rf "$ANDROID_HOME/ndk/28.2.13676358" "$ANDROID_HOME/temp"
+          mkdir -p "$ANDROID_HOME/temp"
+          sleep 5
+        done
         echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/28.2.13676358" >> "$GITHUB_ENV"
     - name: Build pinned native transports without CSQTT
       shell: bash
