@@ -37,7 +37,7 @@ class CarrierBridgeCredentials(val username: String, val password: String) {
 }
 
 /** Native client owner. Config secrets are removed before provider output enters application logs. */
-class CarrierProcess private constructor(private val process: Process, private val config: File, allowInteractions: Boolean, kind: CarrierKind,
+class CarrierProcess private constructor(private val process: Process, private val config: File, allowInteractions: Boolean, private val kind: CarrierKind,
     private val onStatus: (NativeConnectionStage) -> Unit) : AutoCloseable {
     private val closed = AtomicBoolean(false)
     private val startupFailure = java.util.concurrent.atomic.AtomicReference<String?>(null)
@@ -46,6 +46,26 @@ class CarrierProcess private constructor(private val process: Process, private v
     private class TransientStartup:IllegalStateException("Временная ошибка авторизации VK; повторите подключение")
     private val captcha=CarrierCaptchaBridge(process,allowUi=allowInteractions,client=when(kind) { CarrierKind.CSQTT -> "csqtt"; CarrierKind.WDTTPLUS -> "wdttplus"; else -> "qwdtt" })
     private val health=NativeTransportHealth()
+    suspend fun awaitWorkers(minimum:Int) {
+        if(kind!=CarrierKind.WDTTPLUS || minimum<=0 || health.hasAtLeastWorkers(minimum)) return
+        val deadline=System.nanoTime()+10_000_000_000L
+        moe.matsuri.nb4a.utils.CoreLog.write(
+            "[Info] [WDTTPLUS] Waiting for the first $minimum workers before starting auto-selector probes",
+        )
+        while(System.nanoTime()<deadline) {
+            if(closed.get() || health.hasAtLeastWorkers(minimum)) break
+            kotlinx.coroutines.delay(250)
+        }
+        if(!health.hasAtLeastWorkers(minimum)) {
+            moe.matsuri.nb4a.utils.CoreLog.write(
+                "[Warning] [WDTTPLUS] Startup worker warm-up timed out; continuing with the available tunnel",
+            )
+        } else {
+            moe.matsuri.nb4a.utils.CoreLog.write(
+                "[Info] [WDTTPLUS] First worker group is ready; starting auto-selector probes",
+            )
+        }
+    }
     fun recoveryFailure(): Pair<String,Boolean>? {
         if(closed.get() || captcha.waiting) return null
         if(captcha.userCancelled) return "Подтверждение VK отменено" to true

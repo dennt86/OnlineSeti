@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name" translatable="false">OnlineSeti VPN Pro</string>
-    <string name="app_name_long" translatable="false">OnlineSeti VPN</string>
+    <string name="app_name_long" translatable="false">OnlineSeti VPN Pro</string>
     <string name="app_desc">Connect to OnlineSeti VPN in one tap. The app selects a working server automatically.</string>
     <string name="core_engine">VPN engine</string>
     <string name="project">Project</string>

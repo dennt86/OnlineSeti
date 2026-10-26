@@ -93,7 +93,13 @@ abstract class BoxInstance(
                 nativeStatus=NativeConnectionStatus.Writer(profile.id).also { it.update(NativeConnectionStage.PREPARING) }
             }
             for(plan in config.carrierPlans) {
-                carrierProcesses.add(CarrierPool.acquire(plan,onStatus={ nativeStatus?.update(it) }))
+                val selectorWarmup = if (config.autoSelector != null &&
+                    plan.kind == app.qthrone.mobile.bg.carrier.CarrierKind.WDTTPLUS) 9 else 0
+                carrierProcesses.add(CarrierPool.acquire(
+                    plan,
+                    minimumWorkersBeforeReady = selectorWarmup,
+                    onStatus = { nativeStatus?.update(it) },
+                ))
             }
             nativeStatus?.update(NativeConnectionStage.CONNECTED)
             loadConfig()

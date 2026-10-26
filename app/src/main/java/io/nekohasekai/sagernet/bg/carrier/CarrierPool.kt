@@ -25,19 +25,19 @@ object CarrierPool {
         override fun close() { if(closed.compareAndSet(false,true)) release() }
     }
     suspend fun acquire(plan:CarrierPlan, interactive: Boolean=true,latencyProbe:Boolean=!interactive,
-        onStatus:(NativeConnectionStage)->Unit={}):Lease {
+        minimumWorkersBeforeReady:Int=0,onStatus:(NativeConnectionStage)->Unit={}):Lease {
         if(!interactive && plan.kind == CarrierKind.QWDTT && activePlan(plan.key)==null) {
             // Do not publish a queued test entry: a user connection must not wait behind it.
             var lease:Lease?=null
             try {
-                return probeStartup.prepare { acquireNow(plan,interactive,latencyProbe,onStatus).also { lease=it } }
+                return probeStartup.prepare { acquireNow(plan,interactive,latencyProbe,minimumWorkersBeforeReady,onStatus).also { lease=it } }
             } catch(error:Throwable) {
                 // Timeout/cancellation can win after acquisition but before withTimeout returns.
                 lease?.close()
                 throw error
             }
         }
-        return acquireNow(plan,interactive,latencyProbe,onStatus)
+        return acquireNow(plan,interactive,latencyProbe,minimumWorkersBeforeReady,onStatus)
     }
     private suspend fun takeEntry(plan:CarrierPlan,interactive:Boolean,latencyProbe:Boolean):Acquisition {
         while(true) {
@@ -63,7 +63,8 @@ object CarrierPool {
             return choice
         }
     }
-    private suspend fun acquireNow(plan:CarrierPlan,interactive:Boolean,latencyProbe:Boolean,onStatus:(NativeConnectionStage)->Unit):Lease {
+    private suspend fun acquireNow(plan:CarrierPlan,interactive:Boolean,latencyProbe:Boolean,minimumWorkersBeforeReady:Int,
+        onStatus:(NativeConnectionStage)->Unit):Lease {
         val acquisition=takeEntry(plan,interactive,latencyProbe)
         val entry=acquisition.entry!!
         val owner=acquisition.owner
@@ -95,6 +96,7 @@ object CarrierPool {
                 } catch(error:Throwable) { entry.ready.completeExceptionally(error);throw error }
             }
             entry.ready.await()
+            entry.process?.awaitWorkers(minimumWorkersBeforeReady)
             return Lease(::release)
         } catch(error:Throwable) { release();throw error }
     }

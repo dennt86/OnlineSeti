@@ -59,6 +59,9 @@ internal class NativeTransportHealth(private val clock: () -> Long = { System.na
         return stage
     }
 
+    /** WDTT Plus reports the number of workers that are actually carrying the tunnel. */
+    @Synchronized fun hasAtLeastWorkers(count: Int): Boolean = (workers ?: 0) >= count
+
     /** The original watchdog's verdict: three WRAP timeouts and no worker ever up after 30 s. */
     @Synchronized fun wrongPassword(captchaWaiting: Boolean): Boolean =
         !captchaWaiting && !everActive && wrapTimeouts >= 3 && clock() - startedAt > 30_000

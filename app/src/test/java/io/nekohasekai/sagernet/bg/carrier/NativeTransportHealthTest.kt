@@ -4,6 +4,16 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class NativeTransportHealthTest {
+    @Test fun wdttWarmupWaitsForACompleteWorkerGroupRatherThanTheFirstReadyMarker() {
+        val health=NativeTransportHealth { 0L }
+        health.accept("[ВОРКЕР #1] [READY] Туннель готов к работе")
+        assertFalse(health.hasAtLeastWorkers(9))
+        health.accept("[СТАТИСТИКА] Активных: 8 | ↓0.00 МБ / ↑0.00 МБ")
+        assertFalse(health.hasAtLeastWorkers(9))
+        health.accept("[СТАТИСТИКА] Активных: 9 | ↓0.00 МБ / ↑0.00 МБ")
+        assertTrue(health.hasAtLeastWorkers(9))
+    }
+
     @Test fun transientAuthFailureWithoutWorkersRestartsAfterGraceAndCaptchaPausesWatchdog() {
         var now=0L
         val health=NativeTransportHealth { now }

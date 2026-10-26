@@ -1,3 +1,4 @@
 <resources>
-    <string name="app_name" translatable="false">OnlineSeti VPN</string>
+    <string name="app_name" translatable="false">OnlineSeti VPN Client</string>
+    <string name="app_name_long" translatable="false">OnlineSeti VPN Client</string>
 </resources>
