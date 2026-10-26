@@ -19,6 +19,7 @@ import android.widget.TextView
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
+import app.qthrone.mobile.BuildConfig
 import app.qthrone.mobile.R
 import app.qthrone.mobile.bg.BaseService
 import app.qthrone.mobile.bg.autoselector.AutoSelectorClient
@@ -192,15 +193,17 @@ class MobileDashboardFragment : ToolbarFragment() {
         connection.addView(footer)
         column.addView(connection, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(12) })
 
-        val quick = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL }
-        quick.addView(summaryCard("УЗЛОВ ДОСТУПНО", "—") { (requireActivity() as MainActivity).selectPrimary(R.id.nav_mobile_servers) }
-            .also { availableValue = it.tag as? TextView },
-            LinearLayout.LayoutParams(0, dp(72), 1f).apply { marginEnd = dp(5) })
-        quick.addView(summaryCard("МАРШРУТИЗАЦИЯ", "Настроить") {
-            (requireActivity() as MainActivity).selectPrimary(R.id.nav_route)
-        }.also { routingValue = it.tag as? TextView },
-            LinearLayout.LayoutParams(0, dp(72), 1f).apply { marginStart = dp(5) })
-        column.addView(quick)
+        if (BuildConfig.BUILD_TYPE != "client") {
+            val quick = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL }
+            quick.addView(summaryCard("УЗЛОВ ДОСТУПНО", "—") { (requireActivity() as MainActivity).selectPrimary(R.id.nav_mobile_servers) }
+                .also { availableValue = it.tag as? TextView },
+                LinearLayout.LayoutParams(0, dp(72), 1f).apply { marginEnd = dp(5) })
+            quick.addView(summaryCard("МАРШРУТИЗАЦИЯ", "Настроить") {
+                (requireActivity() as MainActivity).selectPrimary(R.id.nav_route)
+            }.also { routingValue = it.tag as? TextView },
+                LinearLayout.LayoutParams(0, dp(72), 1f).apply { marginStart = dp(5) })
+            column.addView(quick)
+        }
 
         val support = LinearLayout(context).apply {
             gravity = Gravity.CENTER; background = roundedOutline(); setPadding(dp(12), dp(11), dp(12), dp(11))

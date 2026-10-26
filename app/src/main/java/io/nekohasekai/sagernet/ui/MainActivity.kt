@@ -110,6 +110,11 @@ class MainActivity : ThemedActivity(),
             if (!selectingPrimary) selectPrimary(item.itemId)
             true
         }
+        // The client edition keeps the everyday destinations and tucks technical routing
+        // behind the settings entry. Pro keeps all four destinations.
+        if (BuildConfig.BUILD_TYPE == "client") {
+            binding.bottomNavigation.menu.findItem(R.id.nav_route)?.isVisible = false
+        }
         binding.drawerLayout.closeDrawers()
         binding.drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED)
         navigation.visibility = View.GONE

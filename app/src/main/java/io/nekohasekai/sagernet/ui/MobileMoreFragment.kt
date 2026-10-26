@@ -15,6 +15,7 @@ import android.widget.ScrollView
 import android.widget.TextView
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import app.qthrone.mobile.BuildConfig
 import app.qthrone.mobile.R
 
 /** A grouped, easy-to-scan home for secondary app destinations. */
@@ -137,20 +138,30 @@ class MobileMoreFragment : ToolbarFragment() {
         }
 
         val host = requireActivity() as MainActivity
-        section("ПОДКЛЮЧЕНИЕ", "Параметры сети и правила маршрутов")
+        section(
+            if (BuildConfig.BUILD_TYPE == "client") "ПРИЛОЖЕНИЕ" else "ПОДКЛЮЧЕНИЕ",
+            if (BuildConfig.BUILD_TYPE == "client") "Основные параметры приложения" else "Параметры сети и правила маршрутов",
+        )
         entry(R.drawable.ic_mobile_settings, "Настройки", "DNS, оформление и обновления") {
             host.displayFragmentWithId(R.id.nav_settings)
         }
-        entry(R.drawable.ic_mobile_route, "Маршрутизация", "Правила для сайтов, IP и приложений") {
-            host.selectPrimary(R.id.nav_route)
+        if (BuildConfig.BUILD_TYPE != "client") {
+            entry(R.drawable.ic_mobile_route, "Маршрутизация", "Правила для сайтов, IP и приложений") {
+                host.selectPrimary(R.id.nav_route)
+            }
         }
 
-        section("ДАННЫЕ И ДИАГНОСТИКА", "Резервные копии и сведения о работе")
+        section(
+            if (BuildConfig.BUILD_TYPE == "client") "ДАННЫЕ" else "ДАННЫЕ И ДИАГНОСТИКА",
+            if (BuildConfig.BUILD_TYPE == "client") "Сохранение настроек и профилей" else "Резервные копии и сведения о работе",
+        )
         entry(R.drawable.ic_mobile_backup, "Резервная копия", "Сохранить или восстановить профили") {
             host.displayFragmentWithId(R.id.nav_tools)
         }
-        entry(R.drawable.ic_mobile_logs, "Журнал событий", "Посмотреть ошибки и ход подключения") {
-            host.displayFragmentWithId(R.id.nav_logcat)
+        if (BuildConfig.BUILD_TYPE != "client") {
+            entry(R.drawable.ic_mobile_logs, "Журнал событий", "Посмотреть ошибки и ход подключения") {
+                host.displayFragmentWithId(R.id.nav_logcat)
+            }
         }
 
         section("ПРИЛОЖЕНИЕ")
