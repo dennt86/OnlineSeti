@@ -5,7 +5,9 @@ import java.net.URI
 /** Only our HTTPS subscriptions may enter through the branded quick setup link. */
 object OnlinesetiLinks {
     const val BOT = "https://t.me/onlineseti_bot"
-    private val hosts = setOf("openseti.ru", "onlineseti.ru")
+    // The Netherlands subscription endpoint is a first-party alias too. Auto-selector recovery uses
+    // this allow-list to find the subscription after its group is recreated.
+    private val hosts = setOf("openseti.ru", "onlineseti.ru", "nl-onlineseti.ru")
 
     fun subscription(link: String): String? = runCatching {
         val outer = URI(link)

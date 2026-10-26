@@ -7,8 +7,8 @@ import java.net.URLEncoder
 class OnlinesetiLinksTest {
     private fun link(url: String) = "onlineseti://import?url=" + URLEncoder.encode(url, "UTF-8")
 
-    @Test fun acceptsBothSubscriptionHosts() {
-        for (host in listOf("openseti.ru", "onlineseti.ru")) {
+    @Test fun acceptsAllFirstPartySubscriptionHosts() {
+        for (host in listOf("openseti.ru", "onlineseti.ru", "nl-onlineseti.ru")) {
             val url = "https://$host/subscription/example-token-123"
             assertEquals(url, OnlinesetiLinks.subscription(link(url)))
         }
