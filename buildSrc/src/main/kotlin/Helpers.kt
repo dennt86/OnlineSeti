@@ -143,6 +143,10 @@ fun Project.setupAppCommon() {
             keyPassword = keyPass
         }
         buildTypes.getByName("release").signingConfig = release
+        // `client` is initialized from `release` before this signing config exists, so initWith()
+        // does not carry the release key across. The client APK is distributed independently and
+        // must use the same long-lived signing identity for installation and in-app updates.
+        buildTypes.findByName("client")?.signingConfig = release
     }
 }
 
