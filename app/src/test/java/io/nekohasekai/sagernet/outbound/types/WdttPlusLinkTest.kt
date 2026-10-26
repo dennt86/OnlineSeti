@@ -29,6 +29,17 @@ class WdttPlusLinkTest {
         assertEquals("wdtt://192.0.2.6:56000:56001:9000:secret:$hash", profile.exportToLink())
     }
 
+    @Test fun fullVkCallUrlsInProfileBecomeUsableHashes() {
+        val links = listOf(hash, hash + "2", hash + "3").joinToString(",") {
+            "https://vk.com/call/join/$it"
+        }
+        val encoded = java.net.URLEncoder.encode(links, "UTF-8")
+        val profile = ProfileImport.parse(
+            "wdtt://connect?v=1&host=192.0.2.5&dtls=56000&wg=56001&local=9000&password=p&hashes=$encoded"
+        ).outbounds.single() as WdttPlus
+        assertEquals(listOf(hash, hash + "2", hash + "3"), profile.hashes)
+    }
+
     @Test fun startsLikeTheOriginalApp() {
         val profile = WdttPlus()
         assertTrue(profile.parseFromLink("wdtt://connect?v=1&host=192.0.2.5&dtls=56000&wg=56001&local=9000&password=p&hashes=$hash"))

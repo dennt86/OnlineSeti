@@ -2,6 +2,7 @@
 -allowaccessmodification
 
 -keep class app.qthrone.mobile.** { *;}
+-keep class app.qthrone.mobile.ui.settings.UpdateSettingsFragment { *; }
 -keep class moe.matsuri.nb4a.** { *;}
 # OutboundFactory instantiates the profile types reflectively by class name
 -keep class app.qthrone.mobile.outbound.types.** { *; }

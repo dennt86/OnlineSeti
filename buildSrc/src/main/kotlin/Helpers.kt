@@ -180,6 +180,13 @@ fun Project.setupApp() {
                     file("proguard-rules.pro")
                 )
             }
+            // `client` is created earlier with initWith(release), before setupApp() adds the
+            // reflection keep rules above. Without copying them here, R8 removes fragments
+            // opened by preference XML (including UpdateSettingsFragment) from the client APK.
+            findByName("client")?.proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                file("proguard-rules.pro")
+            )
         }
 
         // ThroneCore is built for android/arm64, android/arm and android/amd64 only.

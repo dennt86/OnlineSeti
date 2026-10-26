@@ -2,7 +2,7 @@ package app.qthrone.mobile.ui
 
 import java.net.URI
 
-/** Only our HTTPS subscriptions may enter through the branded quick setup link. */
+/** Only our HTTPS subscriptions and private WDTT bundles may enter through the branded setup link. */
 object OnlinesetiLinks {
     const val BOT = "https://t.me/onlineseti_bot"
     // The Netherlands subscription endpoint is a first-party alias too. Auto-selector recovery uses
@@ -18,9 +18,12 @@ object OnlinesetiLinks {
         if (params.size != 1 || !params[0].startsWith("url=")) return null
         val value = java.net.URLDecoder.decode(params[0].substring(4), "UTF-8")
         val uri = URI(value)
+        val path = uri.rawPath ?: ""
+        val supportedPath = Regex("/subscription/[A-Za-z0-9_-]{8,128}").matches(path) ||
+            Regex("/bundle/[A-Za-z0-9_-]{32,64}").matches(path)
         if (uri.scheme != "https" || uri.host !in hosts || uri.port != -1 ||
             uri.rawUserInfo != null || uri.rawQuery != null || uri.rawFragment != null ||
-            !Regex("/subscription/[A-Za-z0-9_-]{8,128}").matches(uri.rawPath ?: "")) return null
+            !supportedPath) return null
         value
     }.getOrNull()
 }

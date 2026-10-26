@@ -14,6 +14,11 @@ class OnlinesetiLinksTest {
         }
     }
 
+    @Test fun acceptsPrivateWdttBundleLinks() {
+        val url = "https://openseti.ru/bundle/" + "A".repeat(43)
+        assertEquals(url, OnlinesetiLinks.subscription(link(url)))
+    }
+
     @Test fun rejectsOtherDestinationsAndAmbiguousInput() {
         for (url in listOf(
             "http://openseti.ru/subscription/example-token-123",
@@ -23,7 +28,9 @@ class OnlinesetiLinksTest {
             "https://openseti.ru:8443/subscription/example-token-123",
             "https://openseti.ru/subscription/../admin",
             "https://openseti.ru/subscription/example-token-123?redirect=test",
-            "https://openseti.ru/subscription/example-token-123#fragment"
+            "https://openseti.ru/subscription/example-token-123#fragment",
+            "https://openseti.ru/bundle/short",
+            "https://openseti.ru/bundle/" + "A".repeat(65)
         )) assertNull(OnlinesetiLinks.subscription(link(url)))
         assertNull(OnlinesetiLinks.subscription(link("https://openseti.ru/subscription/example-token-123") + "&url=other"))
         assertNull(OnlinesetiLinks.subscription("onlineseti://import?url=%ZZ"))
