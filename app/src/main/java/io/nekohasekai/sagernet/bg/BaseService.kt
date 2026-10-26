@@ -304,25 +304,6 @@ class BaseService {
             return SagerDatabase.proxyDao.getById(candidate.id)
         }
 
-        /** On cellular, a WDTT Plus tap should enter its subscription's auto-selector, not pin a direct profile. */
-        private fun wdttCellularAutoSelector(profile: ProxyEntity): ProxyEntity? {
-            val selectors = ProfileManager.getProfiles(AutoSelectorProfiles.ids())
-            val id = WdttPlusNetworkPolicy.cellularAutoSelectorId(
-                profile.groupId,
-                isCellularDefault = WdttPlusNetworkPolicy.isCellularDefault(),
-                candidates = selectors.mapNotNull { entity ->
-                    val selector = entity.outbound as? app.qthrone.mobile.outbound.types.AutoSelector ?: return@mapNotNull null
-                    WdttPlusNetworkPolicy.AutoSelectorCandidate(entity.id, selector.gid, usable = !selector.invalid)
-                },
-            ) ?: return null
-            val candidate = selectors.firstOrNull { it.id == id } ?: return null
-            AutoSelectorProfiles.load(candidate.id)?.takeIf { it.pinnedID != -1L }?.let { selector ->
-                selector.pinnedID = -1L
-                AutoSelectorProfiles.save(candidate.id, selector)
-            }
-            return candidate
-        }
-
         /** Runs [id] instead of the current profile, staying in the foreground; the running profile is left alone. */
         fun switchProfile(id: Long) {
             if (id <= 0L) return
@@ -603,15 +584,6 @@ class BaseService {
                             return@start
                         }
                     }
-                    if (current?.type == "wdttplus" && cellularDefault) {
-                        val selector = wdttCellularAutoSelector(current)
-                        if (selector != null) {
-                            DataStore.selectedProxy = selector.id
-                            Logs.i("Cellular network detected while WDTT Plus is active; switching to automatic selector ${selector.displayName()}")
-                            if (data.state != State.Stopped) AutoSelectorRuntime.restart(this) { stopRunner(true) }
-                            return@start
-                        }
-                    }
                     if (networkNeedsRecheck && current?.type == "autoselector") {
                         val selector = current.outbound as? app.qthrone.mobile.outbound.types.AutoSelector
                         val wdttPlusIds = selector?.let { selected ->
@@ -703,17 +675,6 @@ class BaseService {
                         )
                         startProxy()
                         return
-                }
-            }
-            if (profile.type == "wdttplus" && WdttPlusNetworkPolicy.isCellularDefault()) {
-                val selector = wdttCellularAutoSelector(profile)
-                if (selector != null) {
-                    DataStore.selectedProxy = selector.id
-                    moe.matsuri.nb4a.utils.CoreLog.write(
-                        "[Info] Cellular network detected; enabling the automatic selector for WDTT Plus",
-                    )
-                    startProxy()
-                    return
                 }
             }
             PlatformNotifications.cancelAlwaysOnNoProfile(this)
