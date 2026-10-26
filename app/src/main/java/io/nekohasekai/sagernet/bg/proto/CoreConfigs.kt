@@ -35,6 +35,11 @@ object CoreConfigs {
      * is GeneratorSettings.deferRuleSets, for a start the user let go without its rule-sets.
      */
     fun buildMain(profile: ProxyEntity, deferRuleSets: Boolean = false): GeneratedConfig {
+        // Repair a stale app-managed selector on connect as well as on subscription refresh. This lets existing
+        // installs recover even if the subscription group was deleted/recreated before the repair was introduced.
+        if (app.qthrone.mobile.group.OnlinesetiAutoSetup.repairOrphan(profile)) {
+            moe.matsuri.nb4a.utils.CoreLog.write("[Info] Rebound the Onlineseti auto selector to its current subscription group")
+        }
         val (landing, front) = groupProxies(profile.groupId)
         var settings = SettingsMapper.generatorSettings().copy(deferRuleSets = deferRuleSets)
         val options = SagerDatabase.groupDao.getById(profile.groupId)?.subOptions

@@ -5,6 +5,7 @@ import app.qthrone.mobile.outbound.json.JsonObject
 import app.qthrone.mobile.outbound.link.Base64Strict
 import app.qthrone.mobile.outbound.link.LinkParser
 import app.qthrone.mobile.outbound.types.DnsTunnel
+import app.qthrone.mobile.outbound.types.AutoSelector
 import app.qthrone.mobile.outbound.types.Http
 import app.qthrone.mobile.outbound.types.S3Bypass
 import app.qthrone.mobile.outbound.types.WdttPlus
@@ -68,6 +69,9 @@ object OutboundFactory {
         "masterdns" to { DnsTunnel("masterdns") },
         "s3bypass" to { S3Bypass() },
         "wdttplus" to { WdttPlus() },
+        // This profile is created by the app itself. Keep it out of reflection so the client build can
+        // always restore its automatic profile after an update, even if class-name lookup is unavailable.
+        "autoselector" to { AutoSelector() },
     )
 
     private val registry = ConcurrentHashMap<String, () -> Outbound>()

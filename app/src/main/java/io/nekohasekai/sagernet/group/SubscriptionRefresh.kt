@@ -254,6 +254,11 @@ internal object SubscriptionRefresh {
         )
         SubscriptionQueue.groupChanged(gid, disturbed)
 
+        // The Onlineseti auto-selector is stored outside its subscription group. When Android users replace or
+        // re-add the subscription, the new group can have a different id; repair the selector on every refresh so
+        // an older selected auto-selector never points at a deleted group.
+        if (OnlinesetiAutoSetup.owns(group.url)) OnlinesetiAutoSetup.ensure(gid)
+
         if (options.urlTest) SubscriptionQueue.requestUrlTest(gid, members().map { it.id })
     }
 
