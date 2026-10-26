@@ -73,7 +73,7 @@ jobs:
           cp dist/client/*.apk dist/final/
           cp dist/client/onlineseti-update-client.json dist/final/
           cp dist/client/SHA256SUMS dist/final/SHA256SUMS-client.txt
-          cp app/build/outputs/apk/oss/client/OnlineSetiVPN-*-arm64-v8a-client.apk dist/final/OnlineSetiVPN-client.apk
+          cp app/build/outputs/apk/oss/client/OnlinesetiVPN-*-arm64-v8a-client.apk dist/final/OnlineSetiVPN-client.apk
       - name: Upload artifact
         if: ${{ github.event_name != 'push' && !inputs.publish }}
         uses: actions/upload-artifact@v7
