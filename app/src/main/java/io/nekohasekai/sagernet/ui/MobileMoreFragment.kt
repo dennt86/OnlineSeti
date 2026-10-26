@@ -17,6 +17,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import app.qthrone.mobile.BuildConfig
 import app.qthrone.mobile.R
+import app.qthrone.mobile.update.UpdateActivity
 
 /** A grouped, easy-to-scan home for secondary app destinations. */
 class MobileMoreFragment : ToolbarFragment() {
@@ -165,6 +166,15 @@ class MobileMoreFragment : ToolbarFragment() {
         }
 
         section("ПРИЛОЖЕНИЕ")
+        if (BuildConfig.IN_APP_UPDATER) {
+            entry(
+                R.drawable.ic_mobile_refresh,
+                "Обновление приложения",
+                "Версия ${BuildConfig.VERSION_NAME} · проверить и установить",
+            ) {
+                UpdateActivity.start(requireContext())
+            }
+        }
         entry(R.drawable.ic_mobile_info, "О приложении", "Версия, лицензии и информация") {
             host.displayFragmentWithId(R.id.nav_about)
         }

@@ -44,7 +44,8 @@ object DataStore : OnPreferenceDataStoreChangeListener {
     // ------------------------------------------------------------------------------------------------ Android-only
 
     var appTLSVersion by configurationStore.string(Key.APP_TLS_VERSION)
-    var updateCheckAuto by configurationStore.boolean(Key.UPDATE_CHECK_AUTO)
+    // Daily release checks are on by default; users can still turn them off in Update settings.
+    var updateCheckAuto by configurationStore.boolean(Key.UPDATE_CHECK_AUTO) { true }
     var updateSkippedVersionCode by configurationStore.long(Key.UPDATE_SKIPPED_VERSION_CODE)
     /** The profile id to restart once after an in-app update, 0 = none. */
     var resumeAfterUpdate by configurationStore.long(Key.RESUME_AFTER_UPDATE)
