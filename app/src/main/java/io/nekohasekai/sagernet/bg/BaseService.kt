@@ -560,7 +560,10 @@ class BaseService {
             // Tracks the underlying network for VpnService.setUnderlyingNetworks only; the
             // "reset on network change" switch is applied by NativeInterface's monitor callback.
             var observedNetwork=SagerNet.underlyingNetwork
-            var observedCellular: Boolean? = null
+            // Seed from Android's current physical default network. This value is recreated on
+            // every service restart; leaving it null makes the first callback request another
+            // selector rebuild on every restart, creating a startup/rebuild loop.
+            var observedCellular: Boolean? = WdttPlusNetworkPolicy.isCellularDefault()
             DefaultNetworkListener.start(this) { network ->
                 if (network == null) {
                     observedNetwork=null

@@ -20,6 +20,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.job
@@ -44,6 +45,7 @@ object AutoSelectorRuntime {
     private const val EXHAUSTED_GRACE_MS = 20_000L
     private const val REBUILD_BACKOFF_MIN_S = 60
     private const val REBUILD_BACKOFF_MAX_S = 600
+    private const val NETWORK_RECHECK_START_TIMEOUT_MS = 60_000L
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default + CoroutineExceptionHandler { _, e -> Logs.w(e) })
     private val lock = Any()
@@ -198,10 +200,20 @@ object AutoSelectorRuntime {
         val target = DataStore.selectedProxy
         if (!runCatching { ProfileManager.getProfile(target)?.type == AutoSelectorProfiles.TYPE }.getOrDefault(false)) return
         launchPending {
-            if (!service.data.state.canStop) return@launchPending
+            // A network callback can arrive while ProxyInstance is still starting WDTT Plus.
+            // Measuring/rebuilding at that point cancels its startup credentials (context canceled)
+            // and repeatedly tears down the tunnel before it can become usable.
+            if (service.data.state == BaseService.State.Connecting) {
+                val connected = withTimeoutOrNull(NETWORK_RECHECK_START_TIMEOUT_MS) {
+                    while (service.data.state == BaseService.State.Connecting) delay(100)
+                    service.data.state == BaseService.State.Connected
+                } ?: false
+                if (!connected) return@launchPending
+            }
+            if (service.data.state != BaseService.State.Connected || DataStore.selectedProxy != target) return@launchPending
             Logs.i("[Auto selector] Network type changed; rechecking network-dependent profiles and rebuilding.")
             measure(service, target, networkSensitiveProfileIds)
-            if (claim() && service.data.state.canStop && DataStore.selectedProxy == target) service.stopRunner(true)
+            if (claim() && service.data.state == BaseService.State.Connected && DataStore.selectedProxy == target) service.stopRunner(true)
         }
     }
 
