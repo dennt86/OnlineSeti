@@ -139,7 +139,7 @@ object CoreForeground {
     private fun content(): Notification {
         val reason = displayed()
         return contents[reason] ?: NotificationCompat.Builder(app, CHANNEL)
-            .setSmallIcon(R.drawable.ic_throne_tile)
+            .setSmallIcon(R.drawable.ic_mobile_globe)
             .setContentTitle(app.getString(R.string.app_name))
             .setContentText(
                 app.getString(
