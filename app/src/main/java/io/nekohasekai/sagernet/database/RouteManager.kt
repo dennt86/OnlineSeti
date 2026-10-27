@@ -88,6 +88,14 @@ object RouteManager {
                 }
                 DataStore.onlinesetiRoutingMigrated = true
             }
+            if (!DataStore.cellularRoutingMigrated) {
+                for (profile in load()) {
+                    if (OnlinesetiRouting.isUnrestrictedRussiaDefault(profile)) {
+                        save(OnlinesetiRouting.defaultProfile().apply { id = profile.id })
+                    }
+                }
+                DataStore.cellularRoutingMigrated = true
+            }
         }
     }
 

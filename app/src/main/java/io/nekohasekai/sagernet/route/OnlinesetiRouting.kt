@@ -14,9 +14,29 @@ object OnlinesetiRouting {
             ip_is_private = true
         })
         rules.add(RouteRule().apply {
-            name = "Российские сервисы напрямую"
+            name = "Российские сервисы напрямую по Wi-Fi"
             rule_set.addAll(bundledTags)
+            // On mobile networks, Russian destinations can be unreachable directly. Keep the existing
+            // bypass behavior on Wi-Fi, while letting cellular traffic use the configured proxy.
+            network_type.add("wifi")
         })
+    }
+
+    /** Upgrade only the stock profile from before cellular-aware bypass; preserve user-edited routing. */
+    fun isUnrestrictedRussiaDefault(p: RouteProfile): Boolean {
+        if (p.name != "Onlineseti · Россия напрямую" || p.is_remote || p.is_raw || p.auto_update ||
+            p.prevent_modifications || p.remote_url.isNotEmpty() || p.raw_route.isNotEmpty() ||
+            p.default_outbound_id != OutboundIds.PROXY || p.endpoint_profile_ids != "[]" ||
+            p.inner_hop_endpoint_ids != "[]" || p.rules.size != 3) return false
+        val expected = defaultProfile().apply {
+            rules.last().network_type.clear()
+            rules.last().name = "Российские сервисы напрямую"
+        }.rules
+        return p.rules.indices.all { index ->
+            RouteRule::class.java.fields
+                .filterNot { java.lang.reflect.Modifier.isStatic(it.modifiers) }
+                .all { it.get(p.rules[index]) == it.get(expected[index]) }
+        }
     }
 
     /** Only migrate the untouched 0.1.0 profile; never erase custom rules or endpoint selections. */

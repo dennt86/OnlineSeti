@@ -25,7 +25,8 @@ class OnlinesetiRoutingTest {
             assertEquals(OnlinesetiRouting.seedPath(it.string("tag")), it.string("path"))
         }
         assertTrue(route.array("rules").filterIsInstance<JsonObject>().any {
-            it.array("rule_set").contains("geoip-ru") && it.string("outbound") == "direct"
+            it.array("rule_set").contains("geoip-ru") && it.string("outbound") == "direct" &&
+                it.array("network_type").contains("wifi")
         })
         assertTrue(config.obj("dns").array("rules").filterIsInstance<JsonObject>().any {
             it.array("rule_set").contains("geosite-category-ru") && it.string("server") == "dns-direct"
@@ -38,8 +39,13 @@ class OnlinesetiRoutingTest {
         assertTrue(p.rules[1].ip_is_private)
         assertEquals(OutboundIds.DIRECT, p.rules[1].outbound_id)
         assertEquals(OutboundIds.DIRECT, p.rules[2].outbound_id)
-        assertTrue(p.directSites().contains("ruleset:geosite-category-ru"))
-        assertTrue(p.directIps().contains("ruleset:geoip-ru"))
+        assertEquals(listOf("wifi"), p.rules[2].network_type)
+        assertFalse(p.directSites().contains("ruleset:geosite-category-ru"))
+        assertFalse(p.directIps().contains("ruleset:geoip-ru"))
+        assertTrue(p.conditionalSites().any {
+            it.outbound == OutboundIds.DIRECT && it.conditions.array("network_type").contains("wifi") &&
+                it.sites.contains("ruleset:geosite-category-ru")
+        })
     }
 
     @Test fun migrationPreservesCustomizedProfiles() {
@@ -54,6 +60,21 @@ class OnlinesetiRoutingTest {
             default_outbound_id = OutboundIds.DIRECT
         }))
         assertFalse(OnlinesetiRouting.isLegacyDefault(OnlinesetiRouting.defaultProfile()))
+    }
+
+    @Test fun cellularBypassMigrationOnlyChangesUntouchedStockProfile() {
+        val oldStock = OnlinesetiRouting.defaultProfile().apply {
+            rules.last().network_type.clear()
+            rules.last().name = "Российские сервисы напрямую"
+        }
+        assertTrue(OnlinesetiRouting.isUnrestrictedRussiaDefault(oldStock))
+        assertFalse(OnlinesetiRouting.isUnrestrictedRussiaDefault(OnlinesetiRouting.defaultProfile()))
+        assertFalse(OnlinesetiRouting.isUnrestrictedRussiaDefault(oldStock.copy().apply {
+            rules.last().domain.add("private.example")
+        }))
+        assertFalse(OnlinesetiRouting.isUnrestrictedRussiaDefault(oldStock.copy().apply {
+            default_outbound_id = OutboundIds.DIRECT
+        }))
     }
 
     @Test fun onlyBundledSetsUseOfflineSeed() {

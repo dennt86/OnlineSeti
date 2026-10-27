@@ -65,6 +65,7 @@ object DataStore : OnPreferenceDataStoreChangeListener {
     /** When (epoch ms) the user agreed to start without those rule-sets; the next start spends it, 0 = none. */
     var startWithoutRuleSets by configurationStore.long(Key.START_WITHOUT_RULE_SETS)
     var onlinesetiRoutingMigrated by configurationStore.boolean("onlineseti_routing_v1_migrated")
+    var cellularRoutingMigrated by configurationStore.boolean("cellular_routing_v1_migrated")
     var groupLayoutMode by configurationStore.stringToInt(Key.GROUP_LAYOUT_MODE) { 0 }
 
     var networkChangeResetConnections by configurationStore.boolean(Key.NETWORK_CHANGE_RESET_CONNECTIONS) { true }
