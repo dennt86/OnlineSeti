@@ -3,6 +3,7 @@ import app.qthrone.mobile.outbound.*
 import app.qthrone.mobile.outbound.json.*
 import app.qthrone.mobile.outbound.link.*
 import app.qthrone.mobile.bg.carrier.*
+import app.qthrone.mobile.utils.Base64Compat
 import java.util.zip.Inflater
 import java.util.zip.Deflater
 
@@ -132,7 +133,7 @@ class OpenFlux:Outbound("openflux"),NativeCarrier {
             val out=java.io.ByteArrayOutputStream()
             val buffer=ByteArray(4096)
             while(!deflater.finished()) out.write(buffer,0,deflater.deflate(buffer))
-            PREFIX+java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(out.toByteArray())
+            PREFIX+Base64Compat.encodeToString(out.toByteArray(), urlSafe = true, padding = false)
         } finally { deflater.end() }
     }
 

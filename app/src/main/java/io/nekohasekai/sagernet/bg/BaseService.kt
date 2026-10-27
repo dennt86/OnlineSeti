@@ -6,6 +6,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.*
 import android.widget.Toast
+import androidx.core.content.ContextCompat
 import app.qthrone.mobile.Action
 import app.qthrone.mobile.BootReceiver
 import app.qthrone.mobile.Key
@@ -303,6 +304,8 @@ class BaseService {
         /** Runs [id] instead of the current profile, staying in the foreground; the running profile is left alone. */
         fun switchProfile(id: Long) {
             if (id <= 0L) return
+            // An explicit user choice supersedes an automatic cellular/Wi-Fi fallback pair.
+            DataStore.clearWdttNetworkFallback()
             DataStore.selectedProxy = id
             val s = data.state
             if (s.canStop && data.proxy?.profile?.id == id) return
@@ -550,6 +553,8 @@ class BaseService {
                     if (current?.type == "wdttplus") {
                         val fallback = wdttWifiFallback(current)
                         if (fallback != null) {
+                            DataStore.wdttNetworkFallbackOrigin = current.id
+                            DataStore.wdttNetworkFallbackProfile = fallback.id
                             DataStore.selectedProxy = fallback.id
                             Logs.w("WDTT Plus uplink lost; switching to ${fallback.displayName()}")
                             if (data.state != State.Stopped) AutoSelectorRuntime.restart(this) { stopRunner(true) }
@@ -569,11 +574,35 @@ class BaseService {
                         observedCellular,
                         cellularDefault,
                     )
+                    if (observedCellular != cellularDefault) {
+                        Logs.i("Default uplink changed: network=$network cellular=$cellularDefault previousCellular=$observedCellular")
+                    }
                     observedCellular = cellularDefault
+                    val fallbackOriginId = DataStore.wdttNetworkFallbackOrigin
+                    val fallbackProfileId = DataStore.wdttNetworkFallbackProfile
+                    if (WdttPlusNetworkPolicy.shouldRestoreCellularWdtt(
+                            cellularDefault, DataStore.selectedProxy, fallbackOriginId, fallbackProfileId,
+                        )
+                    ) {
+                        val originalWdtt = SagerDatabase.proxyDao.getById(fallbackOriginId)
+                        if (originalWdtt?.type == "wdttplus") {
+                            DataStore.selectedProxy = originalWdtt.id
+                            DataStore.clearWdttNetworkFallback()
+                            Logs.i("Cellular uplink restored; returning to WDTT Plus ${originalWdtt.displayName()}")
+                            if (data.state != State.Stopped) AutoSelectorRuntime.restart(this) { stopRunner(true) }
+                            return@start
+                        }
+                        DataStore.clearWdttNetworkFallback()
+                    } else if (fallbackOriginId > 0L && DataStore.selectedProxy != fallbackProfileId) {
+                        // A different profile was selected while the automatic fallback was active.
+                        DataStore.clearWdttNetworkFallback()
+                    }
                     val current = data.proxy?.profile
                     if (current?.type == "wdttplus" && !WdttPlusNetworkPolicy.isCellularDefault()) {
                         val fallback = wdttWifiFallback(current)
                         if (fallback != null) {
+                            DataStore.wdttNetworkFallbackOrigin = current.id
+                            DataStore.wdttNetworkFallbackProfile = fallback.id
                             DataStore.selectedProxy = fallback.id
                             Logs.w("Wi-Fi detected while WDTT Plus is active; switching to ${fallback.displayName()}")
                             if (data.state != State.Stopped) AutoSelectorRuntime.restart(this) { stopRunner(true) }
@@ -661,8 +690,24 @@ class BaseService {
         fun startProxy() {
             DataStore.baseService = this
             val data = data
-            val profile = SagerDatabase.proxyDao.getById(DataStore.selectedProxy)
             this as Context
+            if (WdttPlusNetworkPolicy.shouldRestoreCellularWdtt(
+                    WdttPlusNetworkPolicy.isCellularDefault(), DataStore.selectedProxy,
+                    DataStore.wdttNetworkFallbackOrigin, DataStore.wdttNetworkFallbackProfile,
+                )
+            ) {
+                val origin = SagerDatabase.proxyDao.getById(DataStore.wdttNetworkFallbackOrigin)
+                if (origin?.type == "wdttplus") {
+                    DataStore.selectedProxy = origin.id
+                    DataStore.clearWdttNetworkFallback()
+                    moe.matsuri.nb4a.utils.CoreLog.write(
+                        "[Info] Cellular uplink restored; returning to WDTT Plus ${origin.displayName()}",
+                    )
+                } else {
+                    DataStore.clearWdttNetworkFallback()
+                }
+            }
+            val profile = SagerDatabase.proxyDao.getById(DataStore.selectedProxy)
             if (profile == null) { // gracefully shutdown: https://stackoverflow.com/q/47337857/2245107
                 if (data.notification == null) data.notification = createNotification("")
                 onNoProfile()
@@ -672,10 +717,12 @@ class BaseService {
             if (profile.type == "wdttplus" && !WdttPlusNetworkPolicy.isCellularDefault()) {
                 val fallbackProfile = wdttWifiFallback(profile)
                 if (fallbackProfile != null) {
-                        DataStore.selectedProxy = fallbackProfile.id
-                        moe.matsuri.nb4a.utils.CoreLog.write(
-                            "[Info] WDTT Plus is cellular-only; Wi-Fi detected, automatically selecting ${fallbackProfile.displayName()} from the same group",
-                        )
+                    DataStore.wdttNetworkFallbackOrigin = profile.id
+                    DataStore.wdttNetworkFallbackProfile = fallbackProfile.id
+                    DataStore.selectedProxy = fallbackProfile.id
+                    moe.matsuri.nb4a.utils.CoreLog.write(
+                        "[Info] WDTT Plus is cellular-only; Wi-Fi detected, automatically selecting ${fallbackProfile.displayName()} from the same group",
+                    )
                         startProxy()
                         return
                 }
@@ -699,22 +746,14 @@ class BaseService {
                     addAction(Action.REFRESH_WIFI_STATE)
                     addAction(Action.AUTO_SELECTOR_AUTOMATIC)
                 }
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    registerReceiver(
-                        data.receiver,
-                        filter,
-                        "$packageName.SERVICE",
-                        null,
-                        Context.RECEIVER_EXPORTED
-                    )
-                } else {
-                    registerReceiver(
-                        data.receiver,
-                        filter,
-                        "$packageName.SERVICE",
-                        null
-                    )
-                }
+                ContextCompat.registerReceiver(
+                    this,
+                    data.receiver,
+                    filter,
+                    "$packageName.SERVICE",
+                    null,
+                    ContextCompat.RECEIVER_EXPORTED,
+                )
                 data.closeReceiverRegistered = true
             }
 

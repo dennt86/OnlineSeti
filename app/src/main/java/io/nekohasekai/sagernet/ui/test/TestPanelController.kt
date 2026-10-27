@@ -176,6 +176,7 @@ class TestPanelController(
     private var iconTint = 0
     private var legendFor: LatencyHistogram? = null
     private var reportedHeight = -1
+    private val reportHeightRunnable = Runnable { reportHeight() }
     private var selectedId = 0L
     private var runningId = 0L
     private var bottomInset = 0
@@ -212,10 +213,10 @@ class TestPanelController(
         wire()
         applyExpanded()
         // Posted: the listener runs inside the layout pass and the callback may re-layout the list.
-        root.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ -> root.post(::reportHeight) }
+        root.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ -> root.post(reportHeightRunnable) }
         ViewCompat.setOnApplyWindowInsetsListener(root) { _, insets ->
             bottomInset = insets.bars().bottom
-            root.post(::reportHeight)
+            root.post(reportHeightRunnable)
             insets
         }
         // Every frame: the stats bar and the FAB move without any layout of this hierarchy.
@@ -481,7 +482,7 @@ class TestPanelController(
         }
         // Announce the outcome once, not every progress tick.
         val region = if (s.running) ViewCompat.ACCESSIBILITY_LIVE_REGION_NONE else ViewCompat.ACCESSIBILITY_LIVE_REGION_POLITE
-        if (ViewCompat.getAccessibilityLiveRegion(status) != region) ViewCompat.setAccessibilityLiveRegion(status, region)
+        if (status.accessibilityLiveRegion != region) status.accessibilityLiveRegion = region
         status.setTextIfChanged(text)
         if (status.currentTextColor != color) status.setTextColor(color)
     }
@@ -490,7 +491,7 @@ class TestPanelController(
         val live = s.speed
         val show = !expanded && s.running && s.kind == TestSpec.KIND_SPEED && !s.countryMode && live != null
         liveLine.isVisible = show
-        if (!show || live == null) return
+        if (!show) return
         val detail = if (live.dlBps <= 0 && live.ulBps <= 0) {
             TestFormat.stageLabel(context, live.stage)
         } else {

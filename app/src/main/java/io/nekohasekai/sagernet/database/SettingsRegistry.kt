@@ -189,6 +189,8 @@ object SettingsRegistry {
     @JvmField val ROUTE_AUTO_UPDATE = int("route_auto_update", -1440)
     /** Epoch seconds. */
     @JvmField val ROUTE_AUTO_UPDATE_LAST = long("route_auto_update_last", 0L) { it >= 0 }
+    /** Epoch seconds: last successful refresh of the routing catalog and bundled remote profiles. */
+    @JvmField val ROUTING_CATALOG_UPDATE_LAST = long("routing_catalog_update_last", 0L) { it >= 0 }
 
     // ------------------------------------------------------------------------------------------------ dns
 

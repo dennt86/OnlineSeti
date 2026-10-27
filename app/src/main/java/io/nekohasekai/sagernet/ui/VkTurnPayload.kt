@@ -1,5 +1,6 @@
 package app.qthrone.mobile.ui
 
+import app.qthrone.mobile.utils.Base64Compat
 import org.json.JSONObject
 import org.json.JSONArray
 
@@ -15,6 +16,6 @@ internal object VkTurnPayload {
         val values=(0 until urls.length()).map { urls.getString(it) }
         require(values.all { it.startsWith("turn:") || it.startsWith("turns:") })
         val payload=JSONObject().put("u",user).put("p",pass).put("urls",JSONArray(values))
-        hash+"|"+java.util.Base64.getEncoder().encodeToString(payload.toString().toByteArray(Charsets.UTF_8))
+        hash+"|"+Base64Compat.encodeToString(payload.toString().toByteArray(Charsets.UTF_8))
     }.getOrNull()
 }

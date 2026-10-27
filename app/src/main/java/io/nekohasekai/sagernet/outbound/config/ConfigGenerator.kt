@@ -247,12 +247,14 @@ class ConfigGenerator @JvmOverloads constructor(
                 if (entry.isEmpty()) continue
                 val tag = RuleSets.tagFor(entry)
                 if (sets.containsKey(tag)) continue
-                // OnlineSeti's built-in Russia profile ships these rule sets inside the APK. Resolve
-                // them from the app's own asset list before consulting the optional remote catalog:
-                // the catalog can be empty/offline, but these files are still available locally.
+                // OnlineSeti ships offline seeds for the Russia rules. Prefer remote definitions when
+                // the catalog knows their URLs, so sing-box can refresh them while retaining the APK
+                // copy for first start/offline use. A missing catalog entry still works offline.
                 val bundledSeed = app.qthrone.mobile.route.OnlinesetiRouting.seedPath(entry)
                 if (bundledSeed != null) {
-                    sets[tag] = "file://$bundledSeed"
+                    val listed = routing.catalog.urlOf(entry)
+                    sets[tag] = if (listed.isNullOrBlank()) "file://$bundledSeed"
+                    else RuleSets.mirrorLink(listed, settings.rulesetMirror)
                     continue
                 }
                 if (RuleSets.isUrl(entry)) {
@@ -1077,11 +1079,7 @@ class ConfigGenerator @JvmOverloads constructor(
 
     private fun adblockRule(): JsonObject = jsonObjectOf("action" to "reject", "rule_set" to JsonArray.of(RuleSets.ADBLOCK_TAG))
 
-    /**
-     * buildRuleSetArray (:1916-1955): the profile's sets, then adblock; always present. No update_interval or
-     * http_client, so the core refreshes each set every 24 h through route.final, as on the desktop. A deferred start
-     * ([GeneratorSettings.deferRuleSets], Android-only) adds an empty initial_path and a download through `proxy`.
-     */
+    /** Remote sets refresh twice daily; bundled Russia seeds remain available for offline startup. */
     private fun buildRuleSetArray(state: BuildState): JsonArray {
         val out = JsonArray()
         val sets = state.prerequisites.ruleSets
@@ -1094,7 +1092,10 @@ class ConfigGenerator @JvmOverloads constructor(
 
     private fun remoteRuleSet(tag: String, url: String): JsonObject {
         if (url.startsWith("file://")) return jsonObjectOf("type" to "local", "tag" to tag, "format" to "binary", "path" to url.removePrefix("file://"))
-        val ruleSet = jsonObjectOf("type" to "remote", "tag" to tag, "format" to "binary", "url" to url)
+        val ruleSet = jsonObjectOf(
+            "type" to "remote", "tag" to tag, "format" to "binary", "url" to url,
+            "update_interval" to "12h"
+        )
         val bundledSeed = app.qthrone.mobile.route.OnlinesetiRouting.seedPath(tag)
         if (bundledSeed != null) {
             ruleSet["initial_path"] = bundledSeed

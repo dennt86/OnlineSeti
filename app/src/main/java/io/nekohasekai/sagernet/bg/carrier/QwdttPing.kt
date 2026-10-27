@@ -56,7 +56,7 @@ object QwdttPing {
             }, "qThrone-qwdtt-ping").apply { isDaemon = true; start() }
             try {
                 val deadline = System.nanoTime() + timeoutMs * 1_000_000
-                while (process.isAlive) {
+                while (CarrierProcessCompat.isAlive(process)) {
                     coroutineContext.ensureActive()
                     if (System.nanoTime() > deadline) return@withContext Outcome(0, "HTTP test timed out")
                     delay(100)
@@ -69,11 +69,11 @@ object QwdttPing {
                 }
             } finally {
                 captcha.close()
-                if (process.isAlive) {
+                if (CarrierProcessCompat.isAlive(process)) {
                     runCatching { process.outputStream.write("STOP\n".toByteArray()); process.outputStream.flush() }
                     runCatching { process.destroy() }
-                    if (!runCatching { process.waitFor(1, java.util.concurrent.TimeUnit.SECONDS) }.getOrDefault(false))
-                        runCatching { process.destroyForcibly() }
+                    if (!runCatching { CarrierProcessCompat.waitFor(process, 1, java.util.concurrent.TimeUnit.SECONDS) }.getOrDefault(false))
+                        runCatching { CarrierProcessCompat.destroyForcibly(process) }
                 }
                 runCatching { process.inputStream.close() }
             }

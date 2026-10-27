@@ -113,9 +113,10 @@ class WdttPlusClientsActivity : ServerScreenActivity() {
         })
         addView(LinearLayout(context).apply {
             setPadding(0, ui.dp(10), 0, ui.dp(12))
-            addView(ui.stat("CPU", String.format("%.0f%%", server.optDouble("cpu_percent", 0.0))), LinearLayout.LayoutParams(0, -2, 1f))
-            addView(ui.stat("Память", String.format("%.0f%%", server.optDouble("memory_percent", 0.0))), LinearLayout.LayoutParams(0, -2, 1f))
-            addView(ui.stat("Сеть", String.format("↓%.1f ↑%.1f Мбит/с", server.optDouble("network_rx_mbps", 0.0), server.optDouble("network_tx_mbps", 0.0))), LinearLayout.LayoutParams(0, -2, 1f))
+            val locale = java.util.Locale.getDefault()
+            addView(ui.stat("CPU", String.format(locale, "%.0f%%", server.optDouble("cpu_percent", 0.0))), LinearLayout.LayoutParams(0, -2, 1f))
+            addView(ui.stat("Память", String.format(locale, "%.0f%%", server.optDouble("memory_percent", 0.0))), LinearLayout.LayoutParams(0, -2, 1f))
+            addView(ui.stat("Сеть", String.format(locale, "↓%.1f ↑%.1f Мбит/с", server.optDouble("network_rx_mbps", 0.0), server.optDouble("network_tx_mbps", 0.0))), LinearLayout.LayoutParams(0, -2, 1f))
         })
         addView(LinearLayout(context).apply {
             addView(ui.button("Настройки") { settingsForm(server) }, LinearLayout.LayoutParams(0, -2, 1f).apply { marginEnd = ui.dp(8) })

@@ -1,5 +1,6 @@
 package app.qthrone.mobile.deploy
 
+import android.annotation.SuppressLint
 import android.util.Base64
 import okhttp3.FormBody
 import okhttp3.OkHttpClient
@@ -31,21 +32,31 @@ class QwdttAdmin(private val server: DeployServer) {
 
     private val client: OkHttpClient by lazy {
         val pin = server["adminPin"]
-        require(pin.startsWith("sha256/") && pin.length > 10) { "Отпечаток админ-панели не сохранён. Обновите сервер." }
-        val expected = Base64.decode(pin.removePrefix("sha256/"), Base64.DEFAULT)
-        val trust = object : X509TrustManager {
-            override fun checkClientTrusted(chain: Array<out X509Certificate>?, authType: String?) =
-                throw CertificateException("Client certificates are not accepted")
-            override fun checkServerTrusted(chain: Array<out X509Certificate>?, authType: String?) {
-                val certificate = chain?.firstOrNull() ?: throw CertificateException("Server certificate is missing")
-                val actual = MessageDigest.getInstance("SHA-256").digest(certificate.encoded)
-                if (!MessageDigest.isEqual(expected, actual)) throw CertificateException("Сертификат сервера не совпадает с сохранённым")
-            }
-            override fun getAcceptedIssuers(): Array<X509Certificate> = emptyArray()
-        }
+        require(pin.startsWith("sha256/")) { "Отпечаток админ-панели не сохранён. Обновите сервер." }
+        val expected = runCatching { Base64.decode(pin.removePrefix("sha256/"), Base64.DEFAULT) }
+            .getOrElse { throw IllegalArgumentException("Некорректный отпечаток сертификата админ-панели") }
+        require(expected.size == 32) { "Некорректный SHA-256 отпечаток сертификата админ-панели" }
+        val trust = pinnedTrustManager(expected)
         val context = SSLContext.getInstance("TLS").apply { init(null, arrayOf(trust), null) }
-        OkHttpClient.Builder().sslSocketFactory(context.socketFactory, trust).hostnameVerifier { _, _ -> true }
+        // The installer-provided leaf pin is the trust anchor for this private self-signed endpoint.
+        // Keep standard SAN/hostname checks enabled as an independent guard against endpoint mixups.
+        OkHttpClient.Builder().sslSocketFactory(context.socketFactory, trust)
+            .hostnameVerifier(javax.net.ssl.HttpsURLConnection.getDefaultHostnameVerifier())
             .connectTimeout(8, TimeUnit.SECONDS).readTimeout(8, TimeUnit.SECONDS).writeTimeout(8, TimeUnit.SECONDS).build()
+    }
+
+    /** Pin to the installer-verified leaf certificate, used for the private self-signed admin endpoint. */
+    @SuppressLint("CustomX509TrustManager")
+    private fun pinnedTrustManager(expected: ByteArray): X509TrustManager = object : X509TrustManager {
+        override fun checkClientTrusted(chain: Array<out X509Certificate>?, authType: String?) =
+            throw CertificateException("Client certificates are not accepted")
+        override fun checkServerTrusted(chain: Array<out X509Certificate>?, authType: String?) {
+            val certificate = chain?.firstOrNull() ?: throw CertificateException("Server certificate is missing")
+            certificate.checkValidity()
+            val actual = MessageDigest.getInstance("SHA-256").digest(certificate.encoded)
+            if (!MessageDigest.isEqual(expected, actual)) throw CertificateException("Сертификат сервера не совпадает с сохранённым")
+        }
+        override fun getAcceptedIssuers(): Array<X509Certificate> = emptyArray()
     }
 
     private fun url(path: String): String {

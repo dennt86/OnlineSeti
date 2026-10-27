@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.ActivityNotFoundException
 import android.content.pm.PackageManager
 import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import app.qthrone.mobile.ui.MobileAlertDialogBuilder as MaterialAlertDialogBuilder
@@ -53,6 +54,7 @@ class FirstStartPrompts(private val activity: MainActivity) {
         }
     }
 
+    @RequiresApi(33)
     private fun requestNotifications() {
         try {
             notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)

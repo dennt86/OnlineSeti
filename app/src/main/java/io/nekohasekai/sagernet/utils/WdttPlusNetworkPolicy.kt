@@ -19,6 +19,15 @@ object WdttPlusNetworkPolicy {
     fun shouldClearCellularWdttPin(cellularDefault: Boolean, pinnedId: Long, wdttProfileIds: Collection<Long>): Boolean =
         cellularDefault && pinnedId != -1L && pinnedId in wdttProfileIds
 
+    /** Restore the WDTT profile only while the fallback selected by the network policy is still selected. */
+    fun shouldRestoreCellularWdtt(
+        cellularDefault: Boolean,
+        selectedProfileId: Long,
+        wdttProfileId: Long,
+        fallbackProfileId: Long,
+    ): Boolean = cellularDefault && wdttProfileId > 0L && fallbackProfileId > 0L &&
+        wdttProfileId != fallbackProfileId && selectedProfileId == fallbackProfileId
+
     /** Unknown, disconnected, Wi-Fi, Ethernet and other upstreams are denied. */
     fun isCellularDefault(): Boolean {
         // Before VpnService publishes its underlying network, Android's default network is the

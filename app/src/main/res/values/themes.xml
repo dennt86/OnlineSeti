@@ -109,8 +109,6 @@
         <item name="tabStyle">@style/Widget.SagerNet.TabLayout</item>
         <item name="dialogButtonColor">?attr/primaryOrTextPrimary</item>
 
-        <item name="android:dialogCornerRadius">@dimen/dialog_corner_radius</item>
-
         <item name="windowFixedHeightMajor" type="dimen">95%</item>
 
     </style>

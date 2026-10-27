@@ -12,6 +12,7 @@ import app.qthrone.mobile.R
 import app.qthrone.mobile.SagerNet
 import app.qthrone.mobile.ktx.Logs
 import app.qthrone.mobile.ktx.app
+import java.lang.ref.WeakReference
 
 /**
  * Reference-counted foreground promotion of [CoreService] (type dataSync) while test sessions or subscription jobs
@@ -26,20 +27,20 @@ object CoreForeground {
     const val REASON_SUBSCRIPTIONS = "subscriptions"
 
     private val lock = Any()
-    private var service: Service? = null
+    private var service = WeakReference<Service>(null)
     private val holders = LinkedHashMap<String, Int>()
     private val contents = HashMap<String, Notification>()
     private var started = false
     private var foreground = false
 
     fun attach(service: Service) = synchronized(lock) {
-        this.service = service
+        this.service = WeakReference(service)
         if (holders.isNotEmpty()) promote(service)
     }
 
     fun detach(service: Service) = synchronized(lock) {
-        if (this.service !== service) return@synchronized
-        this.service = null
+        if (this.service.get() !== service) return@synchronized
+        this.service.clear()
         started = false
         foreground = false
         if (holders.isNotEmpty()) show()
@@ -50,7 +51,7 @@ object CoreForeground {
         val first = holders.isEmpty()
         holders[reason] = (holders.remove(reason) ?: 0) + 1
         if (notification != null) contents[reason] = notification
-        val service = service
+        val service = service.get()
         when {
             service == null -> {
                 // The service attaches and promotes itself once it is created.
@@ -117,7 +118,7 @@ object CoreForeground {
     }
 
     private fun demote() {
-        val service = service
+        val service = service.get()
         if (service != null) {
             if (foreground) runCatching { service.stopForeground(Service.STOP_FOREGROUND_REMOVE) }
             if (started) service.stopSelf()

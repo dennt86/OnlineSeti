@@ -33,6 +33,15 @@ class WdttPlusNetworkPolicyTest {
     }
 
     @Test
+    fun cellularRestoresWdttOnlyWhileItsAutomaticFallbackRemainsSelected() {
+        assertTrue(WdttPlusNetworkPolicy.shouldRestoreCellularWdtt(true, 7L, 42L, 7L))
+        assertFalse(WdttPlusNetworkPolicy.shouldRestoreCellularWdtt(false, 7L, 42L, 7L))
+        assertFalse(WdttPlusNetworkPolicy.shouldRestoreCellularWdtt(true, 8L, 42L, 7L))
+        assertFalse(WdttPlusNetworkPolicy.shouldRestoreCellularWdtt(true, 7L, 0L, 7L))
+        assertFalse(WdttPlusNetworkPolicy.shouldRestoreCellularWdtt(true, 7L, 7L, 7L))
+    }
+
+    @Test
     fun wifiFallbackPrefersAutomaticSelectorOverIndividualServers() {
         val fallback = WdttPlusNetworkPolicy.wifiFallback(
             selectedId = 1,

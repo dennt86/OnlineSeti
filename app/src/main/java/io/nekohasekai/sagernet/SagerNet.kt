@@ -25,6 +25,7 @@ import app.qthrone.mobile.database.DataStore
 import app.qthrone.mobile.ui.SeasonalPolicy
 import app.qthrone.mobile.database.SettingsMapper
 import app.qthrone.mobile.group.RemoteRouteUpdater
+import app.qthrone.mobile.group.RoutingCatalogUpdater
 import app.qthrone.mobile.group.SubscriptionScheduler
 import app.qthrone.mobile.ktx.Logs
 import app.qthrone.mobile.ktx.isOss
@@ -109,6 +110,7 @@ class SagerNet : Application(),
             // The icon pack of the removed custom icon feature; a no-op once it is gone.
             runOnDefaultDispatcher { File(filesDir, "custom_icon").deleteRecursively() }
             RemoteRouteUpdater.schedule(keepExisting = true)
+            RoutingCatalogUpdater.schedule()
             SubscriptionScheduler.schedule(keepExisting = true)
             Widgets.watchSelection(this)
         }

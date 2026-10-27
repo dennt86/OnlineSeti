@@ -67,7 +67,7 @@ object RouteRepo {
      * branch is listed through the GitHub API, or taken from the snapshot's file names when the API is unreachable.
      * Returns the errors, one per line, or null.
      */
-    fun refresh(): String? {
+    fun refresh(requireRemoteList: Boolean = false): String? {
         val mirror = DataStore.rulesetMirror
         val errors = ArrayList<String>()
         try {
@@ -80,12 +80,19 @@ object RouteRepo {
         } catch (e: Exception) {
             errors.add("$SRS_LIST: ${e.readableMessage}")
         }
-        val names = try {
+        var listingError: String? = null
+        val listedNames = try {
             listProfileBranch()
         } catch (e: Exception) {
             Logs.w("routeprofiles listing: ${e.readableMessage}")
+            listingError = e.readableMessage
             null
-        } ?: profileFileNames()
+        }
+        if (listedNames == null && listingError == null) listingError = "remote profile list is empty or invalid"
+        val names = listedNames ?: profileFileNames()
+        if (requireRemoteList && listingError != null) {
+            errors.add("remote profile list: $listingError")
+        }
         val profileDir = File(cacheDir, PROFILE_DIR)
         for (name in names) {
             try {

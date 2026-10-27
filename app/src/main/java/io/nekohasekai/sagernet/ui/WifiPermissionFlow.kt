@@ -20,6 +20,9 @@ import app.qthrone.mobile.utils.WifiStateAccess.Status
  */
 class WifiPermissionFlow(private val activity: ComponentActivity) {
 
+    // This permission is only requested by WifiStateAccess on Android 10+.
+    private val backgroundLocationPermission = "android.permission.ACCESS_BACKGROUND_LOCATION"
+
     private var onDone: ((Boolean) -> Unit)? = null
 
     // The status the last step tried to fix: seeing it again means the user refused.
@@ -31,7 +34,7 @@ class WifiPermissionFlow(private val activity: ComponentActivity) {
 
     private val background = activity.registerForActivityResult(
         ActivityResultContracts.RequestPermission()
-    ) { afterRequest(Manifest.permission.ACCESS_BACKGROUND_LOCATION) }
+    ) { afterRequest(backgroundLocationPermission) }
 
     private val settings = activity.registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -61,7 +64,7 @@ class WifiPermissionFlow(private val activity: ComponentActivity) {
             }
 
             Status.NEED_BACKGROUND -> explain(R.string.wifi_permission_background_message) {
-                background.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+                background.launch(backgroundLocationPermission)
             }
 
             Status.LOCATION_OFF -> explain(R.string.wifi_location_off_message, R.string.location_settings) {

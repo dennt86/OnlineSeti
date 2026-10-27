@@ -20,9 +20,11 @@ class OnlinesetiRoutingTest {
         val sets = route.array("rule_set").filterIsInstance<JsonObject>()
         assertEquals(4, sets.size)
         sets.forEach {
-            // Bundled Russia sets are local files, so they have `path`, not remote `initial_path`/http_client.
-            assertEquals("local", it.string("type"))
-            assertEquals(OnlinesetiRouting.seedPath(it.string("tag")), it.string("path"))
+            assertEquals("remote", it.string("type"))
+            assertEquals("https://example.org/${it.string("tag")}.srs", it.string("url"))
+            assertEquals("12h", it.string("update_interval"))
+            assertEquals(OnlinesetiRouting.seedPath(it.string("tag")), it.string("initial_path"))
+            assertEquals("proxy", it.obj("http_client").string("detour"))
         }
         assertTrue(route.array("rules").filterIsInstance<JsonObject>().any {
             it.array("rule_set").contains("geoip-ru") && it.string("outbound") == "direct" &&

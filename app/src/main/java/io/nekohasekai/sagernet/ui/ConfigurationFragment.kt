@@ -683,6 +683,9 @@ class ConfigurationFragment : ToolbarFragment(R.layout.layout_group_list),
         val last = DataStore.selectedProxy
         applyProfileState(fallback.id, currentProfile, serviceStarted)
         runOnDefaultDispatcher {
+            // Remember the user's WDTT choice across the temporary Wi-Fi-compatible fallback.
+            DataStore.wdttNetworkFallbackOrigin = profile.id
+            DataStore.wdttNetworkFallbackProfile = fallback.id
             DataStore.selectedProxy = fallback.id
             ProfileManager.postUpdate(last, noTraffic = true)
             if (DataStore.serviceState.canStop) SagerNet.reloadService() else SagerNet.startService()

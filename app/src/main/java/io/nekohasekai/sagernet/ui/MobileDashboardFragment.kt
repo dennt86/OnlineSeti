@@ -11,7 +11,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
-import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
@@ -45,6 +44,8 @@ class MobileDashboardFragment : ToolbarFragment() {
     private var switchText: TextView? = null
     private var availableValue: TextView? = null
     private var routingValue: TextView? = null
+    private var appRoutingValue: TextView? = null
+    private var appRoutingCard: View? = null
     private var lastStatus: AutoSelectorStatus = AutoSelectorStatus.IDLE
     private var profileRefreshKey = Long.MIN_VALUE
 
@@ -89,9 +90,6 @@ class MobileDashboardFragment : ToolbarFragment() {
                 setSpan(android.text.style.StyleSpan(Typeface.NORMAL), 0, length, 0)
             })
         }, LinearLayout.LayoutParams(0, dp(52), 1f))
-        header.addView(iconButton(R.drawable.ic_mobile_settings, "Настройки") {
-            (requireActivity() as MainActivity).openMore(R.id.nav_settings)
-        }, LinearLayout.LayoutParams(dp(44), dp(44)))
         column.addView(header)
 
         val heading = LinearLayout(context).apply {
@@ -203,7 +201,15 @@ class MobileDashboardFragment : ToolbarFragment() {
             }.also { routingValue = it.tag as? TextView },
                 LinearLayout.LayoutParams(0, dp(72), 1f).apply { marginStart = dp(5) })
             column.addView(quick)
+
         }
+
+        column.addView(summaryCard("МАРШРУТИЗАЦИЯ ПРИЛОЖЕНИЙ", "Настроить исключения") {
+            startActivity(Intent(requireContext(), AppManagerActivity::class.java))
+        }.also {
+            appRoutingCard = it
+            appRoutingValue = it.tag as? TextView
+        }, LinearLayout.LayoutParams(-1, dp(62)).apply { topMargin = dp(10) })
 
         val support = LinearLayout(context).apply {
             gravity = Gravity.CENTER; background = roundedOutline(); setPadding(dp(12), dp(11), dp(12), dp(11))
@@ -264,6 +270,7 @@ class MobileDashboardFragment : ToolbarFragment() {
             "Защита включена · ${formatElapsed((SystemClock.elapsedRealtime() - DataStore.mobileConnectedAt).coerceAtLeast(0) / 1000)}"
         } else ""
         powerIcon?.imageTintList = android.content.res.ColorStateList.valueOf(if (connected) MobilePalette.accent(requireContext()) else MobilePalette.muted)
+        updateRoutingCard()
         updateSelector(lastStatus)
     }
 
@@ -310,14 +317,41 @@ class MobileDashboardFragment : ToolbarFragment() {
             availableValue?.text = if (status.active && status.membersTotal > 0) "${status.membersAlive} из ${status.membersTotal}" else "$count профилей"
         }
         viewLifecycleOwner.lifecycleScope.launch {
-            val mode = withContext(Dispatchers.IO) {
-                runCatching { app.qthrone.mobile.database.RouteManager.current().default_outbound_id }.getOrNull()
+            val route = withContext(Dispatchers.IO) {
+                runCatching {
+                    app.qthrone.mobile.database.RouteManager.current().let {
+                        it.default_outbound_id to !it.isEmpty()
+                    }
+                }.getOrNull()
             }
-            routingValue?.text = when (mode) {
-                app.qthrone.mobile.route.OutboundIds.DIRECT -> "Россия напрямую"
-                null -> "Настроить"
-                else -> "Через VPN"
+            val routeText = when {
+                route == null -> "Настроить"
+                route.second -> "По правилам"
+                route.first == app.qthrone.mobile.route.OutboundIds.DIRECT -> "Напрямую"
+                route.first == app.qthrone.mobile.route.OutboundIds.BLOCK -> "Блокировка"
+                route.first == app.qthrone.mobile.route.OutboundIds.WARP_BYPASS -> "Обход WARP"
+                else -> "Через прокси"
             }
+            if (!(DataStore.proxyApps && DataStore.bypass)) routingValue?.text = routeText
+        }
+    }
+
+    private fun updateRoutingCard() {
+        val bypassEnabled = DataStore.proxyApps && DataStore.bypass
+        val selectedCount = DataStore.individual.lineSequence().count { it.isNotBlank() }
+        if (bypassEnabled) {
+            appRoutingValue?.text = if (selectedCount == 0) "Список пуст" else "Напрямую · $selectedCount"
+            appRoutingCard?.contentDescription = if (selectedCount == 0) {
+                "Список приложений для обхода VPN пуст. Нажмите, чтобы настроить."
+            } else {
+                "$selectedCount приложений направляются напрямую в обход туннеля. Они всё ещё могут определить, что VPN включён. Нажмите, чтобы настроить."
+            }
+        } else if (DataStore.proxyApps) {
+            appRoutingValue?.text = if (selectedCount == 0) "Список VPN пуст" else "Через VPN · $selectedCount"
+            appRoutingCard?.contentDescription = "Через VPN идут только приложения из списка. Нажмите, чтобы настроить."
+        } else {
+            appRoutingValue?.text = "Все приложения через VPN"
+            appRoutingCard?.contentDescription = "Все приложения используют VPN. Нажмите, чтобы настроить исключения."
         }
     }
 
@@ -326,12 +360,6 @@ class MobileDashboardFragment : ToolbarFragment() {
         val minutes = seconds / 60 % 60
         val remainder = seconds % 60
         return if (hours > 0) "%02d:%02d:%02d".format(hours, minutes, remainder) else "%02d:%02d".format(minutes, remainder)
-    }
-
-    private fun iconButton(icon: Int, description: String, callback: () -> Unit) = ImageButton(requireContext()).apply {
-        setImageResource(icon); imageTintList = android.content.res.ColorStateList.valueOf(MobilePalette.text)
-        background = null; contentDescription = description; setPadding(dp(10), dp(10), dp(10), dp(10))
-        isFocusable = true; setOnClickListener { callback() }; MobileFeedback.apply(this, circle = true)
     }
 
     private fun summaryCard(title: String, initial: String, callback: () -> Unit) = LinearLayout(requireContext()).apply {

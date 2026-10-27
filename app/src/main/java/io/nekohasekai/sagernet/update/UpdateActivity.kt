@@ -10,6 +10,7 @@ import android.view.View
 import android.widget.Button
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresApi
 import androidx.core.net.toUri
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -211,12 +212,18 @@ class UpdateActivity : ThemedActivity() {
                 awaitingPermission = null
                 renderOffer(offer)
             },
-            positive = getString(R.string.open_settings) to { requestPermission() },
+            positive = getString(R.string.open_settings) to {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) requestPermission()
+                else {
+                    awaitingPermission = null
+                    renderOffer(offer)
+                }
+            },
         )
     }
 
     private fun startUpdate(offer: UpdateChecker.Offer) {
-        if (canInstall()) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || packageManager.canRequestPackageInstalls()) {
             UpdateManager.download(offer)
         } else {
             awaitingPermission = offer
@@ -224,6 +231,7 @@ class UpdateActivity : ThemedActivity() {
         }
     }
 
+    @RequiresApi(26)
     private fun requestPermission() {
         try {
             unknownSources.launch(

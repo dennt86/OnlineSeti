@@ -31,7 +31,26 @@ object DataStore : OnPreferenceDataStoreChangeListener {
     /** The involvedProfileIds of the config [currentProfile] last started with, for ProfileManager.runningUses. */
     var runningProfiles by configurationStore.stringList(Key.RUNNING_PROFILES)
 
-    var selectedProxy by configurationStore.long(Key.PROFILE_ID)
+    private var selectedProxySetting by configurationStore.long(Key.PROFILE_ID)
+
+    var selectedProxy: Long
+        get() = selectedProxySetting
+        set(value) {
+            if (wdttNetworkFallbackOrigin > 0L && value != wdttNetworkFallbackProfile) {
+                clearWdttNetworkFallback()
+            }
+            selectedProxySetting = value
+        }
+
+    /** Original WDTT Plus choice temporarily replaced by a Wi-Fi-safe profile. */
+    var wdttNetworkFallbackOrigin by configurationStore.long("wdtt_network_fallback_origin")
+    /** The automatic Wi-Fi fallback currently selected for [wdttNetworkFallbackOrigin]. */
+    var wdttNetworkFallbackProfile by configurationStore.long("wdtt_network_fallback_profile")
+
+    fun clearWdttNetworkFallback() {
+        wdttNetworkFallbackOrigin = 0L
+        wdttNetworkFallbackProfile = 0L
+    }
 
     // only in bg process
     var vpnService: VpnService? = null
@@ -188,6 +207,7 @@ object DataStore : OnPreferenceDataStoreChangeListener {
     var adblockEnable by SettingsRegistry.ADBLOCK_ENABLE
     var routeAutoUpdate by SettingsRegistry.ROUTE_AUTO_UPDATE
     var routeAutoUpdateLast by SettingsRegistry.ROUTE_AUTO_UPDATE_LAST
+    var routingCatalogUpdateLast by SettingsRegistry.ROUTING_CATALOG_UPDATE_LAST
 
     // dns
     var remoteDns by SettingsRegistry.REMOTE_DNS

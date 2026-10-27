@@ -94,10 +94,10 @@ class CarrierProcess private constructor(private val process: Process, private v
         }
         if(!exited) {
             runCatching { process.destroy() }
-            val terminated=runCatching { process.waitFor(1,java.util.concurrent.TimeUnit.SECONDS) }.getOrDefault(false)
+            val terminated=runCatching { CarrierProcessCompat.waitFor(process,1,java.util.concurrent.TimeUnit.SECONDS) }.getOrDefault(false)
             if(!terminated) {
-                runCatching { process.destroyForcibly() }
-                runCatching { process.waitFor(1,java.util.concurrent.TimeUnit.SECONDS) }
+                runCatching { CarrierProcessCompat.destroyForcibly(process) }
+                runCatching { CarrierProcessCompat.waitFor(process,1,java.util.concurrent.TimeUnit.SECONDS) }
             }
         }
         runCatching { process.inputStream.close() }
@@ -180,13 +180,21 @@ class CarrierProcess private constructor(private val process: Process, private v
                     val config=File(sessionDirectory,"config.json")
                     check(config.createNewFile()) { "Cannot create private transport configuration" }
                     try {
-                        check(config.setReadable(false, false) && config.setWritable(false, false)
-                            && config.setReadable(true, true) && config.setWritable(true, true)) { "Cannot protect transport configuration" }
+                        val ownerOnly = config.setReadable(false, false) && config.setWritable(false, false)
+                            && config.setReadable(true, true) && config.setWritable(true, true)
+                        // Android/Linux support POSIX owner-only modes. JVM unit tests also run on
+                        // Windows, where File.setReadable/setWritable cannot express POSIX modes;
+                        // there the config inherits the ACL of the app-private/session directory.
+                        check(ownerOnly || System.getProperty("os.name").orEmpty().startsWith("Windows", ignoreCase = true)) {
+                            "Cannot protect transport configuration"
+                        }
                         config.writeText(privateJson, Charsets.UTF_8)
                         val launchConfig = if (kind == CarrierKind.WDTTPLUS) org.json.JSONObject(privateJson) else null
                         val command = if (launchConfig != null) {
                             val args = launchConfig.getJSONArray("args")
-                            listOf(executable.absolutePath) + (0 until args.length()).map { args.getString(it) }
+                            listOf(executable.absolutePath) + (0 until args.length()).map {
+                                args.getString(it) ?: error("Invalid transport argument")
+                            }
                         } else listOf(executable.absolutePath, kind.configFlag, config.absolutePath)
                         val builder = ProcessBuilder(command)
                             .directory(if (launchConfig != null) sessionDirectory else nativeDirectory).redirectErrorStream(true)

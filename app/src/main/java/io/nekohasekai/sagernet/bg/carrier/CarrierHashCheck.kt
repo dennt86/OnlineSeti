@@ -21,7 +21,7 @@ class CarrierHashCheck : AutoCloseable {
 
     override fun close() {
         stopped.set(true)
-        process?.let { runCatching { it.destroyForcibly() } }
+        process?.let { runCatching { CarrierProcessCompat.destroyForcibly(it) } }
         captcha?.close()
         watchdog?.interrupt()
     }
@@ -46,7 +46,7 @@ class CarrierHashCheck : AutoCloseable {
         val finished = mutableSetOf<Int>()
         // The original allows 75 s for the whole list.
         val killer = Thread({
-            try { if (!child.waitFor(75, java.util.concurrent.TimeUnit.SECONDS)) child.destroyForcibly() }
+            try { if (!CarrierProcessCompat.waitFor(child, 75, java.util.concurrent.TimeUnit.SECONDS)) CarrierProcessCompat.destroyForcibly(child) }
             catch (_: InterruptedException) { }
         }, "qThrone-csqtt-hash-check-timeout").apply { isDaemon = true }
         watchdog = killer
@@ -100,8 +100,8 @@ class CarrierHashCheck : AutoCloseable {
         val timedOut = AtomicBoolean(false)
         val killer = Thread({
             try {
-                if (!child.waitFor(hashes.size * 100_000L, java.util.concurrent.TimeUnit.MILLISECONDS)) {
-                    timedOut.set(true); child.destroyForcibly(); bridge.close()
+                if (!CarrierProcessCompat.waitFor(child, hashes.size * 100_000L, java.util.concurrent.TimeUnit.MILLISECONDS)) {
+                    timedOut.set(true); CarrierProcessCompat.destroyForcibly(child); bridge.close()
                 }
             } catch (_: InterruptedException) { }
         }, "qThrone-wdttplus-hash-check-timeout").apply { isDaemon = true }
@@ -150,9 +150,9 @@ class CarrierHashCheck : AutoCloseable {
         val timedOut = AtomicBoolean(false)
         val killer = Thread({
             try {
-                if (!child.waitFor((hashes.size * 100_000L).coerceAtLeast(90_000L), java.util.concurrent.TimeUnit.MILLISECONDS)) {
+                if (!CarrierProcessCompat.waitFor(child, (hashes.size * 100_000L).coerceAtLeast(90_000L), java.util.concurrent.TimeUnit.MILLISECONDS)) {
                     timedOut.set(true)
-                    child.destroyForcibly()
+                    CarrierProcessCompat.destroyForcibly(child)
                     bridge.close()
                 }
             } catch (_: InterruptedException) { }

@@ -142,9 +142,9 @@ internal class ServerUi(private val context: Context) {
     }.getOrDefault(false)
 
     fun bytes(value: Long): String = when {
-        value >= 1L shl 30 -> String.format("%.2f ГБ", value / (1L shl 30).toDouble())
-        value >= 1L shl 20 -> String.format("%.0f МБ", value / (1L shl 20).toDouble())
-        value >= 1024 -> String.format("%.0f КБ", value / 1024.0)
+        value >= 1L shl 30 -> String.format(java.util.Locale.getDefault(), "%.2f ГБ", value / (1L shl 30).toDouble())
+        value >= 1L shl 20 -> String.format(java.util.Locale.getDefault(), "%.0f МБ", value / (1L shl 20).toDouble())
+        value >= 1024 -> String.format(java.util.Locale.getDefault(), "%.0f КБ", value / 1024.0)
         else -> "$value Б"
     }
 }
