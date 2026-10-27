@@ -84,7 +84,7 @@ class MobileDashboardFragment : ToolbarFragment() {
         header.addView(TextView(context).apply {
             text = "OnlineSeti"; textSize = 18f; setTextColor(MobilePalette.text)
             setTypeface(typeface, Typeface.BOLD)
-            append(android.text.SpannableString(" VPN").apply {
+            append(android.text.SpannableString(context.getString(R.string.app_name).removePrefix("OnlineSeti")).apply {
                 setSpan(android.text.style.ForegroundColorSpan(MobilePalette.muted), 0, length, 0)
                 setSpan(android.text.style.StyleSpan(Typeface.NORMAL), 0, length, 0)
             })
