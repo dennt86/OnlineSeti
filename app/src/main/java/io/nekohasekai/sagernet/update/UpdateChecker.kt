@@ -30,7 +30,6 @@ object UpdateChecker {
     private const val RELEASES_API = "https://api.github.com/repos/$REPOSITORY/releases?per_page=20"
     private val manifestName: String
         get() = if (BuildConfig.BUILD_TYPE == "client") "onlineseti-update-client.json" else "onlineseti-update.json"
-    private const val MAX_MANIFESTS = 5
     private const val MAX_MANIFEST_BYTES = 256 * 1024
 
     class Asset(val name: String, val size: Long, val url: String)
@@ -90,26 +89,28 @@ object UpdateChecker {
             .map { it.first }
         if (candidates.isEmpty()) return Result.UpToDate
 
-        var best: Pair<Release, JSONObject>? = null
-        for (release in candidates.filter { r -> r.assets.any { it.name == manifestName } }.take(MAX_MANIFESTS)) {
-            val manifest = try {
-                fetchManifest(client, release.assets.first { it.name == manifestName })
-            } catch (e: Exception) {
-                Logs.w("Update manifest of ${release.tag}: ${e.readableMessage}")
-                continue
+        // Never silently offer an older build when the newest release's manifest is temporarily unavailable or
+        // invalid. That looks like a staged update (0.1.17 -> 0.1.18 -> 0.1.19) even though the newest build exists.
+        val newestRelease = candidates.first()
+        val manifestAsset = newestRelease.assets.firstOrNull { it.name == manifestName }
+        if (manifestAsset != null) {
+            val manifest = fetchManifest(client, manifestAsset)
+            if (manifest.optString("packageName") != context.packageName) {
+                throw IOException("Update manifest of ${newestRelease.tag} has an unexpected package name")
             }
-            if (manifest.optString("packageName") != context.packageName) continue
             val code = manifest.optLong("versionCode")
-            if (code <= BuildConfig.VERSION_CODE || manifest.optInt("minSdk", 1) > Build.VERSION.SDK_INT) continue
-            if (best == null || code > best.second.optLong("versionCode")) best = release to manifest
+            if (code <= 0 || manifest.optInt("schema") != 1) {
+                throw IOException("Update manifest of ${newestRelease.tag} is invalid")
+            }
+            if (code <= BuildConfig.VERSION_CODE) return Result.UpToDate
+            if (manifest.optInt("minSdk", 1) > Build.VERSION.SDK_INT) return Result.UpToDate
+            return Result.Available(offerOf(context, newestRelease, manifest))
         }
-        best?.let { (release, manifest) -> return Result.Available(offerOf(context, release, manifest)) }
 
-        // Releases without a manifest predate the in-app updater: open them in the browser.
-        val legacy = candidates.firstOrNull { r -> r.assets.none { it.name == manifestName } } ?: return Result.UpToDate
+        // Releases without a manifest predate the in-app updater: open the newest release in the browser.
         return Result.Available(
             Offer(
-                legacy, legacy.tag.removePrefix("v"), 0, null, null, null,
+                newestRelease, newestRelease.tag.removePrefix("v"), 0, null, null, null,
                 context.getString(R.string.update_reason_no_manifest)
             )
         )
