@@ -25,6 +25,10 @@ enum class CarrierKind(val executable: String, val configFlag: String, val minim
     WDTTPLUS("libwdttplus.so", "", 24),
 }
 
+/** These clients report worker/statistics health that the service watchdog can use safely. */
+internal val CarrierKind.supportsServiceWatchdog: Boolean
+    get() = this == CarrierKind.QWDTT || this == CarrierKind.WDTTPLUS
+
 /** Per-launch credentials, deliberately without a generated toString() containing secrets. */
 class CarrierBridgeCredentials(val username: String, val password: String) {
     init {

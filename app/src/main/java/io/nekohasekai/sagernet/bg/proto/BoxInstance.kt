@@ -89,7 +89,7 @@ abstract class BoxInstance(
             }
         }
         try {
-            if(config.carrierPlans.any { it.kind == app.qthrone.mobile.bg.carrier.CarrierKind.QWDTT }) {
+            if(config.carrierPlans.any { it.kind.supportsServiceWatchdog }) {
                 nativeStatus=NativeConnectionStatus.Writer(profile.id).also { it.update(NativeConnectionStage.PREPARING) }
             }
             for(plan in config.carrierPlans) {
@@ -148,9 +148,10 @@ abstract class BoxInstance(
         }
         CoreRuntime.attachRunning(box, profile.id)
         if(nativeStatus!=null) nativeWatchdog=CoroutineScope(Dispatchers.IO).launch {
+            val monitoredPlans=config.carrierPlans.filter { it.kind.supportsServiceWatchdog }
             while(isActive) {
                 delay(1000)
-                val failure=config.carrierPlans.firstNotNullOfOrNull { CarrierPool.recoveryFailure(it) } ?: continue
+                val failure=monitoredPlans.firstNotNullOfOrNull { CarrierPool.recoveryFailure(it) } ?: continue
                 nativeStatus?.update(NativeConnectionStage.RECONNECTING)
                 if(!failure.second) delay(2_000)
                 withContext(Dispatchers.Main) {

@@ -4,6 +4,13 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class NativeTransportHealthTest {
+    @Test fun serviceWatchdogCoversWdttPlusButNotUninstrumentedCarriers() {
+        assertTrue(CarrierKind.QWDTT.supportsServiceWatchdog)
+        assertTrue(CarrierKind.WDTTPLUS.supportsServiceWatchdog)
+        assertFalse(CarrierKind.CSQTT.supportsServiceWatchdog)
+        assertFalse(CarrierKind.DNSTT.supportsServiceWatchdog)
+    }
+
     @Test fun wdttWarmupWaitsForACompleteWorkerGroupRatherThanTheFirstReadyMarker() {
         val health=NativeTransportHealth { 0L }
         health.accept("[ВОРКЕР #1] [READY] Туннель готов к работе")
