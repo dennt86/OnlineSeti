@@ -33,10 +33,12 @@
 
 На Windows используется WSL Ubuntu, чтобы избежать проблем Android NDK с кириллицей в пути. Рядом с этим каталогом должен находиться `onlineseti-core` указанной версии.
 
-1. Установить в WSL JDK 17, Python 3, unzip, build-essential, pkg-config, git и ca-certificates.
+1. Установить в WSL JDK 21, Python 3, unzip, build-essential, pkg-config, git и ca-certificates. Версия JDK указана в `.java-version`; для Android Studio выберите её встроенный JBR 21 в настройке Gradle JDK.
 2. Выполнить `bash scripts/prepare_local_linux.sh` (загружает Android SDK/NDK и Go).
 3. Выполнить `bash scripts/build_local_linux.sh`.
 4. Тестовые APK копируются в `artifacts/`.
+
+Gradle запускается через `./gradlew` и использует версию из `gradle/wrapper/gradle-wrapper.properties` (8.10.2). AGP 8.8.1 и Kotlin Gradle Plugin 2.0.21 закреплены в `buildSrc`; CI использует тот же wrapper и JDK из `.java-version`.
 
 Debug APK предназначен для проверки. До выпуска нужны постоянный ключ подписи, тестирование на телефоне и план обновлений. Не включать клиентские токены и секреты серверов в APK или репозиторий.
 

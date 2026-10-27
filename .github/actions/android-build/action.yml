@@ -1,6 +1,6 @@
 name: Android build
 description: >-
-  Shared build steps of ci.yml, preview.yml and release.yml: JDK 17, VPN core AAR + sing-box schema, routeprofiles
+  Shared build steps of ci.yml, preview.yml and release.yml: JDK from .java-version, VPN core AAR + sing-box schema, routeprofiles
   snapshot, sing-box dashboard, Gradle, then ./gradlew <tasks>. With sign=true, release builds are signed with the
   SIGNING_* secrets from the job environment; the build fails without them.
 inputs:
@@ -57,7 +57,7 @@ runs:
       uses: actions/setup-java@v6
       with:
         distribution: temurin
-        java-version: '17'
+        java-version-file: .java-version
     - name: ThroneCore AAR and schema
       uses: ./.github/actions/throne-core
     - name: Fetch routeprofiles snapshot

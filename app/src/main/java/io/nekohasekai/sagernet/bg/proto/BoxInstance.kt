@@ -27,6 +27,7 @@ import kotlinx.coroutines.isActive
 import app.qthrone.mobile.bg.carrier.NativeConnectionStatus
 import app.qthrone.mobile.bg.carrier.NativeConnectionStage
 import app.qthrone.mobile.bg.carrier.CarrierPool
+import app.qthrone.mobile.bg.carrier.supportsServiceWatchdog
 
 abstract class BoxInstance(
     val profile: ProxyEntity

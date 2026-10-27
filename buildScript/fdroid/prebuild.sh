@@ -2,7 +2,7 @@
 set -e
 
 # Build app/libs/ThroneCore.aar and the sing-box schema asset from throneproj/Throne at the ref pinned in
-# nb4a.properties (gomobile + gobind on PATH, JDK 17, ANDROID_HOME/ANDROID_NDK_HOME set), the same as
+# nb4a.properties (gomobile + gobind on PATH, JDK 21, ANDROID_HOME/ANDROID_NDK_HOME set), the same as
 # .github/actions/throne-core.
 THRONE_CORE_REF=$(sed -n 's/^THRONE_CORE_REF=//p' nb4a.properties | tr -d '\r[:space:]')
 test -n "$THRONE_CORE_REF"
