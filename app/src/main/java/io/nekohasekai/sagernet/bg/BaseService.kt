@@ -586,10 +586,9 @@ class BaseService {
                     }
                     if (current?.type == "autoselector") {
                         val selector = current.outbound as? app.qthrone.mobile.outbound.types.AutoSelector
-                        val wdttPlusIds = selector?.let { selected ->
-                            ProfileManager.members(selected.gid).filter { it.type == "wdttplus" }.map { it.id }
-                        }.orEmpty()
-                        if (wdttPlusIds.isNotEmpty()) {
+                        if (selector != null) {
+                            val members = ProfileManager.members(selector.gid)
+                            val wdttPlusIds = members.filter { it.type == "wdttplus" }.map { it.id }
                             // A previous manual WDTT choice is persisted as an auto-selector pin. On a
                             // cellular startup there may be no network-type transition callback, so clear
                             // it before proxy.init() builds the selector from saved settings.
@@ -602,9 +601,9 @@ class BaseService {
                                 AutoSelectorProfiles.save(current.id, settings)
                                 Logs.i("Cleared persisted WDTT pin; automatic selection is enabled on cellular")
                             }
-                            if (networkNeedsRecheck) {
-                                Logs.i("Wi-Fi/cellular state changed; rebuilding auto selector for WDTT Plus availability")
-                                AutoSelectorRuntime.networkChanged(this, wdttPlusIds)
+                            if (networkNeedsRecheck && members.isNotEmpty()) {
+                                Logs.i("Wi-Fi/cellular state changed; refreshing saved health for all auto-selector members")
+                                AutoSelectorRuntime.networkChanged(this, members.map { it.id })
                                 return@start
                             }
                         }
