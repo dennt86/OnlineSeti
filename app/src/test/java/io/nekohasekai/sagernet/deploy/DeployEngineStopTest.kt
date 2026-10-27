@@ -17,7 +17,12 @@ class DeployEngineStopTest {
             DeployEngine.start(server, uninstall = true)
             listener.accept().use {
                 DeployEngine.cancel()
-                assertTrue(DeployEngine.state.value.stopping)
+                // Closing the blocked SSH socket can finish the coroutine before this
+                // test thread observes the transient stopping state.
+                assertTrue(
+                    DeployEngine.state.value.logs.contains("Остановка по запросу") ||
+                        !DeployEngine.state.value.running,
+                )
                 DeployEngine.cancel()
                 val deadline = System.currentTimeMillis() + 10_000
                 while (DeployEngine.state.value.running && System.currentTimeMillis() < deadline) Thread.sleep(50)
