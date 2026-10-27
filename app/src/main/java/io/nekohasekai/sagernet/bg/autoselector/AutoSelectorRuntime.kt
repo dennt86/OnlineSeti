@@ -395,7 +395,7 @@ object AutoSelectorRuntime {
     /** AutoSelectorMonitor::poll after the read: the exhausted-pool rule and the PersistHealth schedule. */
     private fun onSample(run: Run, sample: AutoSelectorCore.Sample) {
         val now = System.currentTimeMillis()
-        val idle = run.service.data.idlePaused(run.core.box)
+        val idle = run.service.data.isDeviceIdle(run.core.box)
         var exhausted = false
         var persist = false
         synchronized(lock) {
@@ -403,7 +403,7 @@ object AutoSelectorRuntime {
             run.sample = sample
             // "untested" counts as usable: it has not failed, only not been reached.
             val usable = sample.members.count { it.isUsable || it.state == AutoSelectorStatus.STATE_UNTESTED }
-            // A suspended core (dropped Wi-Fi) must never count as an exhausted pool, nor one paused for device idle.
+            // A suspended core (dropped Wi-Fi) or device-idle sample must never count as an exhausted pool.
             val everythingDead = usable == 0 && sample.membersProbed > 0 && !sample.suspended && !idle &&
                 sample.phase != "starting"
             if (!everythingDead) {

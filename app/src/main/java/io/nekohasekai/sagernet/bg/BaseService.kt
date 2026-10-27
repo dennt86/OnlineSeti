@@ -64,14 +64,14 @@ class BaseService {
         var notification: ServiceNotification? = null
         var wifiMonitor: WifiStateAccess.Monitor? = null
 
-        // Pause and wake are JNI calls into the core: run them in order and off the main thread.
+        // Device-idle callbacks and network resets run off the main thread and in order.
         private val idleLock = Mutex()
 
         @Volatile
-        private var pausedBox: Instance? = null
+        private var deviceIdleBox: Instance? = null
 
-        /** [box] is paused for device idle. */
-        fun idlePaused(box: Instance): Boolean = pausedBox === box
+        /** Device idle must not be mistaken for a dead auto-selector pool. */
+        fun isDeviceIdle(box: Instance): Boolean = deviceIdleBox === box
 
         val receiver = broadcastReceiver { ctx, intent ->
             when (intent.action) {
@@ -118,13 +118,9 @@ class BaseService {
             idleLock.withLock {
                 val box = proxy?.boxOrNull ?: return@withLock
                 if (SagerNet.power.isDeviceIdleMode) {
-                    if (pausedBox !== box) {
-                        box.pause()
-                        pausedBox = box
-                    }
-                } else if (pausedBox === box) {
-                    pausedBox = null
-                    box.wake()
+                    deviceIdleBox = box
+                } else if (deviceIdleBox === box) {
+                    deviceIdleBox = null
                     if (DataStore.configurationStore.getBoolean(Key.WAKE_RESET_CONNECTIONS, true)) {
                         box.resetNetwork()
                     }

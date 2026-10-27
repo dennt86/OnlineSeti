@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import android.net.IpPrefix
 import android.net.ProxyInfo
 import android.os.Build
+import android.os.PowerManager
 import android.os.ParcelFileDescriptor
 import app.qthrone.mobile.*
 import app.qthrone.mobile.database.DataStore
@@ -34,6 +35,7 @@ class VpnService : BaseVpnService(),
     }
 
     var conn: ParcelFileDescriptor? = null
+    private var connectionWakeLock: PowerManager.WakeLock? = null
 
     private var metered = false
 
@@ -41,7 +43,24 @@ class VpnService : BaseVpnService(),
 
     override suspend fun startProcesses() {
         DataStore.vpnService = this
-        super.startProcesses() // launch proxy instance
+        val wakeLock = connectionWakeLock ?: (getSystemService(POWER_SERVICE) as PowerManager)
+            .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "$packageName:VpnTunnel")
+            .apply { setReferenceCounted(false) }
+            .also { connectionWakeLock = it }
+        if (!wakeLock.isHeld) wakeLock.acquire()
+        try {
+            super.startProcesses() // launch proxy instance
+        } catch (error: Throwable) {
+            releaseConnectionWakeLock()
+            throw error
+        }
+    }
+
+    private fun releaseConnectionWakeLock() {
+        connectionWakeLock?.let { wakeLock ->
+            if (wakeLock.isHeld) wakeLock.release()
+        }
+        connectionWakeLock = null
     }
 
     @Suppress("EXPERIMENTAL_API_USAGE")
@@ -64,12 +83,16 @@ class VpnService : BaseVpnService(),
         } finally {
             conn = null
         }
-        super.killProcesses()?.let { error ->
-            if (cleanupError == null) {
-                cleanupError = error
-            } else if (cleanupError !== error) {
-                cleanupError?.addSuppressed(error)
+        try {
+            super.killProcesses()?.let { error ->
+                if (cleanupError == null) {
+                    cleanupError = error
+                } else if (cleanupError !== error) {
+                    cleanupError?.addSuppressed(error)
+                }
             }
+        } finally {
+            releaseConnectionWakeLock()
         }
         Logs.i(
             "VpnLifecycleTrace stage=kill done hasCleanupError=${cleanupError != null}"
@@ -199,6 +222,7 @@ class VpnService : BaseVpnService(),
 
     override fun onDestroy() {
         DataStore.vpnService = null
+        releaseConnectionWakeLock()
         super.onDestroy()
         data.binder.close()
     }
