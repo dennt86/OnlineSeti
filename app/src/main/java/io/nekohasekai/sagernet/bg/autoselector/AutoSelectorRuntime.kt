@@ -20,6 +20,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.job
@@ -42,6 +43,7 @@ object AutoSelectorRuntime {
     private const val POLL_SCREEN_OFF_MS = 10_000L
     private const val HEALTH_PERSIST_MS = 60_000L
     private const val EXHAUSTED_GRACE_MS = 20_000L
+    private const val EXHAUSTED_RECHECK_MS = 5_000L
     private const val REBUILD_BACKOFF_MIN_S = 60
     private const val REBUILD_BACKOFF_MAX_S = 600
 
@@ -63,6 +65,7 @@ object AutoSelectorRuntime {
         val kick = Channel<Unit>(Channel.CONFLATED)
         var sample: AutoSelectorCore.Sample? = null
         var exhaustedSinceMs = 0L
+        var exhaustionRecheckInFlight = false
         var lastHealthPersistMs = System.currentTimeMillis()
     }
 
@@ -314,14 +317,57 @@ object AutoSelectorRuntime {
     /** on_auto_selector_exhausted (mainwindow_autoselector.cpp:67-82) behind the monitor's network check. */
     private fun onExhausted(run: Run) {
         if (SagerNet.underlyingNetwork == null) {
+            synchronized(lock) {
+                if (this.run === run) run.exhaustionRecheckInFlight = false
+            }
             Logs.w("[Auto selector] Every profile is failing, but this device has no network connection — keeping the current pool.")
             return
         }
-        Logs.w("[Auto selector] Every running profile stopped working — rebuilding from the next best candidates.")
-        post(R.string.autosel_notice_exhausted)
+        Logs.w("[Auto selector] All running profiles failed their probes; rechecking the current pool before rebuilding.")
         scope.launch(Dispatchers.IO) {
-            val stale = AutoSelectorProfiles.load(run.build.selectorId)?.lastBuilt ?: run.build.memberIds
-            withContext(Dispatchers.Main) { if (current() === run) rebuild(run, stale) }
+            try {
+                if (current() !== run) return@launch
+                // Watch failures can coincide with short uplink or remote-SOCKS resets. Ask the live core to
+                // probe again first; if it has recovered, keep the TUN and existing connections in place.
+                run.core.recheck()
+                val deadline = System.currentTimeMillis() + EXHAUSTED_RECHECK_MS
+                while (System.currentTimeMillis() < deadline) {
+                    delay(1_000L)
+                    if (current() !== run) return@launch
+                    val sample = runCatching { run.core.sample() }.getOrNull() ?: continue
+                    val usable = sample.members.any {
+                        it.isUsable || it.state == AutoSelectorStatus.STATE_UNTESTED
+                    }
+                    if (usable && !sample.suspended && sample.phase != "starting") {
+                        synchronized(lock) {
+                            if (this@AutoSelectorRuntime.run === run) {
+                                run.exhaustedSinceMs = 0L
+                                run.exhaustionRecheckInFlight = false
+                            }
+                        }
+                        Logs.i("[Auto selector] A member recovered during the recheck; keeping the VPN running.")
+                        run.kick.trySend(Unit)
+                        return@launch
+                    }
+                }
+                if (current() !== run) return@launch
+                Logs.w("[Auto selector] Recheck found no healthy member; rebuilding from the next best candidates.")
+                post(R.string.autosel_notice_exhausted)
+                val stale = AutoSelectorProfiles.load(run.build.selectorId)?.lastBuilt ?: run.build.memberIds
+                withContext(Dispatchers.Main) { if (current() === run) rebuild(run, stale) }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Logs.w("[Auto selector] Recheck before recovery failed: ${e.readableMessage}")
+                if (current() === run) {
+                    val stale = AutoSelectorProfiles.load(run.build.selectorId)?.lastBuilt ?: run.build.memberIds
+                    withContext(Dispatchers.Main) { if (current() === run) rebuild(run, stale) }
+                }
+            } finally {
+                synchronized(lock) {
+                    if (this@AutoSelectorRuntime.run === run) run.exhaustionRecheckInFlight = false
+                }
+            }
         }
     }
 
@@ -412,12 +458,13 @@ object AutoSelectorRuntime {
             } else if (run.exhaustedSinceMs == 0L) {
                 run.exhaustedSinceMs = now
             }
-            if (run.exhaustedSinceMs != 0L && now - run.exhaustedSinceMs >= EXHAUSTED_GRACE_MS) {
+            if (!run.exhaustionRecheckInFlight && run.exhaustedSinceMs != 0L && now - run.exhaustedSinceMs >= EXHAUSTED_GRACE_MS) {
                 if (lastRebuildRequestMs == 0L || now - lastRebuildRequestMs >= rebuildBackoffS * 1000L) {
                     lastRebuildRequestMs = now
                     rebuildBackoffS = if (rebuildBackoffS == 0) REBUILD_BACKOFF_MIN_S
                     else minOf(rebuildBackoffS * 2, REBUILD_BACKOFF_MAX_S)
                     run.exhaustedSinceMs = 0
+                    run.exhaustionRecheckInFlight = true
                     exhausted = true
                 }
             }
