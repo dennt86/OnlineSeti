@@ -47,6 +47,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
+import java.util.ArrayDeque
 import java.util.Locale
 
 /**
@@ -113,9 +114,18 @@ class BackupFragment : Fragment(R.layout.layout_backup) {
                     arrayOf(intArrayOf(-android.R.attr.state_enabled),intArrayOf()),
                     intArrayOf(MobilePalette.muted,MobilePalette.accent(requireContext()))))
             } else if(node is android.widget.TextView) node.setTextColor(if(node.tag == "backup_section") MobilePalette.accent(requireContext()) else MobilePalette.text)
-            if(node is android.view.ViewGroup) for(i in 0 until node.childCount) style(node.getChildAt(i))
         }
-        style(view)
+        // Walk the view tree iteratively: a recursive local helper creates a call cycle that
+        // Android Lint's Fragment detector expands repeatedly, and can also overflow on deep trees.
+        val pendingViews = ArrayDeque<View>()
+        pendingViews.addLast(view)
+        while (pendingViews.isNotEmpty()) {
+            val node = pendingViews.removeLast()
+            style(node)
+            if (node is android.view.ViewGroup) {
+                for (i in node.childCount - 1 downTo 0) pendingViews.addLast(node.getChildAt(i))
+            }
+        }
         fun showPage(page: Int) {
             backupPage = page
             binding.backupMenu.isVisible = page == 0
@@ -125,7 +135,7 @@ class BackupFragment : Fragment(R.layout.layout_backup) {
             (parentFragment as? ToolsFragment)?.toolbar?.apply {
                 title=when(page) { 1 -> "Локально";2 -> "WebDAV";else -> "Резервное копирование" }
                 setNavigationOnClickListener {
-                    if(backupPage != 0) showPage(0) else requireActivity().onBackPressedDispatcher.onBackPressed()
+                    requireActivity().onBackPressedDispatcher.onBackPressed()
                 }
             }
         }

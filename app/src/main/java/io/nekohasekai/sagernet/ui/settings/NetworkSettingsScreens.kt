@@ -237,7 +237,13 @@ class RoutingSettingsFragment : SettingsScreenFragment(R.xml.settings_routing) {
 
     override fun bind() {
         pref<SwitchPreference>(Key.PROXY_APPS).setOnPreferenceChangeListener { _, newValue ->
-            if (newValue as Boolean) startActivity(Intent(activity, AppManagerActivity::class.java))
+            if (newValue as Boolean) {
+                startActivity(Intent(activity, AppManagerActivity::class.java))
+            } else {
+                // Android applies the per-app allow/disallow list when Builder.establish() runs.
+                // Turning the feature off must therefore refresh an already-established VPN too.
+                needReload()
+            }
             DataStore.dirty = true
             true
         }

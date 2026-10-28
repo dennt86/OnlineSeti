@@ -26,4 +26,25 @@ class AndroidVpnListenerTest {
         assertTrue(types.contains("socks") && types.contains("http"))
         assertFalse(types.contains("tun"))
     }
+
+    @Test fun perAppBypassIsEmittedAsTunExclusionAndUidGuard() {
+        val profile = Socks().apply { server = "192.0.2.1"; serverPort = 1080 }
+        val result = ConfigGenerator(ProfileProvider { profile }, GeneratorSettings(
+            vpnMode = true,
+            perAppEnabled = true,
+            perAppBypass = true,
+            perAppPackages = listOf("com.example.bank"),
+            perAppAllowedUids = listOf(10001, 10002),
+        )).build(1)
+        assertNull(result.error)
+        val config = JsonInput.parseObject(result.coreConfig)
+        val tun = config.array("inbounds").filterIsInstance<JsonObject>()
+            .single { it.string("type") == "tun" }
+        assertEquals(listOf("com.example.bank"), tun.array("exclude_package").map { it.toString().trim('"') })
+        assertNull(tun["include_package"])
+        assertEquals(listOf(10001, 10002), VpnAppGuard.allowedUids(
+            mapOf(10001 to listOf("com.example.other"), 10002 to listOf("com.example.another")),
+            setOf("com.example.bank"), bypass = true,
+        ))
+    }
 }

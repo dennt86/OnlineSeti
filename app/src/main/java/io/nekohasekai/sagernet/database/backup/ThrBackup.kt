@@ -38,6 +38,9 @@ object ThrBackup {
     /** 0xFFFFFFFE only announces a 64-bit size from Qt_6_7 on, so a Qt_6_0 stream holds at most this. */
     private const val MAX_SIZE = 0xFFFFFFFDL
     private const val MAX_TEXT = 16L shl 20
+    /** Defensive bounds for untrusted files opened through ACTION_VIEW / the document picker. */
+    private const val MAX_ENTRIES = 4096L
+    private const val MAX_BACKUP_BYTES = 1L shl 30
 
     enum class Kind { NOT_BACKUP, UNSUPPORTED_VERSION, CORRUPT }
 
@@ -106,12 +109,15 @@ object ThrBackup {
         val metaText = r.qstring()
         val meta = metaText?.let { JsonInput.parseObjectOrNull(it) } ?: JsonObject()
         val count = r.u32()
-        if (count == NULL_SIZE) throw corrupt("invalid entry count")
+        if (count == NULL_SIZE || count > MAX_ENTRIES) throw corrupt("invalid entry count")
         val keys = LinkedHashSet<String>()
+        var totalBytes = 0L
         var i = 0L
         while (i < count) {
             val key = r.qstring() ?: throw corrupt("null entry name")
             val size = r.size() ?: 0L
+            if (size > MAX_BACKUP_BYTES - totalBytes) throw corrupt("backup is too large")
+            totalBytes += size
             keys.add(key)
             if (key == DATABASE && database != null) {
                 database.outputStream().use { r.copy(size, it) }
@@ -146,10 +152,14 @@ object ThrBackup {
         out.write(MAGIC)
         u32(out, FORMAT_VERSION.toLong())
         qstring(out, meta.toCompact())
+        if (files.size > MAX_ENTRIES) throw IOException("Too many entries in backup")
         u32(out, files.size.toLong())
+        var totalBytes = 0L
         for (key in files.keys.sorted()) {
             val payload = files.getValue(key)
             if (payload.size > MAX_SIZE) throw IOException("$key is too large for a backup")
+            if (payload.size > MAX_BACKUP_BYTES - totalBytes) throw IOException("Backup is too large")
+            totalBytes += payload.size
             qstring(out, key)
             u32(out, payload.size)
             when (payload) {

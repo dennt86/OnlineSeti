@@ -13,6 +13,7 @@ import app.qthrone.mobile.database.DataStore
 import app.qthrone.mobile.ktx.*
 import app.qthrone.mobile.ui.VpnRequestActivity
 import app.qthrone.mobile.utils.PlatformNotifications
+import app.qthrone.mobile.utils.PackageCache
 import app.qthrone.core.mobile.Mobile
 import app.qthrone.core.mobile.RoutePrefix
 import app.qthrone.core.mobile.RoutePrefixIterator
@@ -191,7 +192,15 @@ class VpnService : BaseVpnService(),
         // Native transport sockets cannot call the in-process protect(fd). Keep this
         // application's UID outside every TUN: a native probe may start while a
         // regular protocol is connected, after this builder has already run.
-        val packages=TunApplicationPolicy.resolve(packageName,options.getIncludePackage().toList(),options.getExcludePackage().toList())
+        val includedPackages=options.getIncludePackage().toList()
+        val onlySelected=DataStore.proxyApps && !DataStore.bypass && includedPackages.isEmpty()
+        val packages=TunApplicationPolicy.resolve(
+            packageName,
+            includedPackages,
+            options.getExcludePackage().toList(),
+            onlySelected,
+            if(onlySelected) PackageCache.snapshot().installedApps.keys.toList() else emptyList(),
+        )
         packages.included.forEach { try { builder.addAllowedApplication(it) } catch(_:PackageManager.NameNotFoundException) {} }
         packages.excluded.forEach { try { builder.addDisallowedApplication(it) } catch(_:PackageManager.NameNotFoundException) {} }
 

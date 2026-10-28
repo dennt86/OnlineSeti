@@ -11,6 +11,7 @@ import app.qthrone.mobile.ktx.appRequestsViaProxy
 import app.qthrone.mobile.ktx.newHttpClient
 import app.qthrone.mobile.ktx.readableMessage
 import okhttp3.OkHttpClient
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.Request
 import org.json.JSONArray
 import org.json.JSONObject
@@ -31,6 +32,10 @@ object UpdateChecker {
     private val manifestName: String
         get() = if (BuildConfig.BUILD_TYPE == "client") "onlineseti-update-client.json" else "onlineseti-update.json"
     private const val MAX_MANIFEST_BYTES = 256 * 1024
+    private const val MAX_RELEASES_BYTES = 4 * 1024 * 1024
+    private const val MAX_ERROR_BYTES = 8 * 1024
+    private const val MAX_APK_BYTES = 512L * 1024 * 1024
+    private val safeAssetName = Regex("[A-Za-z0-9][A-Za-z0-9._-]{0,127}\\.apk")
 
     class Asset(val name: String, val size: Long, val url: String)
 
@@ -69,6 +74,7 @@ object UpdateChecker {
     // Always verified TLS, unlike net_insecure: the downloaded APK is trusted on this channel's word.
     fun httpClient(timeoutSeconds: Long = 30): OkHttpClient =
         newHttpClient(viaProxy = appRequestsViaProxy(), allowInsecure = false, timeoutSeconds = timeoutSeconds)
+            .newBuilder().followSslRedirects(false).build()
 
     fun check(context: Context): Result = try {
         find(context)
@@ -134,8 +140,16 @@ object UpdateChecker {
         }
         val entry = assets.getJSONObject(abi)
         val expected = ManifestAsset(entry.getString("name"), entry.getLong("size"), entry.getString("sha256").lowercase())
+        if (!safeAssetName.matches(expected.name) || expected.size !in 1..MAX_APK_BYTES ||
+            !expected.sha256.matches(Regex("[0-9a-f]{64}"))) {
+            throw IOException("Update manifest of ${release.tag} contains invalid APK metadata")
+        }
         val apk = release.assets.firstOrNull { it.name == expected.name && it.size == expected.size }
             ?: return browserOnly(abi, context.getString(R.string.update_reason_no_abi, abi))
+        val downloadUrl = apk.url.toHttpUrlOrNull()
+        if (downloadUrl?.isHttps != true || downloadUrl.host != "github.com") {
+            throw IOException("Update APK URL is not trusted")
+        }
         return Offer(release, versionName, versionCode, abi, apk, expected, null)
     }
 
@@ -152,7 +166,10 @@ object UpdateChecker {
 
     private fun fetchReleases(context: Context, client: OkHttpClient): List<Release> {
         val cache = File(context.cacheDir, "update/releases.json")
-        val cached = runCatching { JSONObject(cache.readText()) }.getOrNull()
+        val cached = runCatching {
+            if (cache.length() > MAX_RELEASES_BYTES + 32 * 1024) return@runCatching null
+            JSONObject(cache.readText())
+        }.getOrNull()
         val request = Request.Builder().url(RELEASES_API)
             .header("Accept", "application/vnd.github+json")
             .header("User-Agent", USER_AGENT)
@@ -161,11 +178,14 @@ object UpdateChecker {
         val body = client.newCall(request).execute().use { response ->
             when {
                 response.code == 304 && cached != null -> cached.getString("body")
-                response.isSuccessful -> response.body?.string().orEmpty().also { body ->
+                response.isSuccessful -> response.body?.byteStream()?.let { String(readLimited(it, MAX_RELEASES_BYTES)) }.orEmpty().also { body ->
                     response.header("ETag")?.let { etag -> saveCache(cache, etag, body) }
                 }
                 else -> {
-                    val message = runCatching { JSONObject(response.body?.string().orEmpty()).optString("message") }
+                    val message = runCatching {
+                        JSONObject(response.body?.byteStream()?.let { String(readLimited(it, MAX_ERROR_BYTES)) }.orEmpty())
+                            .optString("message")
+                    }
                         .getOrNull().orEmpty()
                     throw IOException("GitHub: HTTP ${response.code} $message".trim())
                 }
@@ -205,6 +225,8 @@ object UpdateChecker {
     }
 
     private fun fetchManifest(client: OkHttpClient, asset: Asset): JSONObject {
+        val url = asset.url.toHttpUrlOrNull()
+        if (url?.isHttps != true || url.host != "github.com") throw IOException("Update manifest URL is not trusted")
         val request = Request.Builder().url(asset.url).header("User-Agent", USER_AGENT).build()
         client.newCall(request).execute().use { response ->
             if (!response.isSuccessful) throw IOException("HTTP ${response.code}")

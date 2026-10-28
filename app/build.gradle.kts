@@ -36,6 +36,7 @@ android {
     }
     namespace = "app.qthrone.mobile"
     packaging {
+        resources.excludes += "META-INF/versions/9/OSGI-INF/MANIFEST.MF"
         jniLibs {
             useLegacyPackaging = true
         }
@@ -62,7 +63,7 @@ dependencies {
     implementation("androidx.core:core-ktx:1.9.0")
     implementation("androidx.recyclerview:recyclerview:1.3.0")
     implementation("androidx.activity:activity-ktx:1.10.1")
-    implementation("androidx.fragment:fragment-ktx:1.5.6")
+    implementation("androidx.fragment:fragment-ktx:1.9.1")
     implementation("androidx.browser:browser:1.5.0")
     implementation("androidx.preference:preference-ktx:1.2.0")
     implementation("androidx.appcompat:appcompat:1.6.1")
@@ -79,7 +80,7 @@ dependencies {
         exclude(group = "org.jetbrains.kotlin", module = "kotlin-stdlib")
     }
 
-    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("com.squareup.okhttp3:okhttp:4.12.1")
     implementation("androidx.webkit:webkit:1.12.1")
     implementation("com.github.mwiede:jsch:0.2.16")
     implementation("org.yaml:snakeyaml:2.7")

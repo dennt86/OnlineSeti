@@ -348,7 +348,7 @@
             android:name="app.qthrone.mobile.ui.ScannerActivity"
             android:configChanges="uiMode"
             android:excludeFromRecents="true"
-            android:exported="true"
+            android:exported="false"
             android:label="@string/add_profile_methods_scan_qr_code"
             android:launchMode="singleTask"
             android:parentActivityName="app.qthrone.mobile.ui.MainActivity" />

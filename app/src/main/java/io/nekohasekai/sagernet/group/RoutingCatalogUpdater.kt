@@ -15,6 +15,7 @@ import androidx.work.multiprocess.RemoteWorkManager
 import androidx.work.multiprocess.RemoteWorkerService
 import app.qthrone.mobile.database.DataStore
 import app.qthrone.mobile.database.RouteRepo
+import app.qthrone.mobile.bg.XrayGeoAssets
 import app.qthrone.mobile.ktx.Logs
 import app.qthrone.mobile.ktx.app
 import app.qthrone.mobile.ktx.runOnDefaultDispatcher
@@ -24,6 +25,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
+import app.qthrone.mobile.route.ProviderGeoAssets
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -50,13 +52,13 @@ object RoutingCatalogUpdater {
                     .build()
                 manager.enqueueUniquePeriodicWork(WORK_NAME, ExistingPeriodicWorkPolicy.KEEP, periodic).await()
 
-                if (isDue(System.currentTimeMillis() / 1000, DataStore.routingCatalogUpdateLast)) {
-                    val startup = OneTimeWorkRequest.Builder(UpdateTask::class.java)
-                        .setConstraints(constraints)
-                        .setInputData(args)
-                        .build()
-                    manager.enqueueUniqueWork(STARTUP_WORK_NAME, ExistingWorkPolicy.KEEP, startup).await()
-                }
+                // The task checks independent timestamps for the catalog and installed geo data. Enqueueing a
+                // unique one-shot on every app start is cheap and also catches stale geodata while the catalog is fresh.
+                val startup = OneTimeWorkRequest.Builder(UpdateTask::class.java)
+                    .setConstraints(constraints)
+                    .setInputData(args)
+                    .build()
+                manager.enqueueUniqueWork(STARTUP_WORK_NAME, ExistingWorkPolicy.KEEP, startup).await()
             } catch (e: Throwable) {
                 Logs.w("RoutingCatalogUpdater: scheduling failed", e)
             }
@@ -71,15 +73,23 @@ object RoutingCatalogUpdater {
         override suspend fun doRemoteWork(): Result {
             return updateMutex.withLock {
                 val now = System.currentTimeMillis() / 1000
-                if (!isDue(now, DataStore.routingCatalogUpdateLast)) return@withLock Result.success()
-                val error = withContext(Dispatchers.IO) { RouteRepo.refresh(requireRemoteList = true) }
-                if (error != null) {
-                    Logs.w("Routing catalog refresh failed: $error")
-                    return@withLock Result.retry()
+                val failures = ArrayList<String>()
+                if (isDue(now, DataStore.routingCatalogUpdateLast)) {
+                    val error = withContext(Dispatchers.IO) { RouteRepo.refresh(requireRemoteList = true) }
+                    if (error != null) {
+                        Logs.w("Routing catalog refresh failed: $error")
+                        failures += "Routing catalog: $error"
+                    } else {
+                        DataStore.routingCatalogUpdateLast = System.currentTimeMillis() / 1000
+                        Logs.i("Routing catalog and remote route profiles refreshed")
+                    }
                 }
-                DataStore.routingCatalogUpdateLast = System.currentTimeMillis() / 1000
-                Logs.i("Routing catalog and remote route profiles refreshed")
-                Result.success()
+                failures += withContext(Dispatchers.IO) { ProviderGeoAssets.refreshStaleStored() }
+                failures += XrayGeoAssets.refreshStaleInstalled()
+                if (failures.isNotEmpty()) {
+                    Logs.w("Routing/geo data refresh incomplete: ${failures.joinToString("; ")}")
+                    Result.retry()
+                } else Result.success()
             }
         }
     }

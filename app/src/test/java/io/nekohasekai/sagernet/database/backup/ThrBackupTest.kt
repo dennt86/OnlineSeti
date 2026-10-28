@@ -52,6 +52,18 @@ class ThrBackupTest {
         return out.toByteArray()
     }
 
+    private fun containerWithRawEntryHeader(count: Long, key: String, size: Long): ByteArray =
+        ByteArrayOutputStream().apply {
+            write("THRN".toByteArray())
+            write(u32(2))
+            write(qstring("{}"))
+            write(u32(count))
+            if (count > 0) {
+                write(qstring(key))
+                write(u32(size))
+            }
+        }.toByteArray()
+
     private fun read(bytes: ByteArray): Pair<ThrBackup.Contents, ByteArray?> {
         val db = temp.newFile()
         db.delete()
@@ -227,5 +239,12 @@ class ThrBackupTest {
         expectError(ThrBackup.Kind.CORRUPT, "THRN".toByteArray() + u32(2) + qstring("{}") + u32(1) + u32(0xFFFFFFFEL))
         assertTrue(ThrBackup.hasMagic(ByteArrayInputStream(container(2, "{}"))))
         assertFalse(ThrBackup.hasMagic(ByteArrayInputStream("{\"version\":3}".toByteArray())))
+    }
+
+    @Test
+    fun rejectsExcessiveEntryCountAndPayloadBeforeCopying() {
+        expectError(ThrBackup.Kind.CORRUPT, containerWithRawEntryHeader(4097, "x", 0))
+        // A hostile header must be rejected before the reader attempts to consume or write gigabytes.
+        expectError(ThrBackup.Kind.CORRUPT, containerWithRawEntryHeader(1, ThrBackup.DATABASE, (1L shl 30) + 1))
     }
 }

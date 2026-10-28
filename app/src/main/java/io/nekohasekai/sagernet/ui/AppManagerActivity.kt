@@ -196,6 +196,9 @@ class AppManagerActivity : ThemedActivity() {
     private val proxiedUids = SparseBooleanArray()
     private val extraSelected = LinkedHashSet<String>()
     private var selectionLoaded = false
+    private var initialProxyApps = false
+    private var initialBypass = false
+    private var initialIndividual = ""
     private var loader: Job? = null
     private var apps = emptyList<ProxiedApp>()
     private val appsAdapter = AppsAdapter()
@@ -243,6 +246,10 @@ class AppManagerActivity : ThemedActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        initialProxyApps = DataStore.proxyApps
+        initialBypass = DataStore.bypass
+        initialIndividual = DataStore.individual
 
         binding = LayoutAppsBinding.inflate(layoutInflater)
         setContentView(binding.root)
@@ -485,6 +492,12 @@ class AppManagerActivity : ThemedActivity() {
     override fun onDestroy() {
         instance = null
         loader?.cancel()
+        if (isFinishing && DataStore.serviceState.canStop &&
+            (initialProxyApps != DataStore.proxyApps || initialBypass != DataStore.bypass || initialIndividual != DataStore.individual)
+        ) {
+            Logs.i("Per-app VPN routing changed; restarting the VPN so Android applies the new package list.")
+            SagerNet.reloadService()
+        }
         super.onDestroy()
     }
 }

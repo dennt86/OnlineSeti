@@ -165,6 +165,8 @@ object RemoteRouteUpdater {
 
     private const val KEY_INTERVAL = "route_auto_update"
 
+    internal fun shouldRetryUpdate(failures: List<String>): Boolean = failures.isNotEmpty()
+
     private suspend fun <T> ListenableFuture<T>.await(): T = suspendCancellableCoroutine { cont ->
         addListener({
             try {
@@ -184,8 +186,12 @@ object RemoteRouteUpdater {
             val now = System.currentTimeMillis() / 1000
             // A run within half an interval of the last one is a re-enqueue, not a new period.
             if (now - DataStore.routeAutoUpdateLast < interval * 60L / 2) return Result.success()
-            DataStore.routeAutoUpdateLast = now
-            withContext(Dispatchers.IO) { updateAll(true) }
+            val (_, failures) = withContext(Dispatchers.IO) { updateAll(true) }
+            if (shouldRetryUpdate(failures)) {
+                Logs.w("Remote routing update incomplete; WorkManager will retry")
+                return Result.retry()
+            }
+            DataStore.routeAutoUpdateLast = System.currentTimeMillis() / 1000
             return Result.success()
         }
     }

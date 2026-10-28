@@ -1,13 +1,18 @@
 package app.qthrone.mobile.route
 
 import app.qthrone.mobile.ktx.*
+import app.qthrone.mobile.database.GroupRepo
 import app.qthrone.mobile.outbound.json.JsonObject
+import app.qthrone.mobile.outbound.json.JsonArray
+import app.qthrone.mobile.outbound.json.JsonInput
 import app.qthrone.core.mobile.Mobile
 import java.io.File
 import java.security.MessageDigest
 import kotlinx.coroutines.*
 
 object ProviderGeoAssets {
+    const val AUTO_UPDATE_INTERVAL_HOURS = 12L
+    private val autoUpdateIntervalMs = java.util.concurrent.TimeUnit.HOURS.toMillis(AUTO_UPDATE_INTERVAL_HOURS)
     data class Status(val file: String = "", val bytes: Long = 0, val total: Long = 0, val error: String = "", val complete: Boolean = false)
     val states = kotlinx.coroutines.flow.MutableStateFlow<Map<Long, Status>>(emptyMap())
     private val expiryScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -36,6 +41,52 @@ object ProviderGeoAssets {
             download(gid,document,kind,true)
             status(gid,Status(complete = true))
         } catch (error: Exception) { status(gid,Status(error = error.readableMessage)); throw error }
+    }
+
+    /**
+     * Refreshes installed provider data used by saved subscription routing profiles when it is at least 12 hours
+     * old. The downloaded source is replaced atomically; generated .srs files are content-versioned by resolve(),
+     * so an active core continues using its current file and the next config build picks up the new one.
+     */
+    fun refreshStaleStored(): List<String> {
+        val documents = LinkedHashMap<String, Pair<Long, JsonObject>>()
+        for (group in GroupRepo.all()) {
+            val profiles = JsonInput.parseValue(group.subOptions.providerRoutingProfiles) as? JsonArray ?: continue
+            for (document in profiles.filterIsInstance<JsonObject>()) {
+                val neededKinds = referencedKinds(document)
+                for (kind in neededKinds) {
+                    val source = file(document, kind)
+                    if (!source.isFile || System.currentTimeMillis() - source.lastModified() < autoUpdateIntervalMs) continue
+                    documents["$kind:${url(document, kind)}"] = group.id to document
+                }
+            }
+        }
+        val failures = ArrayList<String>()
+        for ((key, pair) in documents) {
+            val kind = key.substringBefore(':')
+            val (gid, document) = pair
+            try {
+                // Recheck after a prior document may have refreshed the same URL.
+                val source = file(document, kind)
+                if (source.isFile && System.currentTimeMillis() - source.lastModified() >= autoUpdateIntervalMs) {
+                    refresh(gid, document, kind)
+                }
+            } catch (error: Exception) {
+                failures += "${document.string("Name").ifBlank { "provider" }} $kind: ${error.readableMessage}"
+            }
+        }
+        return failures
+    }
+
+    private fun referencedKinds(document: JsonObject): Set<String> = buildSet {
+        for (key in listOf("DirectSites", "DirectIp", "ProxySites", "ProxyIp", "BlockSites", "BlockIp")) {
+            for (rule in document.array(key).strings()) {
+                when {
+                    rule.startsWith("geosite:") -> add("geosite")
+                    rule.startsWith("geoip:") -> add("geoip")
+                }
+            }
+        }
     }
     @Synchronized
     fun installXray(document: JsonObject, needed: Collection<String>) {

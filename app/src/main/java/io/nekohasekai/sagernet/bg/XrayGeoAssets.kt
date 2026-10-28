@@ -96,6 +96,7 @@ object XrayGeoAssets {
     private const val TIMEOUT_SECONDS = 30L
     private const val PROGRESS_INTERVAL_MS = 500L
     private const val STALE_TEMP_MS = 60 * 60 * 1000L
+    private const val AUTO_UPDATE_INTERVAL_MS = 12 * 60 * 60 * 1000L
     private const val BUFFER_SIZE = 64 * 1024
 
     /** geodata's prefixes that name a file (rule_parser.go); `geoip:` / `geosite:` read the default files. */
@@ -177,6 +178,23 @@ object XrayGeoAssets {
                 download(name, force = false, abort = abort, onProgress = onProgress)
             } catch (e: DownloadException) {
                 failures[name] = e.readableMessage
+            }
+        }
+        return failures
+    }
+
+    /** Updates already-installed default Xray geodata after 12 hours; absent assets remain demand-fetched. */
+    suspend fun refreshStaleInstalled(): List<String> {
+        val failures = ArrayList<String>()
+        for (name in FILES) {
+            val target = file(name)
+            if (!target.isFile || target.length() == 0L || System.currentTimeMillis() - target.lastModified() < AUTO_UPDATE_INTERVAL_MS) continue
+            try {
+                download(name, force = true)
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                failures += "$name: ${error.readableMessage}"
             }
         }
         return failures
