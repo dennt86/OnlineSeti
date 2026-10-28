@@ -28,7 +28,8 @@ object OnlinesetiAutoSetup {
         // A single transient reset on the SOCKS hop should not immediately mark a member unusable.
         dialRetries = 3
         toleranceMs = 300
-        interruptOnSwitch = true
+        // Preserve in-flight sessions when a member briefly resets; new connections still fail over.
+        interruptOnSwitch = false
         balance = false
     }
 

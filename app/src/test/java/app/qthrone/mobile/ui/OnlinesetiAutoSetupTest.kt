@@ -26,7 +26,7 @@ class OnlinesetiAutoSetupTest {
         assertEquals(60, policy.intervalSec)
         assertEquals(3, policy.expected)
         assertEquals(3, policy.dialRetries)
-        assertTrue(policy.interruptOnSwitch)
+        assertFalse(policy.interruptOnSwitch)
         assertFalse(policy.balance)
         assertTrue(policy.nameFilter.isEmpty())
         assertTrue(policy.countryFilter.isEmpty())
