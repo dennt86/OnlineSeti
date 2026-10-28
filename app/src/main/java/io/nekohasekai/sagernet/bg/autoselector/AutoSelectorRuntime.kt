@@ -323,7 +323,8 @@ object AutoSelectorRuntime {
             Logs.w("[Auto selector] Every profile is failing, but this device has no network connection — keeping the current pool.")
             return
         }
-        Logs.w("[Auto selector] All running profiles failed their probes; rechecking the current pool before rebuilding.")
+        // This is only a provisional result: a live recheck below can recover a member without interrupting VPN.
+        Logs.i("[Auto selector] Probe cycle marked every running profile unavailable; rechecking the current pool before rebuilding.")
         scope.launch(Dispatchers.IO) {
             try {
                 if (current() !== run) return@launch
