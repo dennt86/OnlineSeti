@@ -25,7 +25,8 @@ object OnlinesetiAutoSetup {
         benchIntervalSec = 300
         resultValidityMins = 5
         expected = 3
-        dialRetries = 2
+        // A single transient reset on the SOCKS hop should not immediately mark a member unusable.
+        dialRetries = 3
         toleranceMs = 300
         interruptOnSwitch = true
         balance = false
