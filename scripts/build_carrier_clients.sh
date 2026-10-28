@@ -17,6 +17,8 @@ fetch_source() {
   test "$(git -C "$folder" rev-parse HEAD)" = "$revision"
 }
 fetch_source "$SOURCE/qThrone" https://github.com/ttrroyy/qThrone.git "$REF"
+# Keep the safe transport counters available to app builds until the pinned upstream revision includes them.
+git -C "$SOURCE/qThrone" apply "$ROOT/patches/qwdtt-network-diagnostics.patch"
 case "$ABI" in
   arm64-v8a) GOARCH=arm64; CLANG=aarch64-linux-android; RUST=aarch64-linux-android ;;
   armeabi-v7a) GOARCH=arm; export GOARM=7; CLANG=armv7a-linux-androideabi; RUST=armv7-linux-androideabi ;;

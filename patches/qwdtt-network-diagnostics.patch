@@ -1,0 +1,153 @@
+diff --git a/qwdtt/dispatcher.go b/qwdtt/dispatcher.go
+index 9c56e61..bccbb20 100644
+--- a/qwdtt/dispatcher.go
++++ b/qwdtt/dispatcher.go
+@@ -240,6 +240,9 @@ func (d *Dispatcher) readLoop() {
+ 			if d.ctx.Err() != nil {
+ 				return
+ 			}
++			if d.tunFile != nil {
++				d.stats.TunReadErrors.Add(1)
++			}
+ 			if atomic.CompareAndSwapUint32(&d.firstReadErr, 0, 1) {
+ 				src := "localConn"
+ 				if d.tunFile != nil {
+@@ -257,6 +260,7 @@ func (d *Dispatcher) readLoop() {
+ 		d.stats.TotalBytesUp.Add(int64(n))
+ 
+ 		if d.tunFile != nil {
++			d.stats.TunPacketsUp.Add(1)
+ 			c := atomic.AddUint64(&d.tunReadCount, 1)
+ 			if c%200 == 0 {
+ 				rawDiagf("readLoop: прочитано из TUN=%d отправлено=%d дропнуто=%d",
+@@ -319,6 +323,7 @@ func (d *Dispatcher) readLoop() {
+ 			}
+ 			if sentPrio {
+ 				if d.tunFile != nil {
++					d.stats.TunPacketsSent.Add(1)
+ 					atomic.AddUint64(&d.tunSentCount, 1)
+ 				}
+ 				d.mu.Unlock()
+@@ -373,6 +378,7 @@ func (d *Dispatcher) readLoop() {
+ 
+ 		if sent {
+ 			if d.tunFile != nil {
++				d.stats.TunPacketsSent.Add(1)
+ 				atomic.AddUint64(&d.tunSentCount, 1)
+ 			}
+ 		} else {
+@@ -381,6 +387,7 @@ func (d *Dispatcher) readLoop() {
+ 			d.rrCount = 0
+ 			putPktBuf(pkt)
+ 			if d.tunFile != nil {
++				d.stats.TunPacketsDropped.Add(1)
+ 				c := atomic.AddUint64(&d.tunDroppedCount, 1)
+ 				if c == 1 || c%50 == 0 {
+ 					rawDiagf("readLoop: пакет из TUN ДРОПНУТ — все воркеры перегружены (дропнуто всего=%d)", c)
+@@ -417,7 +424,11 @@ func (d *Dispatcher) writeLoop() {
+ 					if atomic.CompareAndSwapUint32(&d.firstWriteErr, 0, 1) {
+ 						rawDiagf("writeLoop: первая ошибка записи в tunFile: %v", err)
+ 					}
++					d.stats.TunWriteErrors.Add(1)
++					putPktBuf(pkt)
++					continue
+ 				}
++				d.stats.TunPacketsDown.Add(1)
+ 				d.stats.TotalBytesDown.Add(int64(len(pkt)))
+ 				putPktBuf(pkt)
+ 				continue
+@@ -437,6 +448,8 @@ func (d *Dispatcher) writeLoop() {
+ 					putPktBuf(pkt)
+ 					return
+ 				}
++				putPktBuf(pkt)
++				continue
+ 			}
+ 			d.stats.TotalBytesDown.Add(int64(len(pkt)))
+ 			putPktBuf(pkt)
+diff --git a/qwdtt/session.go b/qwdtt/session.go
+index 3588724..bc9a1f1 100644
+--- a/qwdtt/session.go
++++ b/qwdtt/session.go
+@@ -561,6 +561,7 @@ func RunSession(
+ 				}
+ 				select {
+ 				case slot.PrioCh <- pkt:
++					stats.KeepalivesSent.Add(1)
+ 				default:
+ 					putPktBuf(pkt)
+ 				}
+@@ -629,6 +630,7 @@ func RunSession(
+ 				}
+ 				return
+ 			}
++			stats.TransportWrite.Add(1)
+ 		}
+ 	}()
+ 
+@@ -657,8 +659,10 @@ func RunSession(
+ 
+ 			// Skip keepalive pong from server
+ 			if n == 1 && b[0] == keepaliveByte {
++				stats.KeepalivesRecv.Add(1)
+ 				continue
+ 			}
++			stats.TransportRead.Add(1)
+ 
+ 			if atomic.CompareAndSwapUint32(&firstWireRead, 0, 1) {
+ 				log.Printf("[ВОРКЕР #%d] [ДЕБАГ] Получен ПЕРВЫЙ пакет из соединения (%d байт)", sessionID, n)
+@@ -683,6 +687,7 @@ func RunSession(
+ 				// заполнившийся канал убивал весь дальнейший приём для этого
+ 				// воркера — select должен быть неблокирующим.
+ 				putPktBuf(pkt)
++				stats.ReturnPacketsDrop.Add(1)
+ 			}
+ 		}
+ 	}()
+diff --git a/qwdtt/stats.go b/qwdtt/stats.go
+index 3cda368..2815830 100644
+--- a/qwdtt/stats.go
++++ b/qwdtt/stats.go
+@@ -10,6 +10,17 @@ type Stats struct {
+ 	TotalBytesUp      atomic.Int64
+ 	TotalBytesDown    atomic.Int64
+ 	ActiveConnections atomic.Int32
++	TunPacketsUp      atomic.Int64
++	TunPacketsSent    atomic.Int64
++	TunPacketsDown    atomic.Int64
++	TunPacketsDropped atomic.Int64
++	ReturnPacketsDrop atomic.Int64
++	TunReadErrors     atomic.Int64
++	TunWriteErrors    atomic.Int64
++	KeepalivesSent    atomic.Int64
++	KeepalivesRecv    atomic.Int64
++	TransportRead     atomic.Int64
++	TransportWrite    atomic.Int64
+ }
+ 
+ func NewStats() *Stats {
+@@ -19,6 +30,7 @@ func NewStats() *Stats {
+ func (s *Stats) RunLoop(shutdown <-chan struct{}) {
+ 	ticker := time.NewTicker(3 * time.Second)
+ 	defer ticker.Stop()
++	var prevUp, prevDown int64
+ 
+ 	for {
+ 		select {
+@@ -28,11 +40,16 @@ func (s *Stats) RunLoop(shutdown <-chan struct{}) {
+ 			active := s.ActiveConnections.Load()
+ 			up := s.TotalBytesUp.Load()
+ 			down := s.TotalBytesDown.Load()
++			upDelta, downDelta := up-prevUp, down-prevDown
++			prevUp, prevDown = up, down
+ 			totalMB := float64(up+down) / (1024.0 * 1024.0)
+ 			upMB := float64(up) / (1024.0 * 1024.0)
+ 			downMB := float64(down) / (1024.0 * 1024.0)
+ 
+ 			log.Printf("[СТАТИСТИКА] Активных: %d | Трафик: %.2f МБ | ↓%.2f МБ / ↑%.2f МБ", active, totalMB, downMB, upMB)
++			log.Printf("[WDTT-DIAG] interval=3s up_bytes=%d down_bytes=%d tun_read=%d tun_queued=%d tun_written=%d tun_queue_drop=%d tun_io_errors=%d/%d relay_rx=%d relay_tx=%d keepalive_queued=%d keepalive_rx=%d return_queue_drop=%d",
++				upDelta, downDelta, s.TunPacketsUp.Load(), s.TunPacketsSent.Load(), s.TunPacketsDown.Load(), s.TunPacketsDropped.Load(),
++				s.TunReadErrors.Load(), s.TunWriteErrors.Load(), s.TransportRead.Load(), s.TransportWrite.Load(), s.KeepalivesSent.Load(), s.KeepalivesRecv.Load(), s.ReturnPacketsDrop.Load())
+ 		}
+ 	}
+ }
