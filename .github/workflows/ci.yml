@@ -39,10 +39,8 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: OnlineSetiVPN-client-debug
-          path: |
-            app/build/outputs/apk/oss/client/*-arm64-v8a-client.apk
-            app/build/outputs/apk/oss/client/*-armeabi-v7a-client.apk
-            app/build/outputs/apk/oss/client/*-x86_64-client.apk
+          # Unsigned CI variants add an -unsigned suffix; all outputs in this variant folder are Client APKs.
+          path: app/build/outputs/apk/oss/client/*.apk
           if-no-files-found: error
       - name: Upload test reports
         if: always()
