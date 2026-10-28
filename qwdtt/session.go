@@ -561,6 +561,7 @@ func RunSession(
 				}
 				select {
 				case slot.PrioCh <- pkt:
+					stats.KeepalivesSent.Add(1)
 				default:
 					putPktBuf(pkt)
 				}
@@ -629,6 +630,7 @@ func RunSession(
 				}
 				return
 			}
+			stats.TransportWrite.Add(1)
 		}
 	}()
 
@@ -657,8 +659,10 @@ func RunSession(
 
 			// Skip keepalive pong from server
 			if n == 1 && b[0] == keepaliveByte {
+				stats.KeepalivesRecv.Add(1)
 				continue
 			}
+			stats.TransportRead.Add(1)
 
 			if atomic.CompareAndSwapUint32(&firstWireRead, 0, 1) {
 				log.Printf("[ВОРКЕР #%d] [ДЕБАГ] Получен ПЕРВЫЙ пакет из соединения (%d байт)", sessionID, n)
@@ -683,6 +687,7 @@ func RunSession(
 				// заполнившийся канал убивал весь дальнейший приём для этого
 				// воркера — select должен быть неблокирующим.
 				putPktBuf(pkt)
+				stats.ReturnPacketsDrop.Add(1)
 			}
 		}
 	}()

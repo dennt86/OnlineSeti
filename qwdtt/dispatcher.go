@@ -240,6 +240,9 @@ func (d *Dispatcher) readLoop() {
 			if d.ctx.Err() != nil {
 				return
 			}
+			if d.tunFile != nil {
+				d.stats.TunReadErrors.Add(1)
+			}
 			if atomic.CompareAndSwapUint32(&d.firstReadErr, 0, 1) {
 				src := "localConn"
 				if d.tunFile != nil {
@@ -257,6 +260,7 @@ func (d *Dispatcher) readLoop() {
 		d.stats.TotalBytesUp.Add(int64(n))
 
 		if d.tunFile != nil {
+			d.stats.TunPacketsUp.Add(1)
 			c := atomic.AddUint64(&d.tunReadCount, 1)
 			if c%200 == 0 {
 				rawDiagf("readLoop: прочитано из TUN=%d отправлено=%d дропнуто=%d",
@@ -319,6 +323,7 @@ func (d *Dispatcher) readLoop() {
 			}
 			if sentPrio {
 				if d.tunFile != nil {
+					d.stats.TunPacketsSent.Add(1)
 					atomic.AddUint64(&d.tunSentCount, 1)
 				}
 				d.mu.Unlock()
@@ -373,6 +378,7 @@ func (d *Dispatcher) readLoop() {
 
 		if sent {
 			if d.tunFile != nil {
+				d.stats.TunPacketsSent.Add(1)
 				atomic.AddUint64(&d.tunSentCount, 1)
 			}
 		} else {
@@ -381,6 +387,7 @@ func (d *Dispatcher) readLoop() {
 			d.rrCount = 0
 			putPktBuf(pkt)
 			if d.tunFile != nil {
+				d.stats.TunPacketsDropped.Add(1)
 				c := atomic.AddUint64(&d.tunDroppedCount, 1)
 				if c == 1 || c%50 == 0 {
 					rawDiagf("readLoop: пакет из TUN ДРОПНУТ — все воркеры перегружены (дропнуто всего=%d)", c)
@@ -417,7 +424,11 @@ func (d *Dispatcher) writeLoop() {
 					if atomic.CompareAndSwapUint32(&d.firstWriteErr, 0, 1) {
 						rawDiagf("writeLoop: первая ошибка записи в tunFile: %v", err)
 					}
+					d.stats.TunWriteErrors.Add(1)
+					putPktBuf(pkt)
+					continue
 				}
+				d.stats.TunPacketsDown.Add(1)
 				d.stats.TotalBytesDown.Add(int64(len(pkt)))
 				putPktBuf(pkt)
 				continue
@@ -437,6 +448,8 @@ func (d *Dispatcher) writeLoop() {
 					putPktBuf(pkt)
 					return
 				}
+				putPktBuf(pkt)
+				continue
 			}
 			d.stats.TotalBytesDown.Add(int64(len(pkt)))
 			putPktBuf(pkt)
