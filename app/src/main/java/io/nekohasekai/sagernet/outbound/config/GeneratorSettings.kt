@@ -64,7 +64,6 @@ data class GeneratorSettings(
     val perAppBypass: Boolean = true,
     /** DataStore.individual split on newlines; the caller adds or removes its own package as it sees fit. */
     val perAppPackages: List<String> = emptyList(),
-    val perAppAllowedUids: List<Int> = emptyList(),
     /**
      * DataStore.appendHttpProxy (Android-only, off by default): `platform.http_proxy` points the VPN's system HTTP
      * proxy (VpnService.openTun) at the mixed inbound, only while that inbound is on and has no [mixedAuth].

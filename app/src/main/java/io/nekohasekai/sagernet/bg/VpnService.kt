@@ -201,8 +201,20 @@ class VpnService : BaseVpnService(),
             onlySelected,
             if(onlySelected) PackageCache.snapshot().installedApps.keys.toList() else emptyList(),
         )
-        packages.included.forEach { try { builder.addAllowedApplication(it) } catch(_:PackageManager.NameNotFoundException) {} }
-        packages.excluded.forEach { try { builder.addDisallowedApplication(it) } catch(_:PackageManager.NameNotFoundException) {} }
+        packages.included.forEach {
+            try {
+                builder.addAllowedApplication(it)
+            } catch (e: PackageManager.NameNotFoundException) {
+                Logs.w("Per-app VPN allow-list package is not installed: $it", e)
+            }
+        }
+        packages.excluded.forEach {
+            try {
+                builder.addDisallowedApplication(it)
+            } catch (e: PackageManager.NameNotFoundException) {
+                Logs.w("Per-app VPN exclusion package is not installed: $it", e)
+            }
+        }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && options.isHTTPProxyEnabled()) {
             builder.setHttpProxy(

@@ -63,7 +63,6 @@ class ConfigGenerator @JvmOverloads constructor(
                 }
                 core["route"]=route
             }
-            if(settings.vpnMode && settings.perAppEnabled) VpnAppGuard.apply(core,settings.perAppAllowedUids)
             return GeneratedConfig(
                 coreConfig = core.toCompact(),
                 xrayConfig = null,
@@ -105,7 +104,6 @@ class ConfigGenerator @JvmOverloads constructor(
         buildDnsSection(state, useDnsObj = true)
         buildRouteSection(state, route)
         if (state.failed) return GeneratedConfig.failure(state.error)
-        if(settings.vpnMode && settings.perAppEnabled) VpnAppGuard.apply(state.coreConfig,settings.perAppAllowedUids)
         buildExperimentalSection(state)
         buildServicesSection(state)
         buildXrayConfig(state)
