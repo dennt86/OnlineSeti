@@ -36,7 +36,7 @@ jobs:
         id: version
         env:
           PUBLISH: ${{ github.event_name == 'push' || inputs.publish }}
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.RELEASE_GH_TOKEN || github.token }}
         run: |
           set -euo pipefail
           python3 buildScript/release_tag.py
@@ -85,14 +85,20 @@ jobs:
       - name: Publish release
         if: ${{ github.event_name == 'push' || inputs.publish }}
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.RELEASE_GH_TOKEN || github.token }}
           GH_REPO: ${{ github.repository }}
           TAG: ${{ steps.version.outputs.tag }}
           RELEASE_NAME: ${{ steps.version.outputs.name }}
         run: |
           set -euo pipefail
           if [[ "$TAG" == *-beta.* || "$TAG" == *-rc.* ]]; then
-            gh release create "$TAG" dist/final/* --target "$GITHUB_SHA" --title "$RELEASE_NAME" --prerelease --latest=false --notes-file RELEASE_NOTES.md
+            gh release create "$TAG" dist/final/* --target "$GITHUB_SHA" --title "$RELEASE_NAME" --prerelease --latest=false --notes-file RELEASE_NOTES.md || {
+              echo "::error::Could not publish the GitHub release. Configure repository secret RELEASE_GH_TOKEN with a token that has Contents: write, then rerun this workflow."
+              exit 1
+            }
           else
-            gh release create "$TAG" dist/final/* --target "$GITHUB_SHA" --title "$RELEASE_NAME" --latest --notes-file RELEASE_NOTES.md
+            gh release create "$TAG" dist/final/* --target "$GITHUB_SHA" --title "$RELEASE_NAME" --latest --notes-file RELEASE_NOTES.md || {
+              echo "::error::Could not publish the GitHub release. Configure repository secret RELEASE_GH_TOKEN with a token that has Contents: write, then rerun this workflow."
+              exit 1
+            }
           fi
