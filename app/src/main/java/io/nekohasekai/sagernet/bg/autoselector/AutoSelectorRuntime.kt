@@ -67,6 +67,8 @@ object AutoSelectorRuntime {
         var exhaustedSinceMs = 0L
         var exhaustionRecheckInFlight = false
         var lastHealthPersistMs = System.currentTimeMillis()
+        var lastObservedSelectedTag: String? = null
+        var lastObservedSwitchMs = 0L
     }
 
     private class Measuring(val selectorId: Long, val selectorName: String, val count: Int)
@@ -446,8 +448,16 @@ object AutoSelectorRuntime {
         val idle = run.service.data.isDeviceIdle(run.core.box)
         var exhausted = false
         var persist = false
+        var selectionChanged: Pair<String, String>? = null
         synchronized(lock) {
             if (this.run !== run) return
+            val previousTag = run.lastObservedSelectedTag
+            val previousSwitchMs = run.lastObservedSwitchMs
+            if (previousTag != null && (previousTag != sample.selectedTag || previousSwitchMs != sample.lastSwitchMs)) {
+                selectionChanged = previousTag to sample.selectedTag
+            }
+            run.lastObservedSelectedTag = sample.selectedTag
+            run.lastObservedSwitchMs = sample.lastSwitchMs
             run.sample = sample
             // "untested" counts as usable: it has not failed, only not been reached.
             val usable = sample.members.count { it.isUsable || it.state == AutoSelectorStatus.STATE_UNTESTED }
@@ -471,6 +481,12 @@ object AutoSelectorRuntime {
             }
             if (usable > 0) rebuildBackoffS = 0
             persist = now - run.lastHealthPersistMs >= HEALTH_PERSIST_MS
+        }
+        selectionChanged?.let { (previous, selected) ->
+            Logs.i(
+                "[Auto selector] Selection changed: $previous -> $selected; " +
+                    "reason=${sample.lastSwitchReason.ifEmpty { "unspecified" }}",
+            )
         }
         // Nothing shows it while the screen is off, and a frozen UI process would only pile the callbacks up; the
         // screen coming on polls and publishes at once.
