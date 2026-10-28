@@ -546,9 +546,11 @@ class BaseService {
             var observedCellular: Boolean? = WdttPlusNetworkPolicy.isCellularDefault()
             DefaultNetworkListener.start(this) { network ->
                 if (network == null) {
+                    val hadNetwork = observedNetwork != null
                     observedNetwork=null
                     SagerNet.underlyingNetwork=null
                     DataStore.vpnService?.updateUnderlyingNetwork()
+                    if (hadNetwork) Logs.w("Physical uplink lost; VPN service remains active while Android waits for a replacement network")
                     val current = data.proxy?.profile
                     if (current?.type == "wdttplus") {
                         val fallback = wdttWifiFallback(current)
@@ -568,6 +570,9 @@ class BaseService {
                     SagerNet.underlyingNetwork = network
                     DataStore.vpnService?.updateUnderlyingNetwork()
                     val cellularDefault = WdttPlusNetworkPolicy.isCellularDefault()
+                    if (previousNetwork != network) {
+                        Logs.i("Physical uplink available; network changed=${previousNetwork != null} cellular=$cellularDefault interface=${link.interfaceName ?: "unknown"}")
+                    }
                     // Recheck on the first observed network as well: the selector may have been
                     // built before Android exposed the physical default network to the service.
                     val networkNeedsRecheck = WdttPlusNetworkPolicy.needsAutoSelectorRecheck(

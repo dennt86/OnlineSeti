@@ -20,7 +20,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.job
@@ -45,7 +44,6 @@ object AutoSelectorRuntime {
     private const val EXHAUSTED_GRACE_MS = 20_000L
     private const val REBUILD_BACKOFF_MIN_S = 60
     private const val REBUILD_BACKOFF_MAX_S = 600
-    private const val NETWORK_RECHECK_START_TIMEOUT_MS = 60_000L
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default + CoroutineExceptionHandler { _, e -> Logs.w(e) })
     private val lock = Any()
@@ -200,22 +198,25 @@ object AutoSelectorRuntime {
         val target = DataStore.selectedProxy
         if (!runCatching { ProfileManager.getProfile(target)?.type == AutoSelectorProfiles.TYPE }.getOrDefault(false)) return
         launchPending {
-            // A network callback can arrive while ProxyInstance is still starting WDTT Plus.
-            // Measuring/rebuilding at that point cancels its startup credentials (context canceled)
-            // and repeatedly tears down the tunnel before it can become usable.
-            if (service.data.state == BaseService.State.Connecting) {
-                val connected = withTimeoutOrNull(NETWORK_RECHECK_START_TIMEOUT_MS) {
-                    while (service.data.state == BaseService.State.Connecting) delay(100)
-                    service.data.state == BaseService.State.Connected
-                } ?: false
-                if (!connected) return@launchPending
-            }
+            // Keep the Android VPN/TUN alive across an uplink handover. Stopping the service here
+            // creates a real traffic gap and can leave Android showing VPN=off if the restart races
+            // the ConnectivityManager callbacks. The core already supports rechecking its running
+            // selector, so discard stale persisted measurements and probe on the new default route.
             if (service.data.state != BaseService.State.Connected || DataStore.selectedProxy != target) return@launchPending
-            Logs.i("[Auto selector] Network type changed; clearing saved results for all members and rebuilding immediately.")
+            val activeRun = synchronized(lock) {
+                run?.takeIf { it.service === service && it.build.selectorId == target }
+            } ?: run {
+                Logs.i("[Auto selector] Uplink changed while selector is not attached yet; keeping VPN running.")
+                return@launchPending
+            }
+            Logs.i("[Auto selector] Uplink changed; clearing saved network-dependent results and rechecking without restarting VPN.")
             withContext(Dispatchers.IO) {
                 AutoSelectorProfiles.clearNetworkDependentResults(memberProfileIds)
+                activeRun.core.recheck()
             }
-            if (claim() && service.data.state == BaseService.State.Connected && DataStore.selectedProxy == target) service.stopRunner(true)
+            if (claim() && service.data.state == BaseService.State.Connected && DataStore.selectedProxy == target) {
+                activeRun.kick.trySend(Unit)
+            }
         }
     }
 
