@@ -1384,7 +1384,7 @@
     <string name="autosel_dial_retries">Failover attempts</string>
     <string name="autosel_dial_retries_tip">When the chosen profile fails to connect, how many others to try immediately before the app sees an error.</string>
     <string name="autosel_interrupt">Drop connections on switch</string>
-    <string name="autosel_interrupt_tip">Applies when the selector switches because a profile got worse or failed. On: everything moves to the new profile at once. Off: current downloads finish on the old one. Balance rotations never drop connections either way.</string>
+    <string name="autosel_interrupt_tip">Applies when the selector switches because a profile got worse or failed. On: active connections are moved to the new profile and may briefly drop. Off: existing connections can finish on the old profile; new connections use the new one. Balance rotations never drop connections either way.</string>
     <string name="autosel_cat_balance">Load balancing</string>
     <string name="autosel_balance_mode">Mode</string>
     <string name="autosel_balance_interval">Rotate every</string>

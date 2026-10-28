@@ -1,6 +1,7 @@
 package app.qthrone.mobile.ui
 
 import app.qthrone.mobile.group.OnlinesetiAutoSetup
+import app.qthrone.mobile.outbound.types.AutoSelector
 import org.junit.Assert.*
 import org.junit.Test
 
@@ -24,6 +25,7 @@ class OnlinesetiAutoSetupTest {
         assertEquals(42L, policy.gid)
         assertEquals(10, policy.watchIntervalSec)
         assertEquals(60, policy.intervalSec)
+        assertEquals(AutoSelector.STICKY_TOLERANCE_MS, policy.toleranceMs)
         assertEquals(3, policy.expected)
         assertEquals(3, policy.dialRetries)
         assertFalse(policy.interruptOnSwitch)
@@ -31,6 +33,16 @@ class OnlinesetiAutoSetupTest {
         assertTrue(policy.nameFilter.isEmpty())
         assertTrue(policy.countryFilter.isEmpty())
         assertEquals(-1L, policy.pinnedID)
+    }
+
+    @Test fun managedSelectorMigratesOldSmoothingDefaultButPreservesCustomTolerance() {
+        val old = OnlinesetiAutoSetup.policy(42).apply { toleranceMs = 300 }
+        assertTrue(OnlinesetiAutoSetup.migrateSmoothingPolicy(old))
+        assertEquals(AutoSelector.STICKY_TOLERANCE_MS, old.toleranceMs)
+
+        val customized = OnlinesetiAutoSetup.policy(42).apply { toleranceMs = 650 }
+        assertFalse(OnlinesetiAutoSetup.migrateSmoothingPolicy(customized))
+        assertEquals(650, customized.toleranceMs)
     }
 
     @Test fun staleManagedSelectorIsReboundAndOldMemberStateIsCleared() {

@@ -27,7 +27,8 @@ object OnlinesetiAutoSetup {
         expected = 3
         // A single transient reset on the SOCKS hop should not immediately mark a member unusable.
         dialRetries = 3
-        toleranceMs = 300
+        // Keep the current healthy route; other routes remain standby until the core detects an outage.
+        toleranceMs = AutoSelector.STICKY_TOLERANCE_MS
         // Preserve in-flight sessions when a member briefly resets; new connections still fail over.
         interruptOnSwitch = false
         balance = false
@@ -48,6 +49,13 @@ object OnlinesetiAutoSetup {
         selector.lastBuilt.clear()
         selector.lastBuiltAt = 0
         selector.pinnedID = -1
+        return true
+    }
+
+    /** Migrate the old managed default once while preserving any user-customized tolerance. */
+    fun migrateSmoothingPolicy(selector: AutoSelector): Boolean {
+        if (selector.toleranceMs != 300 && selector.toleranceMs != 1000 && selector.toleranceMs != 5000) return false
+        selector.toleranceMs = AutoSelector.STICKY_TOLERANCE_MS
         return true
     }
 
@@ -86,7 +94,9 @@ object OnlinesetiAutoSetup {
             ProfileManager.addProfile(policy(groupId), localGroup)
         } else {
             val (profile, outbound) = existing
-            if (rebind(outbound, groupId)) {
+            val groupChanged = rebind(outbound, groupId)
+            val smoothingChanged = migrateSmoothingPolicy(outbound)
+            if (groupChanged || smoothingChanged) {
                 profile.putOutbound(outbound)
                 ProfileManager.updateProfile(profile)
             }

@@ -41,7 +41,8 @@ class AutoSelector : Outbound("autoselector") {
     @JvmField var watchIntervalSec: Int = 15
     @JvmField var activeSize: Int = 8
     @JvmField var sampling: Int = 10
-    @JvmField var toleranceMs: Int = 300
+    // Keep healthy routes sticky; network policy can still explicitly pin WDTT Plus on cellular.
+    @JvmField var toleranceMs: Int = STICKY_TOLERANCE_MS
 
     /** 0 = no ceiling. */
     @JvmField var maxRTTms: Int = 0
@@ -49,7 +50,8 @@ class AutoSelector : Outbound("autoselector") {
     /** Members kept confirmed working (the failover pool). */
     @JvmField var expected: Int = 3
     @JvmField var dialRetries: Int = 2
-    @JvmField var interruptOnSwitch: Boolean = true
+    // Keep established app sessions alive across an automatic failover; new sessions use the new member.
+    @JvmField var interruptOnSwitch: Boolean = false
 
     @JvmField var balance: Boolean = false
 
@@ -105,11 +107,11 @@ class AutoSelector : Outbound("autoselector") {
         if (obj.contains("watch_interval_sec")) watchIntervalSec = intOr(obj["watch_interval_sec"], 15)
         if (obj.contains("active_size")) activeSize = intOr(obj["active_size"], 8)
         if (obj.contains("sampling")) sampling = intOr(obj["sampling"], 10)
-        if (obj.contains("tolerance_ms")) toleranceMs = intOr(obj["tolerance_ms"], 300)
+        if (obj.contains("tolerance_ms")) toleranceMs = intOr(obj["tolerance_ms"], STICKY_TOLERANCE_MS)
         if (obj.contains("max_rtt_ms")) maxRTTms = intOr(obj["max_rtt_ms"], 0)
         if (obj.contains("expected")) expected = intOr(obj["expected"], 3)
         if (obj.contains("dial_retries")) dialRetries = intOr(obj["dial_retries"], 2)
-        if (obj.contains("interrupt_on_switch")) interruptOnSwitch = boolOr(obj["interrupt_on_switch"], true)
+        if (obj.contains("interrupt_on_switch")) interruptOnSwitch = boolOr(obj["interrupt_on_switch"], false)
         if (obj.contains("balance")) balance = boolOr(obj["balance"], false)
         if (obj.contains("balance_mode")) balanceMode = obj["balance_mode"] as? String ?: "rotate"
         if (obj.contains("balance_interval_sec")) balanceIntervalSec = intOr(obj["balance_interval_sec"], 30)
@@ -261,6 +263,9 @@ class AutoSelector : Outbound("autoselector") {
     }
 
     companion object {
+        /** Healthy latency changes never displace the selected route; the core can still fail over on outage. */
+        const val STICKY_TOLERANCE_MS: Int = Int.MAX_VALUE
+
         const val MAX_POOL_CAP = 3000
         const val MAX_BUILD_LIMIT = 500
         const val MAX_HISTORY_ENTRIES = 2000
