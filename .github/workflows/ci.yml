@@ -30,13 +30,19 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: OnlineSetiVPN-debug
-          path: app/build/outputs/apk/oss/debug/*.apk
+          path: |
+            app/build/outputs/apk/oss/debug/*-arm64-v8a-debug.apk
+            app/build/outputs/apk/oss/debug/*-armeabi-v7a-debug.apk
+            app/build/outputs/apk/oss/debug/*-x86_64-debug.apk
           if-no-files-found: error
       - name: Upload client APK
         uses: actions/upload-artifact@v7
         with:
           name: OnlineSetiVPN-client-debug
-          path: app/build/outputs/apk/oss/client/*.apk
+          path: |
+            app/build/outputs/apk/oss/client/*-arm64-v8a-client.apk
+            app/build/outputs/apk/oss/client/*-armeabi-v7a-client.apk
+            app/build/outputs/apk/oss/client/*-x86_64-client.apk
           if-no-files-found: error
       - name: Upload test reports
         if: always()
