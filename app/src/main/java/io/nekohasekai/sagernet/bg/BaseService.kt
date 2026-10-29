@@ -109,6 +109,7 @@ class BaseService {
             if (!msg.isNullOrBlank()) moe.matsuri.nb4a.utils.CoreLog.write("[Error] VPN service: $msg")
             if(s == State.Connected) DataStore.mobileConnectedAt = SystemClock.elapsedRealtime()
             else if(s == State.Stopped) DataStore.mobileConnectedAt = 0L
+            if (s == State.Connected || s == State.Stopped) DataStore.waitingForPhysicalNetwork = false
             state = s
             DataStore.serviceState = s
             binder.stateChanged(s, msg)
@@ -553,7 +554,11 @@ class BaseService {
                     observedNetwork=null
                     SagerNet.underlyingNetwork=null
                     DataStore.vpnService?.updateUnderlyingNetwork()
-                    if (hadNetwork) Logs.w("Physical uplink lost; VPN service remains active while Android waits for a replacement network")
+                    if (hadNetwork) {
+                        Logs.w("Physical uplink lost; pausing VPN connected state until Android provides a validated replacement network")
+                        DataStore.waitingForPhysicalNetwork = true
+                        if (data.state == State.Connected) data.changeState(State.Connecting)
+                    }
                     val current = data.proxy?.profile
                     if (current?.type == "wdttplus") {
                         val fallback = wdttWifiFallback(current)
@@ -561,8 +566,7 @@ class BaseService {
                             DataStore.wdttNetworkFallbackOrigin = current.id
                             DataStore.wdttNetworkFallbackProfile = fallback.id
                             DataStore.selectedProxy = fallback.id
-                            Logs.w("WDTT Plus uplink lost; switching to ${fallback.displayName()}")
-                            if (data.state != State.Stopped) AutoSelectorRuntime.restart(this) { stopRunner(true) }
+                            Logs.w("WDTT Plus uplink lost; queued ${fallback.displayName()} until replacement network is validated")
                         }
                     }
                     return@start
@@ -571,6 +575,19 @@ class BaseService {
                     ?.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_VALIDATED) ?: false
                 val uplinkRecovered = NetworkRecoveryPolicy.shouldResetConnections(observedValidated, validated)
                 observedValidated = validated
+                if (!validated) {
+                    SagerNet.underlyingNetwork = network
+                    DataStore.vpnService?.updateUnderlyingNetwork()
+                    if (DataStore.waitingForPhysicalNetwork) {
+                        Logs.i("Physical network available but not validated; keeping VPN in waiting state")
+                        return@start
+                    }
+                }
+                if (validated && DataStore.waitingForPhysicalNetwork) {
+                    Logs.i("Physical network validated; resuming protocol selection")
+                    DataStore.waitingForPhysicalNetwork = false
+                    if (data.state == State.Connecting) data.changeState(State.Connected)
+                }
                 if (uplinkRecovered && data.state == State.Connected) {
                     val activeProxy = data.proxy
                     Logs.w("Physical uplink became validated again; resetting stale proxy connections")

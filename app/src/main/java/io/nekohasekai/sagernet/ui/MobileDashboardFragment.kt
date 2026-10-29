@@ -248,7 +248,7 @@ class MobileDashboardFragment : ToolbarFragment() {
         val connected = state.connected
         statePill?.text = when (state) {
             BaseService.State.Connected -> "ПОДКЛЮЧЕНО"
-            BaseService.State.Connecting -> "ПОДКЛЮЧЕНИЕ"
+            BaseService.State.Connecting -> if (DataStore.waitingForPhysicalNetwork) "ОЖИДАНИЕ СЕТИ" else "ПОДКЛЮЧЕНИЕ"
             BaseService.State.Stopping -> "ОТКЛЮЧЕНИЕ"
             else -> "ВЫКЛЮЧЕНО"
         }
@@ -262,7 +262,7 @@ class MobileDashboardFragment : ToolbarFragment() {
         stateDot?.background = rounded(color, 8)
         powerCaption?.text = when (state) {
             BaseService.State.Connected -> "Подключено"
-            BaseService.State.Connecting -> "Подключение…"
+            BaseService.State.Connecting -> if (DataStore.waitingForPhysicalNetwork) "Ожидание сети…" else "Подключение…"
             BaseService.State.Stopping -> "Отключение…"
             else -> "Нажмите, чтобы подключиться"
         }

@@ -22,6 +22,10 @@ object DataStore : OnPreferenceDataStoreChangeListener {
     @Volatile
     var serviceState = BaseService.State.Idle
 
+    /** True while Android has no validated physical uplink for the running VPN service. */
+    @Volatile
+    var waitingForPhysicalNetwork = false
+
     val configurationStore = SettingsStore({ SagerDatabase.instance }, SettingsRegistry::defaultOf)
     val profileCacheStore = RoomPreferenceDataStore(TempDatabase.profileCacheDao)
 
