@@ -265,6 +265,11 @@ class AutoSelector : Outbound("autoselector") {
     companion object {
         /** Healthy latency changes never displace the selected route; the core can still fail over on outage. */
         const val STICKY_TOLERANCE_MS: Int = Int.MAX_VALUE
+        /** The native core decodes tolerance into a bounded integer; keep its config within UI-supported limits. */
+        const val MAX_CORE_TOLERANCE_MS: Int = 10_000
+
+        @JvmStatic
+        fun coreToleranceMs(value: Int): Int = value.coerceIn(0, MAX_CORE_TOLERANCE_MS)
 
         const val MAX_POOL_CAP = 3000
         const val MAX_BUILD_LIMIT = 500

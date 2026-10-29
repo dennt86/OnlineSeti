@@ -726,7 +726,7 @@ class ConfigGenerator @JvmOverloads constructor(
             "watch_interval" to "${selector.watchIntervalSec}s",
             "active_size" to selector.activeSize,
             "sampling" to selector.sampling,
-            "tolerance" to selector.toleranceMs,
+            "tolerance" to AutoSelector.coreToleranceMs(selector.toleranceMs),
             "expected" to selector.expected,
             "dial_retries" to selector.dialRetries,
             "interrupt_exist_connections" to selector.interruptOnSwitch,

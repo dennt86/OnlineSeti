@@ -17,4 +17,11 @@ class AutoSelectorFactoryTest {
         assertEquals(AutoSelector.STICKY_TOLERANCE_MS, selector.toleranceMs)
         assertFalse(selector.interruptOnSwitch)
     }
+
+    @Test
+    fun coreToleranceIsCappedToSupportedRange() {
+        assertEquals(10_000, AutoSelector.coreToleranceMs(AutoSelector.STICKY_TOLERANCE_MS))
+        assertEquals(650, AutoSelector.coreToleranceMs(650))
+        assertEquals(0, AutoSelector.coreToleranceMs(-1))
+    }
 }
