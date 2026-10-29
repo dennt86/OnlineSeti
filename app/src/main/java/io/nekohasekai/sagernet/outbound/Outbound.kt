@@ -90,7 +90,15 @@ abstract class Outbound(@JvmField var type: String) {
 
     open fun displayAddress(): String = Hosts.displayAddress(server, serverPort)
 
-    open fun displayName(): String = if (name.isEmpty()) displayAddress() else name
+    open fun displayName(): String = if (name.isEmpty()) displayAddress() else displayName(name)
+
+    /** Hide the generated account suffix used by OnlineSeti subscription node names in the UI. */
+    private fun displayName(value: String): String =
+        if (value.matches(ONLINESETI_ACCOUNT_NAME)) "OnlineSeti+" else value
+
+    private companion object {
+        val ONLINESETI_ACCOUNT_NAME = Regex("OnlineSeti\\+[0-9]+")
+    }
 
     open fun displayType(): String = ""
 
