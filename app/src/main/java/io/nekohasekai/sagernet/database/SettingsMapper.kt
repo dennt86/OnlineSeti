@@ -183,7 +183,8 @@ object SettingsMapper {
             fun outbound(id: Long): Outbound? = if (id > 0) SagerDatabase.proxyDao.getById(id)?.outbound else null
             return SelectorGroup(
                 group.id, group.name, landing, front, outbound(landing), outbound(front), members,
-                wdttPlusAllowed = WdttPlusNetworkPolicy.isCellularDefault(),
+                wdttPlusAllowed = true,
+                wdttPlusPreferred = WdttPlusNetworkPolicy.isCellularDefault(),
             )
         }
     }

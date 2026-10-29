@@ -9,20 +9,21 @@ import org.junit.Test
 
 class AutoSelectorNetworkPolicyTest {
     @Test
-    fun cellularPrefersWdttPlusAndWifiLeavesNormalProfilesAvailable() {
-        val cellular = AutoSelectorPlanner(SelectorStore { selectorGroup(wdttPlusAllowed = true) }, { 1_000L })
+    fun cellularPrefersWdttPlusAndWifiKeepsItAsLastResort() {
+        val cellular = AutoSelectorPlanner(SelectorStore { selectorGroup(wdttPlusPreferred = true) }, { 1_000L })
             .plan(99L, selector())
         assertEquals(listOf(2L, 3L, 1L), cellular.pool)
 
-        val wifi = AutoSelectorPlanner(SelectorStore { selectorGroup(wdttPlusAllowed = false) }, { 1_000L })
+        val wifi = AutoSelectorPlanner(SelectorStore { selectorGroup(wdttPlusPreferred = false) }, { 1_000L })
             .plan(99L, selector())
-        assertEquals(listOf(3L, 1L), wifi.pool)
+        assertEquals(listOf(3L, 1L, 2L), wifi.pool)
+        assertEquals(listOf(3L, 1L, 2L), wifi.build)
     }
 
     @Test
     fun cellularTransitionKeepsWdttPlusEligibleDespiteFreshFailureOnWifi() {
         val selector = selector().apply { excludeUnavailable = true }
-        val cellularGroup = selectorGroup(wdttPlusAllowed = true, wdttLatency = -1)
+        val cellularGroup = selectorGroup(wdttPlusPreferred = true, wdttLatency = -1)
         val planner = AutoSelectorPlanner(SelectorStore { cellularGroup }, { 1_000L })
 
         val plan = planner.plan(99L, selector)
@@ -31,23 +32,45 @@ class AutoSelectorNetworkPolicyTest {
         assertEquals(2L, effectivePinnedMember(1L, true, builtMembers))
 
         val wifiPlan = AutoSelectorPlanner(
-            SelectorStore { selectorGroup(wdttPlusAllowed = false, wdttLatency = -1) }, { 1_000L },
+            SelectorStore { selectorGroup(wdttPlusPreferred = false, wdttLatency = -1) }, { 1_000L },
         ).plan(99L, selector)
-        assertEquals(listOf(3L, 1L), wifiPlan.pool)
+        assertEquals(listOf(3L, 1L, 2L), wifiPlan.pool)
     }
 
     @Test
     fun cellularPinsWdttPlusAgainstGenericWatchProbeButWifiReturnsToAutomaticSelection() {
-        val members = selectorGroup(wdttPlusAllowed = true).members
-        assertEquals(2L, effectivePinnedMember(1L, wdttPlusAllowed = true, builtMembers = members))
-        assertEquals(1L, effectivePinnedMember(1L, wdttPlusAllowed = false, builtMembers = members.filter { it.id != 2L }))
-        assertEquals(-1L, effectivePinnedMember(-1L, wdttPlusAllowed = false, builtMembers = members.filter { it.id != 2L }))
+        val members = selectorGroup(wdttPlusPreferred = true).members
+        assertEquals(2L, effectivePinnedMember(1L, wdttPlusPreferred = true, builtMembers = members))
+        assertEquals(1L, effectivePinnedMember(1L, wdttPlusPreferred = false, builtMembers = members))
+        assertEquals(-1L, effectivePinnedMember(2L, wdttPlusPreferred = false, builtMembers = members))
+        assertEquals(-1L, effectivePinnedMember(-1L, wdttPlusPreferred = false, builtMembers = members))
+    }
+
+    @Test
+    fun wifiIncludesWdttAsEmergencyEvenWhenBuildLimitWouldOtherwiseDropIt() {
+        val selector = selector().apply { buildLimit = 2; poolCap = 10; pool = mutableListOf(1L, 3L) }
+        val group = selectorGroup(wdttPlusPreferred = false, wdttLatency = 0)
+        val plan = AutoSelectorPlanner(SelectorStore { group }, { 1_000L }).plan(99L, selector)
+
+        assertEquals(listOf(3L, 1L, 2L), plan.pool)
+        assertEquals(listOf(3L, 1L, 2L), plan.build)
+    }
+
+    @Test
+    fun wifiKeepsWdttEmergencyMemberWhenPoolCapWouldOtherwiseDropIt() {
+        val selector = selector().apply { buildLimit = 2; poolCap = 2; pool = mutableListOf(1L, 3L) }
+        val plan = AutoSelectorPlanner(
+            SelectorStore { selectorGroup(wdttPlusPreferred = false) }, { 1_000L },
+        ).plan(99L, selector)
+
+        assertEquals(listOf(3L, 1L, 2L), plan.pool)
+        assertEquals(listOf(3L, 1L, 2L), plan.build)
     }
 
     @Test
     fun unmeasuredCellularWdttDoesNotBlockAutoSelectorStartup() {
         val selector = selector().apply { buildLimit = 2; poolCap = 10; pool = mutableListOf(1L, 3L) }
-        val group = selectorGroup(wdttPlusAllowed = true, wdttLatency = 0)
+        val group = selectorGroup(wdttPlusPreferred = true, wdttLatency = 0)
         val plan = AutoSelectorPlanner(SelectorStore { group }, { 1_000L }).plan(99L, selector)
 
         assertEquals(listOf(2L, 1L), plan.build)
@@ -62,7 +85,7 @@ class AutoSelectorNetworkPolicyTest {
         pool = mutableListOf(3L, 1L)
     }
 
-    private fun selectorGroup(wdttPlusAllowed: Boolean, wdttLatency: Int = 500) = SelectorGroup(
+    private fun selectorGroup(wdttPlusPreferred: Boolean, wdttLatency: Int = 500) = SelectorGroup(
         id = 7L,
         name = "test",
         landingProxyId = -1L,
@@ -74,6 +97,7 @@ class AutoSelectorNetworkPolicyTest {
             SelectorMember(2L, WdttPlus(), wdttLatency, 990, ""),
             SelectorMember(3L, Tuic(), 20, 990, ""),
         ),
-        wdttPlusAllowed = wdttPlusAllowed,
+        wdttPlusAllowed = true,
+        wdttPlusPreferred = wdttPlusPreferred,
     )
 }

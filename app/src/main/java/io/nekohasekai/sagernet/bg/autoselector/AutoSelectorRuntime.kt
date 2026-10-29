@@ -12,6 +12,7 @@ import app.qthrone.mobile.group.SubscriptionQueue
 import app.qthrone.mobile.ktx.Logs
 import app.qthrone.mobile.ktx.app
 import app.qthrone.mobile.ktx.readableMessage
+import app.qthrone.mobile.utils.WdttPlusNetworkPolicy
 import app.qthrone.mobile.outbound.config.AutoSelectorBuild
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
@@ -58,7 +59,7 @@ object AutoSelectorRuntime {
         val selectorName: String,
         /** Member profile id -> display name. */
         val names: Map<Long, String>,
-        /** WDTT Plus is present only when this build was made for a cellular default network. */
+        /** WDTT Plus is pinned only when this build was made for a cellular default network. */
         val preferredWdttTag: String?,
     ) {
         var monitor: Job? = null
@@ -144,6 +145,7 @@ object AutoSelectorRuntime {
             val selector = AutoSelectorProfiles.load(build.selectorId)
             val selectorName = selector?.displayName().orEmpty().ifEmpty { proxy.profile.displayName() }
             val preferredWdttTag = build.members.entries.firstOrNull { (_, id) ->
+                WdttPlusNetworkPolicy.isCellularDefault() &&
                 profiles[id]?.outbound?.type == "wdttplus"
             }?.key
             val started = Run(
