@@ -286,7 +286,12 @@ class AutoSelectorPlanner @JvmOverloads constructor(
             return AutoSelectorSkip.CountryFilter
         }
         // Only a fresh failure excludes a member; an old one would exile it permanently.
-        if (!forceRetest && selector.excludeUnavailable && member.latency < 0 && hasFreshResult(member, selector, now)) {
+        // A saved failure can describe WDTT Plus on Wi-Fi or the previous cellular session. On
+        // cellular keep it in the selector and let the live core probe it; otherwise the stored
+        // result can silently remove the mandatory first choice before the network-specific pin
+        // is applied. Other profiles remain available as the selector's failover tier.
+        val cellularWdtt = type == "wdttplus" && wdttPlusAllowed
+        if (!cellularWdtt && !forceRetest && selector.excludeUnavailable && member.latency < 0 && hasFreshResult(member, selector, now)) {
             return AutoSelectorSkip.Unavailable
         }
         return null

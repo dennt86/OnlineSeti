@@ -20,12 +20,20 @@ class AutoSelectorNetworkPolicyTest {
     }
 
     @Test
-    fun cellularTransitionRetestsWdttPlusEvenAfterFreshFailureOnWifi() {
+    fun cellularTransitionKeepsWdttPlusEligibleDespiteFreshFailureOnWifi() {
         val selector = selector().apply { excludeUnavailable = true }
-        val planner = AutoSelectorPlanner(SelectorStore { selectorGroup(wdttPlusAllowed = true, wdttLatency = -1) }, { 1_000L })
+        val cellularGroup = selectorGroup(wdttPlusAllowed = true, wdttLatency = -1)
+        val planner = AutoSelectorPlanner(SelectorStore { cellularGroup }, { 1_000L })
 
-        assertEquals(emptyList<Long>(), planner.unmeasuredCandidates(99L, selector))
-        assertEquals(listOf(2L), planner.unmeasuredCandidates(99L, selector, stale = listOf(2L)))
+        val plan = planner.plan(99L, selector)
+        assertEquals(listOf(2L), plan.pool.take(1))
+        val builtMembers = plan.build.mapNotNull { id -> cellularGroup.members.firstOrNull { it.id == id } }
+        assertEquals(2L, effectivePinnedMember(1L, true, builtMembers))
+
+        val wifiPlan = AutoSelectorPlanner(
+            SelectorStore { selectorGroup(wdttPlusAllowed = false, wdttLatency = -1) }, { 1_000L },
+        ).plan(99L, selector)
+        assertEquals(listOf(3L, 1L), wifiPlan.pool)
     }
 
     @Test
