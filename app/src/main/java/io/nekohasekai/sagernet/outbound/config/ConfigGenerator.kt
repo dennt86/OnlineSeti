@@ -669,7 +669,7 @@ class ConfigGenerator @JvmOverloads constructor(
         val builtAt = clock()
         val effectivePinnedId = effectivePinnedMember(
             selector.pinnedID,
-            tracked.wdttPlusAllowed,
+            tracked.wdttPlusPreferred,
             plannedMembers.map { it.member },
         )
         val warm = JsonArray()
