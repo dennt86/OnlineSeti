@@ -264,9 +264,7 @@ class AutoSelector : Outbound("autoselector") {
 
     companion object {
         /** Healthy latency changes never displace the selected route; the core can still fail over on outage. */
-        // The core accepts the UI range only (0..10,000 ms). Keep the managed route sticky
-        // without serializing Int.MAX_VALUE, which the core cannot safely decode.
-        const val STICKY_TOLERANCE_MS: Int = 10_000
+        const val STICKY_TOLERANCE_MS: Int = Int.MAX_VALUE
         /** The native core decodes tolerance into a bounded integer; keep its config within UI-supported limits. */
         const val MAX_CORE_TOLERANCE_MS: Int = 10_000
 

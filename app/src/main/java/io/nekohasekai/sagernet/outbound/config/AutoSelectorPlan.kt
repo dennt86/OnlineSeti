@@ -52,24 +52,20 @@ class SelectorGroup(
     @JvmField val landingProxy: Outbound?,
     @JvmField val frontProxy: Outbound?,
     @JvmField val members: List<SelectorMember>,
-    /** WDTT Plus can be included as a last-resort Wi-Fi member. */
+    /** WDTT Plus is restricted to a cellular default network on Android. */
     @JvmField val wdttPlusAllowed: Boolean = true,
-    /** On cellular WDTT Plus is the preferred route and is pinned ahead of normal profiles. */
-    @JvmField val wdttPlusPreferred: Boolean = wdttPlusAllowed,
 )
 
 /** On cellular, WDTT Plus is the network-policy route and must not be displaced by generic latency probes. */
 internal fun effectivePinnedMember(
     configuredPinnedId: Long,
-    wdttPlusPreferred: Boolean,
+    wdttPlusAllowed: Boolean,
     builtMembers: List<SelectorMember>,
 ): Long {
-    if (wdttPlusPreferred) {
+    if (wdttPlusAllowed) {
         builtMembers.firstOrNull { it.outbound?.type == "wdttplus" }?.let { return it.id }
     }
-    val configured = builtMembers.firstOrNull { it.id == configuredPinnedId } ?: return -1L
-    if (!wdttPlusPreferred && configured.outbound?.type == "wdttplus") return -1L
-    return configuredPinnedId
+    return configuredPinnedId.takeIf { id -> builtMembers.any { it.id == id } } ?: -1L
 }
 
 /** The storage the auto-selector plan reads: the tracked group, or null when it does not exist. */
@@ -186,20 +182,12 @@ class AutoSelectorPlanner @JvmOverloads constructor(
 
         var ordered = orderMembers(members, selector.pool, selector, group, now)
         plan.truncated = ordered.size > selector.poolCap
-        if (plan.truncated) {
-            val wdttId = ordered.firstOrNull { id -> group.members.firstOrNull { it.id == id }?.outbound?.type == "wdttplus" }
-            ordered = ordered.take(selector.poolCap)
-            if (!group.wdttPlusPreferred && wdttId != null && wdttId !in ordered) ordered = ordered + wdttId
-        }
+        if (plan.truncated) ordered = ordered.take(selector.poolCap)
         plan.pool = ordered
-        val wdttId = ordered.firstOrNull { id -> group.members.firstOrNull { it.id == id }?.outbound?.type == "wdttplus" }
-        plan.build = if (!group.wdttPlusPreferred && wdttId != null && ordered.take(selector.buildLimit).none { it == wdttId }) {
-            // On Wi-Fi preserve WDTT Plus as an emergency member even when the normal build limit would drop it.
-            (ordered.take(selector.buildLimit) + wdttId).distinct()
-        } else ordered.take(selector.buildLimit)
+        plan.build = ordered.take(selector.buildLimit)
         if (ordered.size > selector.buildLimit) {
             val byId = group.members.associateBy { it.id }
-            val networkPinnedWdtt = group.wdttPlusPreferred && plan.build.any { byId[it]?.outbound?.type == "wdttplus" }
+            val networkPinnedWdtt = group.wdttPlusAllowed && plan.build.any { byId[it]?.outbound?.type == "wdttplus" }
             // WDTT is deliberately first and pinned on cellular. Its fresh probe is performed by the running core;
             // waiting for the app's separate URL-test here can strand a network-change rebuild on a long timeout.
             plan.needsRanking = plan.build.any {
@@ -298,9 +286,12 @@ class AutoSelectorPlanner @JvmOverloads constructor(
             return AutoSelectorSkip.CountryFilter
         }
         // Only a fresh failure excludes a member; an old one would exile it permanently.
-        // Saved failures may belong to the previous network; retain WDTT as a possible live-tested fallback.
-        val wdttFallback = type == "wdttplus" && wdttPlusAllowed
-        if (!wdttFallback && !forceRetest && selector.excludeUnavailable && member.latency < 0 && hasFreshResult(member, selector, now)) {
+        // A saved failure can describe WDTT Plus on Wi-Fi or the previous cellular session. On
+        // cellular keep it in the selector and let the live core probe it; otherwise the stored
+        // result can silently remove the mandatory first choice before the network-specific pin
+        // is applied. Other profiles remain available as the selector's failover tier.
+        val cellularWdtt = type == "wdttplus" && wdttPlusAllowed
+        if (!cellularWdtt && !forceRetest && selector.excludeUnavailable && member.latency < 0 && hasFreshResult(member, selector, now)) {
             return AutoSelectorSkip.Unavailable
         }
         return null
@@ -359,7 +350,7 @@ class AutoSelectorPlanner @JvmOverloads constructor(
         val eligible = members.toHashSet()
         val ordered = ArrayList<Long>(members.size)
         val placed = HashSet<Long>()
-        if (group.wdttPlusPreferred) {
+        if (group.wdttPlusAllowed) {
             val byId = group.members.associateBy { it.id }
             members.filter { byId[it]?.outbound?.type == "wdttplus" }
                 .sortedWith(byLatency(selector, group, now))
@@ -370,12 +361,6 @@ class AutoSelectorPlanner @JvmOverloads constructor(
             ordered.add(id)
         }
         ordered.addAll(members.filter { it !in placed }.sortedWith(byLatency(selector, group, now)))
-        if (group.wdttPlusAllowed && !group.wdttPlusPreferred) {
-            val byId = group.members.associateBy { it.id }
-            val wdtt = ordered.filter { byId[it]?.outbound?.type == "wdttplus" }
-            ordered.removeAll(wdtt.toSet())
-            ordered.addAll(wdtt)
-        }
         return ordered
     }
 
@@ -383,7 +368,7 @@ class AutoSelectorPlanner @JvmOverloads constructor(
     private fun byLatency(selector: AutoSelector, group: SelectorGroup, now: Long): Comparator<Long> {
         val byId = group.members.associateBy { it.id }
         return Comparator { left, right ->
-            if (group.wdttPlusPreferred) {
+            if (group.wdttPlusAllowed) {
                 val leftWdtt = byId[left]?.outbound?.type == "wdttplus"
                 val rightWdtt = byId[right]?.outbound?.type == "wdttplus"
                 if (leftWdtt != rightWdtt) return@Comparator if (leftWdtt) -1 else 1

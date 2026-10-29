@@ -12,7 +12,6 @@ import app.qthrone.mobile.group.SubscriptionQueue
 import app.qthrone.mobile.ktx.Logs
 import app.qthrone.mobile.ktx.app
 import app.qthrone.mobile.ktx.readableMessage
-import app.qthrone.mobile.utils.WdttPlusNetworkPolicy
 import app.qthrone.mobile.outbound.config.AutoSelectorBuild
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
@@ -59,8 +58,6 @@ object AutoSelectorRuntime {
         val selectorName: String,
         /** Member profile id -> display name. */
         val names: Map<Long, String>,
-        /** WDTT Plus is pinned only when this build was made for a cellular default network. */
-        val preferredWdttTag: String?,
     ) {
         var monitor: Job? = null
 
@@ -72,8 +69,6 @@ object AutoSelectorRuntime {
         var lastHealthPersistMs = System.currentTimeMillis()
         var lastObservedSelectedTag: String? = null
         var lastObservedSwitchMs = 0L
-        var preferredSelectInFlight = false
-        var lastPreferredSelectMs = 0L
     }
 
     private class Measuring(val selectorId: Long, val selectorName: String, val count: Int)
@@ -144,13 +139,7 @@ object AutoSelectorRuntime {
             val names = build.memberIds.associateWith { id -> profiles[id]?.outbound?.displayName().orEmpty() }
             val selector = AutoSelectorProfiles.load(build.selectorId)
             val selectorName = selector?.displayName().orEmpty().ifEmpty { proxy.profile.displayName() }
-            val preferredWdttTag = build.members.entries.firstOrNull { (_, id) ->
-                WdttPlusNetworkPolicy.isCellularDefault() &&
-                profiles[id]?.outbound?.type == "wdttplus"
-            }?.key
-            val started = Run(
-                service, proxy, build, AutoSelectorCore(box, build.groupTag), selectorName, names, preferredWdttTag,
-            )
+            val started = Run(service, proxy, build, AutoSelectorCore(box, build.groupTag), selectorName, names)
             val attached = synchronized(lock) {
                 if (startedProxy !== proxy) return@synchronized false
                 run?.monitor?.cancel()
@@ -165,10 +154,6 @@ object AutoSelectorRuntime {
                 selector.recordHistory(build.memberIds, names, now)
                 AutoSelectorProfiles.save(build.selectorId, selector)
                 Logs.i("[Auto selector] Running the best ${build.memberIds.size} of ${selector.pool.size} ranked profiles.")
-            }
-            preferredWdttTag?.let { tag ->
-                val id = build.members[tag]
-                Logs.i("[Auto selector] Cellular WDTT Plus candidate: $tag, profile=$id (${id?.let(names::get).orEmpty()}).")
             }
             publish()
             startMonitor(started)
@@ -496,52 +481,16 @@ object AutoSelectorRuntime {
             persist = now - run.lastHealthPersistMs >= HEALTH_PERSIST_MS
         }
         selectionChanged?.let { (previous, selected) ->
-            fun describe(tag: String): String {
-                val id = run.build.members[tag]
-                return if (id == null) tag else "$tag, profile=$id (${run.names[id].orEmpty()})"
-            }
             Logs.i(
-                "[Auto selector] Selection changed: ${describe(previous)} -> ${describe(selected)}; " +
+                "[Auto selector] Selection changed: $previous -> $selected; " +
                     "reason=${sample.lastSwitchReason.ifEmpty { "unspecified" }}",
             )
         }
-        reassertHealthyCellularWdtt(run, sample)
         // Nothing shows it while the screen is off, and a frozen UI process would only pile the callbacks up; the
         // screen coming on polls and publishes at once.
         if (run.service.data.notification?.screenOn?.value != false) publish()
         if (persist) persistHealth(run)
         if (exhausted) onExhausted(run)
-    }
-
-    /** A configured pin is a core preference, but some startup probes can temporarily select a backup first. */
-    private fun reassertHealthyCellularWdtt(run: Run, sample: AutoSelectorCore.Sample) {
-        val tag = run.preferredWdttTag ?: return
-        if (sample.suspended || sample.selectedTag == tag) return
-        val member = sample.members.firstOrNull { it.tag == tag } ?: return
-        if (!member.isUsable) return
-        val now = System.currentTimeMillis()
-        val shouldSelect = synchronized(lock) {
-            if (this.run !== run || run.preferredSelectInFlight || now - run.lastPreferredSelectMs < 5_000L) {
-                false
-            } else {
-                run.preferredSelectInFlight = true
-                run.lastPreferredSelectMs = now
-                true
-            }
-        }
-        if (!shouldSelect) return
-        scope.launch(Dispatchers.IO) {
-            try {
-                // Keep the normal members in the selector: its pin still falls back when WDTT is unhealthy.
-                run.core.select(tag)
-                Logs.i("[Auto selector] WDTT Plus is healthy on cellular; restored it ahead of the backup route.")
-            } catch (e: Exception) {
-                Logs.w("[Auto selector] Could not restore healthy cellular WDTT Plus: ${e.readableMessage}")
-            } finally {
-                synchronized(lock) { run.preferredSelectInFlight = false }
-                run.kick.trySend(Unit)
-            }
-        }
     }
 
     /** AutoSelectorMonitor::PersistHealth of the last sample. */
