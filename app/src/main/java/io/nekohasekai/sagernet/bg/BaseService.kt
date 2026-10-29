@@ -33,6 +33,7 @@ import app.qthrone.mobile.database.SagerDatabase
 import app.qthrone.mobile.ktx.*
 import app.qthrone.mobile.outbound.json.jsonObjectOf
 import app.qthrone.mobile.utils.DefaultNetworkListener
+import app.qthrone.mobile.utils.NetworkRecoveryPolicy
 import app.qthrone.mobile.utils.PlatformNotifications
 import app.qthrone.mobile.utils.WifiStateAccess
 import app.qthrone.mobile.utils.WdttPlusNetworkPolicy
@@ -540,12 +541,14 @@ class BaseService {
             // Tracks the underlying network for VpnService.setUnderlyingNetworks only; the
             // "reset on network change" switch is applied by NativeInterface's monitor callback.
             var observedNetwork=SagerNet.underlyingNetwork
+            var observedValidated: Boolean? = null
             // Seed from Android's current physical default network. This value is recreated on
             // every service restart; leaving it null makes the first callback request another
             // selector rebuild on every restart, creating a startup/rebuild loop.
             var observedCellular: Boolean? = WdttPlusNetworkPolicy.isCellularDefault()
             DefaultNetworkListener.start(this) { network ->
                 if (network == null) {
+                    observedValidated = false
                     val hadNetwork = observedNetwork != null
                     observedNetwork=null
                     SagerNet.underlyingNetwork=null
@@ -563,6 +566,17 @@ class BaseService {
                         }
                     }
                     return@start
+                }
+                val validated = SagerNet.connectivity.getNetworkCapabilities(network)
+                    ?.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_VALIDATED) ?: false
+                val uplinkRecovered = NetworkRecoveryPolicy.shouldResetConnections(observedValidated, validated)
+                observedValidated = validated
+                if (uplinkRecovered && data.state == State.Connected) {
+                    val activeProxy = data.proxy
+                    Logs.w("Physical uplink became validated again; resetting stale proxy connections")
+                    CoroutineScope(Dispatchers.IO).launch {
+                        if (data.proxy === activeProxy) activeProxy?.boxOrNull?.resetNetwork()
+                    }
                 }
                 SagerNet.connectivity.getLinkProperties(network)?.also { link ->
                     val previousNetwork=observedNetwork

@@ -120,7 +120,7 @@ class NativeInterface : PlatformInterface {
     )
 
     @Volatile
-    private var lastResetNetwork: Network? = null
+    private var lastResetNetworkKey: String? = null
 
     private fun reportState(listener: InterfaceUpdateListener): IfaceReportState =
         synchronized(ifaceReportStates) {
@@ -138,7 +138,7 @@ class NativeInterface : PlatformInterface {
     private fun checkDefaultInterfaceUpdate(listener: InterfaceUpdateListener, network: Network?) {
         val state = reportState(listener)
         if (network == null) {
-            lastResetNetwork=null
+            lastResetNetworkKey=null
             clearInterface(listener, state)
             return
         }
@@ -149,8 +149,12 @@ class NativeInterface : PlatformInterface {
                 Thread.sleep(100)
                 return@repeat
             }
+            val interfaceName = linkProperties.interfaceName ?: run {
+                Thread.sleep(100)
+                return@repeat
+            }
             val interfaceIndex = try {
-                NetworkInterface.getByName(linkProperties.interfaceName).index
+                NetworkInterface.getByName(interfaceName).index
             } catch (e: Exception) {
                 Thread.sleep(100)
                 return@repeat
@@ -160,19 +164,19 @@ class NativeInterface : PlatformInterface {
                 it.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
                     !it.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED)
             } ?: false
-            val sameInterface = state.name == linkProperties.interfaceName && state.index == interfaceIndex &&
+            val sameInterface = state.name == interfaceName && state.index == interfaceIndex &&
                 state.network == network
             // Capability-change storms repeat the same interface; skip them without a JNI round trip. A metering change
             // alone (a Wi-Fi marked metered) is still reported so the core re-reads its interfaces, but is no switch.
             if (sameInterface && state.isExpensive == isExpensive) return
             val changed = !sameInterface && state.wasConnected
             state.wasConnected=true
-            state.name = linkProperties.interfaceName
+            state.name = interfaceName
             state.index = interfaceIndex
             state.network = network
             state.isExpensive = isExpensive
-            listener.updateDefaultInterface(linkProperties.interfaceName, interfaceIndex, isExpensive, false)
-            if (changed) onDefaultInterfaceChanged(network)
+            listener.updateDefaultInterface(interfaceName, interfaceIndex, isExpensive, false)
+            if (changed) onDefaultInterfaceChanged(network, interfaceName, interfaceIndex)
             return
         }
         Logs.w("checkDefaultInterfaceUpdate exhausted retries for $network")
@@ -181,10 +185,12 @@ class NativeInterface : PlatformInterface {
 
     // Every box in this process has its own listener, so the user's "reset on network change"
     // switch is applied once per new network to the running VPN instance only.
-    private fun onDefaultInterfaceChanged(network: Network) {
+    private fun onDefaultInterfaceChanged(network: Network, interfaceName: String, interfaceIndex: Int) {
         if (!DataStore.networkChangeResetConnections) return
-        if (lastResetNetwork == network) return
-        lastResetNetwork = network
+        // Android can keep the same Network handle while rebinding its underlying interface.
+        val networkKey = "$network:$interfaceName:$interfaceIndex"
+        if (lastResetNetworkKey == networkKey) return
+        lastResetNetworkKey = networkKey
         DataStore.baseService?.data?.proxy?.boxOrNull?.resetNetwork()
     }
 
