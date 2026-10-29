@@ -203,24 +203,22 @@ object AutoSelectorRuntime {
         val target = DataStore.selectedProxy
         if (!runCatching { ProfileManager.getProfile(target)?.type == AutoSelectorProfiles.TYPE }.getOrDefault(false)) return
         launchPending {
-            // Keep the Android VPN/TUN alive across an uplink handover. Stopping the service here
-            // creates a real traffic gap and can leave Android showing VPN=off if the restart races
-            // the ConnectivityManager callbacks. The core already supports rechecking its running
-            // selector, so discard stale persisted measurements and probe on the new default route.
+            // Wait for Android to finish the handover. A live recheck is not enough: the running
+            // core keeps the member list from the old network (and a Wi-Fi build has no WDTT Plus
+            // member at all). Rebuilding the selector is required to apply the new network policy.
+            delay(600L)
             if (service.data.state != BaseService.State.Connected || DataStore.selectedProxy != target) return@launchPending
             val activeRun = synchronized(lock) {
                 run?.takeIf { it.service === service && it.build.selectorId == target }
             } ?: run {
-                Logs.i("[Auto selector] Uplink changed while selector is not attached yet; keeping VPN running.")
+                Logs.i("[Auto selector] Uplink changed while selector is not attached yet; normal service recovery will rebuild it.")
                 return@launchPending
             }
-            Logs.i("[Auto selector] Uplink changed; clearing saved network-dependent results and rechecking without restarting VPN.")
-            withContext(Dispatchers.IO) {
-                AutoSelectorProfiles.clearNetworkDependentResults(memberProfileIds)
-                activeRun.core.recheck()
-            }
-            if (claim() && service.data.state == BaseService.State.Connected && DataStore.selectedProxy == target) {
-                activeRun.kick.trySend(Unit)
+            if (claim() && current() === activeRun && service.data.state == BaseService.State.Connected &&
+                DataStore.selectedProxy == target
+            ) {
+                Logs.i("[Auto selector] Uplink changed; rebuilding the selector for the new network policy.")
+                service.stopRunner(true)
             }
         }
     }
