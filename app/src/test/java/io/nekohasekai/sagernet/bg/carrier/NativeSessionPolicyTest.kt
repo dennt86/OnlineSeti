@@ -17,9 +17,11 @@ class NativeSessionPolicyTest {
         assertTrue(speed.bool("probe_only"))
     }
 
-    @Test fun vkPreparationHasItsOwnBudgetForQwdtt() {
+    @Test fun vkPreparationHasRecoveryBudgetForQwdttAndWdttPlus() {
         assertEquals(300_000L,NativeSessionPolicy.startupTimeoutMs(CarrierKind.QWDTT,60_000))
         assertEquals(400_000L,NativeSessionPolicy.startupTimeoutMs(CarrierKind.QWDTT,400_000))
+        assertEquals(300_000L,NativeSessionPolicy.startupTimeoutMs(CarrierKind.WDTTPLUS,60_000))
+        assertEquals(400_000L,NativeSessionPolicy.startupTimeoutMs(CarrierKind.WDTTPLUS,400_000))
         assertEquals(60_000L,NativeSessionPolicy.startupTimeoutMs(CarrierKind.OPENFLUX,60_000))
     }
     @Test fun unavailableFirstCallCanTryEveryHashWithoutChangingTheStoredConfig() {

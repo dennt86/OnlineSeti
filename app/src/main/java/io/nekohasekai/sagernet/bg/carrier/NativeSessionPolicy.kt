@@ -13,7 +13,10 @@ internal object NativeSessionPolicy {
     }
 
     fun startupTimeoutMs(kind:CarrierKind,requested:Long):Long = when(kind) {
-        CarrierKind.QWDTT -> requested.coerceAtLeast(300_000L)
+        // qWDTT and WDTT Plus both need to reach VK before they can obtain TURN credentials.
+        // A brief DNS/network outage during watchdog recovery must not kill the foreground VPN
+        // service before Android's network and resolver recover.
+        CarrierKind.QWDTT, CarrierKind.WDTTPLUS -> requested.coerceAtLeast(300_000L)
         // DNS tunnels measure MTU and handshake query by query; S3 Bypass waits for the bucket.
         CarrierKind.DNSTT,CarrierKind.VAYDNS,CarrierKind.SLIPSTREAM,CarrierKind.MASTERDNS,CarrierKind.S3BYPASS -> requested.coerceAtLeast(120_000L)
         else -> requested
