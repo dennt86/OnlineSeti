@@ -52,6 +52,9 @@ def patch(core: Path):
 
     selector = target / "protocol" / "group" / "autoselector.go"
     replace_once(selector,
+        '\ts.restoreWarm(options.Warm, time.Now())\n',
+        '\ts.restoreWarm(options.Warm, time.Now())\n\t// Restored health informs ranking, but warm samples are not consecutive live probe failures.\n\tfor _, health := range s.members {\n\t\thealth.consecutiveProbeFailures = 0\n\t}\n')
+    replace_once(selector,
         '\tfor _, health := range s.members {\n\t\trolledSamples += health.rollbackFailuresSince(since)\n',
         '\tfor _, health := range s.members {\n\t\t// Do not carry a failover streak through a confirmed local network outage.\n\t\thealth.consecutiveProbeFailures = 0\n\t\trolledSamples += health.rollbackFailuresSince(since)\n')
     replace_once(selector,
