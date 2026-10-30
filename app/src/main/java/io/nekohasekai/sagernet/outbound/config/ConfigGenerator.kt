@@ -733,10 +733,10 @@ class ConfigGenerator @JvmOverloads constructor(
         )
         if (warm.isNotEmpty()) group["warm"] = warm
         if (pinnedTag.isNotEmpty()) group["pinned"] = pinnedTag
-        // Cellular WDTT is the preferred transport. Keep short probe failures from sending
-        // traffic to a reserve; the core still probes every member and requires five consecutive
-        // WDTT failures before allowing a healthy reserve to carry traffic.
-        if (tracked.wdttPlusPreferred && plannedMembers.any { it.member.outbound?.type == "wdttplus" }) {
+        // A manual pin means "stay here unless it is really down", not "fail over on
+        // one transient probe miss". Keep probing the other members, but require five
+        // consecutive failures before a healthy reserve may carry traffic.
+        if (pinnedTag.isNotEmpty()) {
             group["pinned_failover_failures"] = 5
         }
         if (selector.maxRTTms > 0) group["max_rtt"] = "${selector.maxRTTms}ms"

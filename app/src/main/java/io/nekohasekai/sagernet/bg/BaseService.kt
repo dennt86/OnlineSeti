@@ -45,6 +45,19 @@ import moe.matsuri.nb4a.Protocols
 import moe.matsuri.nb4a.utils.Util
 import java.net.UnknownHostException
 
+private fun safeLifecycleError(error: Throwable): String {
+    val message = error.message.orEmpty()
+    return when {
+        message.contains("use of closed network connection", ignoreCase = true) -> "already_closed"
+        message.contains("connection reset", ignoreCase = true) -> "connection_reset"
+        message.contains("timeout", ignoreCase = true) || message.contains("deadline exceeded", ignoreCase = true) -> "timeout"
+        message.contains("network is unreachable", ignoreCase = true) -> "network_unreachable"
+        message.contains("connection refused", ignoreCase = true) -> "connection_refused"
+        message.contains("EOF", ignoreCase = true) -> "eof"
+        message.contains("canceled", ignoreCase = true) || message.contains("cancelled", ignoreCase = true) -> "cancelled"
+        else -> "other"
+    }
+}
 class BaseService {
 
     enum class State(
@@ -274,13 +287,13 @@ class BaseService {
 
         fun reload() {
             if (DataStore.selectedProxy == 0L) {
-                stopRunner(false, (this as Context).getString(R.string.profile_empty))
+                stopRunner(false, (this as Context).getString(R.string.profile_empty), "reload_without_profile")
                 return
             }
             val s = data.state
             when {
                 s == State.Stopped -> startRunner()
-                s.canStop -> AutoSelectorRuntime.restart(this) { stopRunner(true) }
+                s.canStop -> AutoSelectorRuntime.restart(this) { stopRunner(true, reason = "reload_requested") }
                 else -> Logs.w("Illegal state $s when invoking use")
             }
         }
@@ -315,7 +328,7 @@ class BaseService {
                 data.binder.broadcast { it.cbSelectorUpdate(id) }
             }
             // While stopping, a restart in flight starts whatever is selected once the old core is gone.
-            if (s.canStop) AutoSelectorRuntime.restart(this) { stopRunner(true) } else Widgets.push(this as Context)
+            if (s.canStop) AutoSelectorRuntime.restart(this) { stopRunner(true, reason = "profile_switch") } else Widgets.push(this as Context)
         }
 
         /** The neighbour [step] away in the group of the selected profile, wrapping around. */
@@ -348,8 +361,8 @@ class BaseService {
                 }
                 Logs.w(
                     "ServiceLifecycleTrace serviceId=$serviceId proxyId=$proxyId " +
-                        "profileId=${proxy?.profile?.id ?: -1L} stage=$stage failed " +
-                        "type=${error.javaClass.name} message=${error.message}"
+                    "profileId=${proxy?.profile?.id ?: -1L} stage=$stage failed " +
+                        "category=${safeLifecycleError(error)}"
                 )
             }
             Logs.i(
@@ -392,7 +405,7 @@ class BaseService {
          * A restart keeps the service, its notification and the receiver: the new core starts in place, so a switch
          * from the notification or a widget never needs another foreground-service start from the background.
          */
-        fun stopRunner(restart: Boolean = false, msg: String? = null) {
+        fun stopRunner(restart: Boolean = false, msg: String? = null, reason: String = "unspecified") {
             DataStore.baseService = null
             DataStore.vpnService = null
 
@@ -404,7 +417,7 @@ class BaseService {
             }?.let { frame -> "${frame.className}.${frame.methodName}:${frame.lineNumber}" }
                 ?: "unknown"
             Logs.i(
-                "ServiceStopTrace serviceId=$serviceId proxyId=$proxyId restart=$restart " +
+                "ServiceStopTrace serviceId=$serviceId proxyId=$proxyId restart=$restart reason=$reason " +
                     "state=${data.state} profileId=${proxy?.profile?.id ?: -1L} " +
                     "hasMessage=${msg != null} caller=$caller"
             )
@@ -430,8 +443,7 @@ class BaseService {
                     }
                     Logs.w(
                         "ServiceStopTrace serviceId=$serviceId proxyId=$proxyId " +
-                            "stage=$stage failed type=${error.javaClass.name} " +
-                            "message=${error.message}"
+                            "stage=$stage failed category=${safeLifecycleError(error)}"
                     )
                 }
 
@@ -485,7 +497,7 @@ class BaseService {
                     Logs.w(
                         "ServiceStopTrace serviceId=$serviceId proxyId=$proxyId " +
                             "stage=cleanup failed type=${error.javaClass.name} " +
-                            "message=${error.message} suppressed=${error.suppressed.size} " +
+                        "category=${safeLifecycleError(error)} suppressed=${error.suppressed.size} " +
                             "originalMessagePreserved=${originalMessage != null}"
                     )
                 }
@@ -528,7 +540,7 @@ class BaseService {
                 DataStore.serviceErrorGeo = geoSettings
                 DataStore.serviceErrorRuleSets = ruleSets
             }
-            stopRunner(false, message)
+            stopRunner(false, message, "service_failure")
         }
 
         fun persistStats() {
@@ -625,8 +637,8 @@ class BaseService {
                         if (originalWdtt?.type == "wdttplus") {
                             DataStore.selectedProxy = originalWdtt.id
                             DataStore.clearWdttNetworkFallback()
-                            Logs.i("Cellular uplink restored; returning to WDTT Plus ${originalWdtt.displayName()}")
-                            if (data.state != State.Stopped) AutoSelectorRuntime.restart(this) { stopRunner(true) }
+                            Logs.i("Cellular uplink restored; returning to the saved WDTT Plus profile")
+                            if (data.state != State.Stopped) AutoSelectorRuntime.restart(this) { stopRunner(true, reason = "cellular_wdtt_restored") }
                             return@start
                         }
                         DataStore.clearWdttNetworkFallback()
@@ -641,8 +653,8 @@ class BaseService {
                             DataStore.wdttNetworkFallbackOrigin = current.id
                             DataStore.wdttNetworkFallbackProfile = fallback.id
                             DataStore.selectedProxy = fallback.id
-                            Logs.w("Wi-Fi detected while WDTT Plus is active; switching to ${fallback.displayName()}")
-                            if (data.state != State.Stopped) AutoSelectorRuntime.restart(this) { stopRunner(true) }
+                            Logs.w("Wi-Fi detected while WDTT Plus is active; switching to the configured Wi-Fi fallback")
+                            if (data.state != State.Stopped) AutoSelectorRuntime.restart(this) { stopRunner(true, reason = "wifi_wdtt_fallback") }
                             return@start
                         }
                     }
@@ -748,7 +760,7 @@ class BaseService {
             if (profile == null) { // gracefully shutdown: https://stackoverflow.com/q/47337857/2245107
                 if (data.notification == null) data.notification = createNotification("")
                 onNoProfile()
-                stopRunner(false, getString(R.string.profile_empty))
+                stopRunner(false, getString(R.string.profile_empty), "start_without_profile")
                 return
             }
             if (profile.type == "wdttplus" && !WdttPlusNetworkPolicy.isCellularDefault()) {

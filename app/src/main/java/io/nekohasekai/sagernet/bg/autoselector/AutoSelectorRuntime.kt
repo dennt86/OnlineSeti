@@ -72,6 +72,8 @@ object AutoSelectorRuntime {
         var lastHealthPersistMs = System.currentTimeMillis()
         var lastObservedSelectedTag: String? = null
         var lastObservedSwitchMs = 0L
+        /** Last emitted per-member probe signature, to log health changes without repeating every poll. */
+        val lastProbeDiagnostics = mutableMapOf<String, String>()
         var preferredSelectInFlight = false
         var lastPreferredSelectMs = 0L
     }
@@ -167,8 +169,7 @@ object AutoSelectorRuntime {
                 Logs.i("[Auto selector] Running the best ${build.memberIds.size} of ${selector.pool.size} ranked profiles.")
             }
             preferredWdttTag?.let { tag ->
-                val id = build.members[tag]
-                Logs.i("[Auto selector] Cellular WDTT Plus candidate: $tag, profile=$id (${id?.let(names::get).orEmpty()}).")
+                Logs.i("[Auto selector] Cellular WDTT Plus candidate: ${AutoSelectorDiagnostics.memberLabel(tag)}.")
             }
             publish()
             startMonitor(started)
@@ -233,7 +234,7 @@ object AutoSelectorRuntime {
                 DataStore.selectedProxy == target
             ) {
                 Logs.i("[Auto selector] Uplink changed; rebuilding the selector for the new network policy.")
-                service.stopRunner(true)
+                service.stopRunner(true, reason = "auto_selector_uplink_changed")
             }
         }
     }
@@ -300,7 +301,12 @@ object AutoSelectorRuntime {
             } else if (withContext(Dispatchers.IO) { runCatching { AutoSelectorProfiles.needsRanking(id) }.getOrDefault(false) }) {
                 measure(run.service, id, emptyList())
             }
-            if (claim() && current() === run && run.service.data.state.canStop) run.service.stopRunner(true)
+            if (claim() && current() === run && run.service.data.state.canStop) {
+                run.service.stopRunner(
+                    true,
+                    reason = if (stale != null) "auto_selector_pool_exhausted" else "auto_selector_rebuild",
+                )
+            }
         }
     }
 
@@ -374,7 +380,10 @@ object AutoSelectorRuntime {
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                Logs.w("[Auto selector] Recheck before recovery failed: ${e.readableMessage}")
+                Logs.w(
+                    "[Auto selector] Recheck before recovery failed: " +
+                        AutoSelectorDiagnostics.errorCategory(e.readableMessage),
+                )
                 if (current() === run) {
                     val stale = AutoSelectorProfiles.load(run.build.selectorId)?.lastBuilt ?: run.build.memberIds
                     withContext(Dispatchers.Main) { if (current() === run) rebuild(run, stale) }
@@ -463,6 +472,7 @@ object AutoSelectorRuntime {
         var persist = false
         var initialObservation = false
         var selectionChanged: Pair<String, String>? = null
+        val probeDiagnostics = mutableListOf<AutoSelectorStatus.Member>()
         synchronized(lock) {
             if (this.run !== run) return
             val previousTag = run.lastObservedSelectedTag
@@ -474,6 +484,15 @@ object AutoSelectorRuntime {
             run.lastObservedSelectedTag = sample.selectedTag
             run.lastObservedSwitchMs = sample.lastSwitchMs
             run.sample = sample
+            for (member in sample.members) {
+                val signature = listOf(
+                    member.state, member.selected, member.qualified, member.probes, member.failures,
+                    member.dialFail, member.dialTotal, member.lastProbeMs, member.lastError,
+                ).joinToString("|")
+                if (run.lastProbeDiagnostics.put(member.tag, signature) != signature) {
+                    probeDiagnostics += member
+                }
+            }
             // "untested" counts as usable: it has not failed, only not been reached.
             val usable = sample.members.count { it.isUsable || it.state == AutoSelectorStatus.STATE_UNTESTED }
             // A suspended core (dropped Wi-Fi) or device-idle sample must never count as an exhausted pool.
@@ -498,13 +517,29 @@ object AutoSelectorRuntime {
             persist = now - run.lastHealthPersistMs >= HEALTH_PERSIST_MS
         }
         selectionChanged?.let { (previous, selected) ->
-            fun describe(tag: String): String {
-                val id = run.build.members[tag]
-                return if (id == null) tag else "$tag, profile=$id (${run.names[id].orEmpty()})"
-            }
             Logs.i(
-                "[Auto selector] Selection changed: ${describe(previous)} -> ${describe(selected)}; " +
+                "[Auto selector] Selection changed: ${AutoSelectorDiagnostics.memberLabel(previous)} -> " +
+                    "${AutoSelectorDiagnostics.memberLabel(selected)}; " +
                     "reason=${sample.lastSwitchReason.ifEmpty { "unspecified" }}",
+            )
+        }
+        if (initialObservation) {
+            Logs.i(
+                "[Auto selector] Initial route state: phase=${sample.phase}, " +
+                    "selected=${sample.selectedTag.takeIf(String::isNotBlank)?.let(AutoSelectorDiagnostics::memberLabel) ?: "none"}, " +
+                    "pinned=${sample.pinnedTag.takeIf(String::isNotBlank)?.let(AutoSelectorDiagnostics::memberLabel) ?: "automatic"}, " +
+                    "reason=${sample.lastSwitchReason.ifEmpty { "none" }}.",
+            )
+        }
+        for (member in probeDiagnostics) {
+            val error = member.lastError.takeIf { it.isNotBlank() }
+                ?.let(AutoSelectorDiagnostics::errorCategory) ?: "none"
+            Logs.i(
+                "[Auto selector] Probe: ${AutoSelectorDiagnostics.memberLabel(member.tag)}; " +
+                    "state=${member.state}, selected=${member.selected}, " +
+                    "qualified=${member.qualified}, probes=${member.probes}, failures=${member.failures}, " +
+                    "dial=${member.dialFail}/${member.dialTotal}, avg=${member.averageMs}ms, " +
+                    "error=$error",
             )
         }
         stabilizeCellularPin(run, sample, initialObservation, selectionChanged != null)
@@ -557,9 +592,12 @@ object AutoSelectorRuntime {
                 // Keep all normal members: the selector can still fail over from this anchor if it dies.
                 run.core.select(target)
                 val reason = if (target == wdttTag) "WDTT cellular preference" else "cellular failover stabilized"
-                Logs.i("[Auto selector] Pinned $target ($reason).")
+                Logs.i("[Auto selector] Pinned ${AutoSelectorDiagnostics.memberLabel(target)} ($reason).")
             } catch (e: Exception) {
-                Logs.w("[Auto selector] Could not stabilize cellular route on $target: ${e.readableMessage}")
+                Logs.w(
+                    "[Auto selector] Could not stabilize cellular route on " +
+                        "${AutoSelectorDiagnostics.memberLabel(target)}: ${AutoSelectorDiagnostics.errorCategory(e.readableMessage)}",
+                )
             } finally {
                 synchronized(lock) { run.preferredSelectInFlight = false }
                 run.kick.trySend(Unit)
