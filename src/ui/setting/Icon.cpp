@@ -16,7 +16,12 @@ namespace {
         switch (status) {
             case Icon::TrayIconStatus::None: return QStringLiteral("Off");
             case Icon::TrayIconStatus::Connecting: return QStringLiteral("Connecting");
-            case Icon::TrayIconStatus::Running: return QStringLiteral("Throne");
+            case Icon::TrayIconStatus::Running:
+#ifdef ONLINESETI_EDITION
+                return QStringLiteral("OnlineSeti");
+#else
+                return QStringLiteral("Throne");
+#endif
             case Icon::TrayIconStatus::SystemProxy: return QStringLiteral("Proxy");
             case Icon::TrayIconStatus::Vpn: return QStringLiteral("Tun");
         }
@@ -32,7 +37,13 @@ namespace {
                 if (const auto custom = QPixmap(QStringLiteral("icons/") + candidate + QStringLiteral(".png")); !custom.isNull()) return QIcon(custom);
             }
         }
+#ifdef ONLINESETI_EDITION
+        Q_UNUSED(name)
+        Q_UNUSED(customFallback)
+        return QIcon(QStringLiteral(":/Throne/OnlineSeti.png"));
+#else
         return QIcon(QStringLiteral(":/Throne/") + name + QStringLiteral(".png"));
+#endif
     }
 } // namespace
 
@@ -103,7 +114,11 @@ QIcon Icon::GetTaskbarIcon(TrayIconStatus status) {
     const auto &settings = Configs::dataManager->settingsRepo;
     // The bundled icon only: a custom PNG has no room for the padding macOS adds in the dock.
     if (settings->use_custom_icons && !settings->follow_status_in_taskbar) {
+#ifdef ONLINESETI_EDITION
+        return QIcon(QStringLiteral(":/Throne/OnlineSeti.png"));
+#else
         return QIcon(QStringLiteral(":/Throne/Throne.png"));
+#endif
     }
     return GetTrayIcon(status);
 }

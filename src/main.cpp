@@ -43,7 +43,7 @@
 #ifdef Q_OS_MACOS
 #include <QFileOpenEvent>
 
-// macOS reuses the running app and delivers throne:// URLs and opened files as a QFileOpenEvent, never via argv.
+// macOS reuses the running app and delivers app links and opened files as a QFileOpenEvent, never via argv.
 class MacOpenEventFilter : public QObject {
 public:
     using QObject::QObject;
@@ -53,7 +53,7 @@ protected:
         if (event->type() == QEvent::FileOpen) {
             const auto openEvent = static_cast<QFileOpenEvent *>(event);
             const QString url = openEvent->url().toString();
-            if (url.startsWith("throne://")) {
+            if (Deeplink_IsSupported(url)) {
                 Deeplink_Submit(url);
                 return true;
             }
@@ -163,12 +163,19 @@ namespace {
     }
 #endif
 
+#ifdef ONLINESETI_EDITION
+    constexpr auto DATABASE_FILE_NAME = "OnlineSeti.db";
+    constexpr auto WRITE_TEST_FILE_NAME = ".onlineseti-write-test";
+#else
+    constexpr auto DATABASE_FILE_NAME = "throne.db";
+    constexpr auto WRITE_TEST_FILE_NAME = ".throne-write-test";
+#endif
     constexpr auto FALLBACK_MARKER = "config/.install-dir-unwritable";
 
     // QFileInfo::isWritable reports the read-only attribute, not what a UAC-filtered token can actually do.
     bool DirIsWritable(const QDir &dir) {
         if (!dir.exists() && !QDir().mkpath(dir.absolutePath())) return false;
-        QFile probe(dir.absoluteFilePath(".throne-write-test"));
+        QFile probe(dir.absoluteFilePath(WRITE_TEST_FILE_NAME));
         if (!probe.open(QIODevice::WriteOnly)) return false;
         probe.close();
         probe.remove();
@@ -177,7 +184,7 @@ namespace {
 
     bool ConfigDirIsUsable(const QDir &configDir) {
         if (!DirIsWritable(configDir)) return false;
-        const QString db = configDir.absoluteFilePath("throne.db");
+        const QString db = configDir.absoluteFilePath(DATABASE_FILE_NAME);
         if (!QFile::exists(db)) return true;
         QFile file(db);
         return file.open(QIODevice::ReadWrite);
@@ -208,7 +215,7 @@ namespace {
 
         const QString userConfig = userWd.absoluteFilePath("config");
         QDir().mkpath(userConfig);
-        if (!QFile::exists(userConfig + "/throne.db") && QFile::exists(installConfig + "/throne.db")) {
+        if (!QFile::exists(userConfig + "/" + DATABASE_FILE_NAME) && QFile::exists(installConfig + "/" + DATABASE_FILE_NAME)) {
             CopyDirContents(installConfig, userConfig);
             LOG_WARN(QString("copied existing config from %1").arg(installConfig));
         }
@@ -221,7 +228,11 @@ namespace {
     }
 }
 
+#ifdef ONLINESETI_EDITION
+#define LOCAL_SERVER_PREFIX "onlineseti-"
+#else
 #define LOCAL_SERVER_PREFIX "qthrone-"
+#endif
 
 int TestQwdttImport();
 int TestCoreStartup();
@@ -272,6 +283,9 @@ int main(int argc, char* argv[]) {
     const QStringList launchFiles = LaunchFiles_ExtractFromArgs(arguments, QDir::current());
 
     QDir::setCurrent(QApplication::applicationDirPath());
+    if (QFile::exists("OnlineSetiUpdater.old")) {
+        QFile::remove("OnlineSetiUpdater.old");
+    }
     if (QFile::exists("qThroneUpdater.old")) {
         QFile::remove("qThroneUpdater.old");
     }
@@ -289,7 +303,13 @@ int main(int argc, char* argv[]) {
 #ifdef NKR_CPP_USE_APPDATA
     useAppdata = true;
 #endif
+#ifdef ONLINESETI_EDITION
+    QApplication::setApplicationName("OnlineSetiVPN");
+    QApplication::setOrganizationName("OnlineSeti");
+    QApplication::setApplicationDisplayName("OnlineSeti VPN");
+#else
     QApplication::setApplicationName("qThrone");
+#endif
     if(useAppdata) {
         if (!appdataDir.isEmpty()) {
             wd.setPath(appdataDir);
@@ -311,7 +331,7 @@ int main(int argc, char* argv[]) {
 
     appStartEpoch = QDateTime::currentSecsSinceEpoch();
 
-    Configs::initDB(QString(QDir::currentPath() + QDir::separator() + "throne.db").toStdString());
+    Configs::initDB(QString(QDir::currentPath() + QDir::separator() + DATABASE_FILE_NAME).toStdString());
 
     Logging::SetLevel(Logging::LevelFromString(Configs::dataManager->settingsRepo->log_file_level));
 
@@ -420,7 +440,7 @@ int main(int argc, char* argv[]) {
         // One url per line; the tail carries no trailing newline, so it is only flushed on disconnect.
         auto pending = std::make_shared<QByteArray>();
         auto handleLine = [](const QString &line) {
-            if (line.startsWith("throne://")) {
+            if (Deeplink_IsSupported(line)) {
                 Deeplink_Submit(line);
             } else if (line.startsWith("file://")) {
                 LaunchFiles_Submit({QUrl(line).toLocalFile()});

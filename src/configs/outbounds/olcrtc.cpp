@@ -65,7 +65,11 @@ QString olcrtc::ExportToLink() {
 }
 QString olcrtc::Prepare() {
     if (const auto error = Validate(); !error.isEmpty()) return error;
+#ifdef ONLINESETI_EDITION
+    QString executable = "OnlineSetiOLCRTC";
+#else
     QString executable = "olcrtc";
+#endif
 #ifdef Q_OS_WIN
     executable += ".exe";
 #endif

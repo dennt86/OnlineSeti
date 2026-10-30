@@ -1,0 +1,118 @@
+name: OnlineSeti VPN for Windows
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release version (for example 0.1.29)
+        required: true
+        type: string
+      publish:
+        description: Publish this build to GitHub Releases for in-app updates
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    env:
+      ONLINESETI_EDITION: "1"
+      INPUT_VERSION: ${{ inputs.version }}
+      DEST_SUFFIX: windows-amd64
+      ARCH: x64
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-go@v7.0.0
+        with:
+          go-version: "1.27.0"
+          cache-dependency-path: core/go.sum
+      - uses: arduino/setup-protoc@v3
+        with:
+          version: "31.1"
+          repo-token: ${{ github.token }}
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Install Go protobuf generators
+        shell: bash
+        run: |
+          go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.12
+          go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.6.2
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+      - name: Build OnlineSeti core and transports
+        shell: bash
+        run: |
+          export GOOS=windows GOARCH=amd64 RUNNER_OS=Windows ARCH=x64
+          export DEST="$GITHUB_WORKSPACE/deployment/windows-amd64"
+          bash script/build_csqtt.sh
+          bash script/build_go.sh
+          cp csqtt-artifact/* "$DEST/"
+      - name: Bundle the web dashboard
+        shell: bash
+        run: |
+          git clone --depth 1 --branch gh-pages https://github.com/SagerNet/sing-box-dashboard.git dashboard-src
+          rm -rf dashboard-src/.git res/dashboard
+          cp -R dashboard-src/. res/dashboard/
+          test -f res/dashboard/index.html
+      - name: Install Qt and OpenSSL
+        shell: bash
+        run: |
+          curl -fL -o qt.7z https://github.com/throneproj/buildqt/releases/download/Qt_6.11.2/Qt_6.11.2_x64.7z
+          curl -fL -o openssl.7z https://github.com/throneproj/env_windows_legacy/releases/download/latest/openssl_x64.7z
+          7z x qt.7z
+          7z x openssl.7z
+      - name: Build OnlineSeti VPN GUI
+        shell: bash
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          export CMAKE_PREFIX_PATH="$GITHUB_WORKSPACE/Qt/lib/cmake"
+          export OPENSSL_ROOT_DIR="$GITHUB_WORKSPACE/openssl"
+          mkdir -p build download-artifact/local
+          cd build
+          curl -fLso srslist.h https://raw.githubusercontent.com/throneproj/routeprofiles/rule-set/srslist.h
+          cmake -GNinja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DONLINESETI_EDITION=ON \
+            -DINPUT_VERSION="$INPUT_VERSION" -DQTHRONE_REPOSITORY="$GITHUB_REPOSITORY" ..
+          ninja
+          cd ..
+          mkdir -p "download-artifact/Throne-${GITHUB_SHA}-windows-amd64"
+          tar czf "download-artifact/Throne-${GITHUB_SHA}-windows-amd64/artifacts.tgz" deployment/windows-amd64
+          export DEST="$GITHUB_WORKSPACE/deployment/windows-amd64"
+          ./script/deploy_windows.sh
+      - name: Verify packaged startup and updater
+        shell: pwsh
+        run: |
+          $app = Join-Path $env:GITHUB_WORKSPACE 'deployment/windows-amd64/OnlineSetiVPN.exe'
+          $p = Start-Process -FilePath $app -ArgumentList '--self-test-core-startup' -Wait -PassThru -WindowStyle Hidden
+          if ($p.ExitCode -ne 0) { throw "Packaged core startup failed: $($p.ExitCode)" }
+          Push-Location updater
+          go test ./...
+          Pop-Location
+      - name: Package portable client
+        shell: bash
+        run: |
+          export APP_NAME=OnlineSetiVPN ARCHIVE_NAME=OnlineSetiVPN
+          bash script/pack_release.sh windows "$INPUT_VERSION"
+      - uses: actions/upload-artifact@v7.0.1
+        with:
+          name: OnlineSetiVPN-${{ inputs.version }}-windows64
+          path: deployment/OnlineSetiVPN-${{ inputs.version }}-windows64.zip
+          if-no-files-found: error
+          compression-level: 0
+      - name: Publish in-app update release
+        if: inputs.publish
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag="v${INPUT_VERSION#v}"
+          gh release create "$tag" "deployment/OnlineSetiVPN-${INPUT_VERSION}-windows64.zip" \
+            --target "$GITHUB_SHA" --title "OnlineSeti VPN $INPUT_VERSION" \
+            --notes "OnlineSeti VPN for Windows. This release is available from the in-app updater."

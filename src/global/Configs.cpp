@@ -51,12 +51,17 @@ namespace Configs {
     }
 
     QString FindCoreRealPath() {
+#ifdef ONLINESETI_EDITION
+        constexpr auto coreName = "OnlineSetiCore";
+#else
+        constexpr auto coreName = "qThroneCore";
+#endif
 #ifdef NKR_CORE_IN_PATH
         // Packaged installs may launch the core through a privilege wrapper on PATH (NixOS security wrappers).
-        const auto wrapped = QStandardPaths::findExecutable("qThroneCore");
+        const auto wrapped = QStandardPaths::findExecutable(coreName);
         if (!wrapped.isEmpty()) return wrapped;
 #endif
-        auto fn = QApplication::applicationDirPath() + "/qThroneCore";
+        auto fn = QApplication::applicationDirPath() + "/" + coreName;
 #ifdef Q_OS_WIN
         fn += ".exe";
 #endif

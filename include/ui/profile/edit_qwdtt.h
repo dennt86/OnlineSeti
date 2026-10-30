@@ -2,6 +2,7 @@
 #include <QWidget>
 #include <QLineEdit>
 #include <QComboBox>
+#include <QFormLayout>
 #include <QSpinBox>
 #include <array>
 #include "profile_editor.h"
@@ -18,6 +19,9 @@ private:
     QLineEdit *password;
     std::array<QLineEdit *, 4> hashes;
     QSpinBox *rawPort;
+    QSpinBox *wgPort;
+    QSpinBox *localPort;
+    QFormLayout *form;
     QComboBox *workers;
     void updateWorkers(int requested = -1);
     QComboBox *transport;

@@ -21,14 +21,19 @@ namespace Configs {
         QString captchaMode = "auto";
         QString goDNS = "yandex";
         QString deviceID;
+        bool wdttPlus = false;
+        int wgPort = 56001;
+        int localPort = 9000;
+        int maxWorkers = 0;
 
         bool ParseFromLink(const QString &link) override;
         bool ParseFromJson(const QJsonObject &object) override;
         QJsonObject ExportToJson() override;
         QJsonObject ExportIdentity() override;
         QString ExportToLink() override;
-        QString DisplayType() override { return mode == "wg" ? "qWDTT (WG)" : "qWDTT (RAW)"; }
-        SecurityInfo GetSecurity() override { return {"RTP AEAD", turnTCP ? "TURN TCP" : "TURN UDP", SecurityLevel::Secure}; }
+        QString DisplayType() override { return wdttPlus ? "WDTT Plus" : mode == "wg" ? "qWDTT (WG)" : "qWDTT (RAW)"; }
+        SecurityInfo GetSecurity() override { return wdttPlus ? SecurityInfo{"WireGuard + DTLS", "TURN UDP", SecurityLevel::Secure}
+                                                            : SecurityInfo{"RTP AEAD", turnTCP ? "TURN TCP" : "TURN UDP", SecurityLevel::Secure}; }
         QString Prepare();
         BuildResult Build() override;
         bool SupportsCredentialStrip() const override { return true; }

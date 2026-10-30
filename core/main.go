@@ -25,6 +25,8 @@ import (
 	_ "ThroneCore/internal/distro/all"
 )
 
+var coreBrand = "qThrone"
+
 const (
 	// memoryPanicThreshold stays under memoryLimit: that much live under the soft limit means the GC is thrashing.
 	memoryLimit           = 2 * 1024 * 1024 * 1024
@@ -129,7 +131,7 @@ func RunCore() {
 		log.Fatalf("failed to connect to GUI socket after 10 attempts: %v", err)
 	}
 
-	fmt.Println("Core Has Successfully Connected to qThrone!")
+	fmt.Printf("Core Has Successfully Connected to %s!\n", coreBrand)
 	rpc.Serve(conn, debug)
 	log.Fatal("IPC connection dropped, exiting")
 }

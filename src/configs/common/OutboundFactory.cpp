@@ -36,7 +36,7 @@ namespace Configs
 {
     outbound* NewOutboundByType(const QString& type)
     {
-        if (type == "qwdtt" || type == "wdtt") return new qwdtt();
+        if (type == "qwdtt" || type == "wdtt" || type == "wdttplus") return new qwdtt();
         if (type == "csqtt") return new csqtt();
         if (type == "openflux") return new openflux();
         if (type == "olcrtc") return new olcrtc();

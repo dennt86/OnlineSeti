@@ -8,8 +8,10 @@
 #include <QImageReader>
 #include <QInputDialog>
 #include <QMessageBox>
+#include <QRegularExpression>
 #include <QStringConverter>
 #include <QUrl>
+#include <QUrlQuery>
 
 #include "3rdparty/QrDecoder.h"
 #include "include/api/remote/Server.hpp"
@@ -119,6 +121,29 @@ void MainWindow::importFromFiles(const QStringList &paths)
 
 void MainWindow::handle_deeplink_impl(const QString &url) {
     const QUrl u(url);
+#ifdef ONLINESETI_EDITION
+    if (u.scheme().compare("onlineseti", Qt::CaseInsensitive) == 0) {
+        const QUrlQuery query(u);
+        const QStringList values = query.allQueryItemValues("url", QUrl::FullyDecoded);
+        const bool onlyUrlParameter = query.queryItems(QUrl::FullyDecoded).size() == 1;
+        const QUrl subscription(values.size() == 1 ? values.constFirst() : QString());
+        const QString path = subscription.path(QUrl::FullyEncoded);
+        const bool supportedPath = QRegularExpression(QStringLiteral(R"(^/subscription/[A-Za-z0-9_-]{8,128}$)")).match(path).hasMatch()
+                                   || QRegularExpression(QStringLiteral(R"(^/bundle/[A-Za-z0-9_-]{32,64}$)")).match(path).hasMatch();
+        const QString host = subscription.host().toLower();
+        const bool firstPartyHost = host == "openseti.ru" || host == "onlineseti.ru" || host == "nl-onlineseti.ru";
+        if (!u.isValid() || u.host().compare("import", Qt::CaseInsensitive) != 0
+            || u.authority().contains('@') || u.port(-1) != -1 || u.hasFragment() || !u.path().isEmpty()
+            || !onlyUrlParameter || values.size() != 1 || subscription.scheme() != "https" || !firstPartyHost
+            || !subscription.isValid() || subscription.authority().contains('@') || subscription.port(-1) != -1
+            || subscription.hasQuery() || subscription.hasFragment() || !supportedPath) {
+            MW_show_log(tr("Ignored invalid OnlineSeti subscription link"));
+            return;
+        }
+        handle_addsub(subscription.toString(QUrl::FullyEncoded), QStringLiteral("OnlineSeti"));
+        return;
+    }
+#endif
     // QUrl lowercases the host, so "throne://AddSub/" arrives with host "addsub".
     const QString cmd = u.host();
 

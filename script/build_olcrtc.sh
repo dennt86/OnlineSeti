@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 olcrtc_revision=f3ad8fb7c0d0fa981423f83269526fa94077c23d
+binary_name="${OLCRTC_NAME:-olcrtc}"
 if [ ! -d olcrtc-source/.git ]; then
     git init olcrtc-source
     git -C olcrtc-source fetch --depth=1 https://github.com/openlibrecommunity/olcrtc.git "$olcrtc_revision"
@@ -10,8 +11,8 @@ test "$(git -C olcrtc-source rev-parse HEAD)" = "$olcrtc_revision"
 mkdir -p olcrtc-source/cmd/qthrone-olcrtc
 cp script/olcrtc/*.go olcrtc-source/cmd/qthrone-olcrtc/
 pushd olcrtc-source
-CGO_ENABLED=0 "$GOCMD" build -trimpath -ldflags='-s -w' -o "$DEST/olcrtc$([[ "$GOOS" == windows ]] && echo '.exe')" ./cmd/qthrone-olcrtc
+CGO_ENABLED=0 "$GOCMD" build -trimpath -ldflags='-s -w' -o "$DEST/$binary_name$([[ "$GOOS" == windows ]] && echo '.exe')" ./cmd/qthrone-olcrtc
 cp LICENSE "$DEST/OLCRTC-LICENSE"
-printf '%s\n' 'https://github.com/openlibrecommunity/olcrtc' "Revision: $olcrtc_revision" 'Desktop integration: script/olcrtc in qThrone' > "$DEST/OLCRTC-SOURCE"
+printf '%s\n' 'https://github.com/openlibrecommunity/olcrtc' "Revision: $olcrtc_revision" 'OnlineSeti integration: script/olcrtc' > "$DEST/OLCRTC-SOURCE"
 tar -czf "$DEST/olcrtc-source.tar.gz" --exclude=.git --exclude=.github .
 popd

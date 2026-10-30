@@ -2,6 +2,8 @@ package rpc
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"path/filepath"
@@ -26,7 +28,23 @@ var extraSessions []*extraSession
 
 func isTunnelHelper(path string) bool {
 	name := strings.TrimSuffix(strings.ToLower(filepath.Base(path)), ".exe")
-	return name == "qwdtt" || name == "openflux" || name == "olcrtc"
+	return name == "qwdtt" || name == "onlinesetiwdtt" || name == "wdttplus" || name == "onlinesetiwdttplus" || name == "openflux" || name == "onlinesetiopenflux" || name == "olcrtc" || name == "onlinesetiolcrtc"
+}
+
+func wdttPlusProcess(config string) (args []string, initial string, ok bool) {
+	var value struct {
+		Type  string   `json:"type"`
+		Args  []string `json:"args"`
+		Start any      `json:"start"`
+	}
+	if json.Unmarshal([]byte(config), &value) != nil || value.Type != "wdttplus" || len(value.Args) == 0 || value.Start == nil {
+		return nil, "", false
+	}
+	encoded, err := json.Marshal(value.Start)
+	if err != nil || len(encoded) > 24*1024 {
+		return nil, "", false
+	}
+	return value.Args, "START_CONFIG|" + base64.RawURLEncoding.EncodeToString(encoded), true
 }
 
 func stopExtraSessions(tunnelsOnly bool) {
@@ -111,7 +129,37 @@ func startExtraSessions(ctx context.Context, in *gen.LoadConfigReq) (err error) 
 				return errors.New("tunnel device is busy with a test; stop its test and retry")
 			}
 		}
-		confPath, folder, e := process.CreateExtraConfig(spec.GetConfig())
+		config := spec.GetConfig()
+		initialCommand := ""
+		if strings.EqualFold(filepath.Base(strings.TrimSuffix(spec.GetPath(), ".exe")), "OnlineSetiWDTTPlus") || strings.EqualFold(filepath.Base(strings.TrimSuffix(spec.GetPath(), ".exe")), "wdttplus") {
+			wdttArgs, initial, ok := wdttPlusProcess(config)
+			if !ok {
+				if session.release != nil {
+					session.release()
+				}
+				return errors.New("invalid WDTT Plus process configuration")
+			}
+			args = wdttArgs
+			initialCommand = initial
+			var safe map[string]any
+			if json.Unmarshal([]byte(config), &safe) != nil {
+				if session.release != nil {
+					session.release()
+				}
+				return errors.New("invalid WDTT Plus process configuration")
+			}
+			delete(safe, "start")
+			bytes, marshalErr := json.Marshal(safe)
+			if marshalErr != nil {
+				if session.release != nil {
+					session.release()
+				}
+				return errors.New("invalid WDTT Plus process configuration")
+			}
+			config = string(bytes)
+			// The native client receives passwords and hashes only through its private stdin pipe.
+		}
+		confPath, folder, e := process.CreateExtraConfig(config)
 		if e != nil {
 			if session.release != nil {
 				session.release()
@@ -131,6 +179,10 @@ func startExtraSessions(ctx context.Context, in *gen.LoadConfigReq) (err error) 
 		session.child.SetCleanupPath(folder)
 		if session.transport {
 			session.child.EnableStdinShutdown("STOP")
+		}
+		if initialCommand != "" {
+			session.child.EnableStdinShutdown("STOP")
+			session.child.SetStdinInitialCommand(initialCommand)
 		}
 		extraSessions = append(extraSessions, session)
 		if e := session.child.Start(); e != nil {

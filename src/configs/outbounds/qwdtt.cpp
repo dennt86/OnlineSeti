@@ -48,7 +48,8 @@ QStringList qwdtt::NormalizeHashes(const QStringList &input) {
 
 bool qwdtt::ParseFromJson(const QJsonObject &o) {
     const auto type = o["type"].toString();
-    if (!type.isEmpty() && type != "qwdtt" && type != "wdtt") return false;
+    if (!type.isEmpty() && type != "qwdtt" && type != "wdtt" && type != "wdttplus") return false;
+    wdttPlus = type == "wdttplus";
     outbound::ParseFromJson(o);
     if (o.contains("peer") && !setPeer(*this, o["peer"].toString())) return false;
     if (o.contains("name")) name = o["name"].toString();
@@ -62,18 +63,46 @@ bool qwdtt::ParseFromJson(const QJsonObject &o) {
     captchaMode = o["captcha_mode"].toString("auto");
     goDNS = o["go_dns"].toString("yandex");
     if (!o["device_id"].toString().isEmpty()) deviceID = o["device_id"].toString();
+    wgPort = o["wg_port"].toInt(56001);
+    localPort = o["local_port"].toInt(9000);
+    maxWorkers = o["max_workers"].toInt(0);
     const auto h = o.contains("hashes") ? o["hashes"] : o["vkHashes"];
     QStringList values;
     if (h.isArray()) { for (const auto &v : h.toArray()) values.append(v.toString()); }
     else values.append(h.toString());
     hashes = NormalizeHashes(values).mid(0, 4);
-    workers = NormalizeWorkers(workers, hashes.size());
+    if (wdttPlus) {
+        if (maxWorkers < 9 || maxWorkers > 108) maxWorkers = 0;
+        const int maximum = maxWorkers >= 9 ? maxWorkers / 9 * 9 : 108;
+        workers = qBound(9, ((qMax(9, workers) + 4) / 9) * 9, maximum);
+    } else {
+        maxWorkers = 0;
+        workers = NormalizeWorkers(workers, hashes.size());
+    }
     // Empty hashes are editable after importing Android profiles using global hashes.
-    return !server.isEmpty() && validPort(server_port) && validPort(rawPort) && hashes.size() <= 4 && (mode == "raw" || mode == "wg") && (vkAnonPath == "vkcalls" || vkAnonPath == "legacy") && (captchaMode == "auto" || captchaMode == "wv" || captchaMode == "rjs");
+    return !server.isEmpty() && validPort(server_port) && validPort(rawPort) && validPort(wgPort) && validPort(localPort) && hashes.size() <= 4 && (mode == "raw" || mode == "wg") && (vkAnonPath == "vkcalls" || vkAnonPath == "legacy") && (captchaMode == "auto" || captchaMode == "wv" || captchaMode == "rjs");
 }
 
 bool qwdtt::ParseFromLink(const QString &link) {
     QString value = link.trimmed();
+    if (value.startsWith("wdtt://connect?", Qt::CaseInsensitive)) {
+        const QUrl u(value);
+        if (!u.isValid() || u.host().compare("connect", Qt::CaseInsensitive) != 0) return false;
+        const QUrlQuery q(u);
+        if (formDecodedQueryValue(q, "v") != "1") return false;
+        const QString host = formDecodedQueryValue(q, "host");
+        bool dtlsOK, wgOK, localOK;
+        const int dtls = formDecodedQueryValue(q, "dtls").toInt(&dtlsOK);
+        const int wg = formDecodedQueryValue(q, "wg").toInt(&wgOK);
+        const int local = formDecodedQueryValue(q, "local").toInt(&localOK);
+        if (host.isEmpty() || !dtlsOK || !wgOK || !localOK || !validPort(dtls) || !validPort(wg) || !validPort(local)) return false;
+        QJsonObject o{{"type", "wdttplus"}, {"server", host}, {"server_port", dtls}, {"wg_port", wg}, {"local_port", local},
+                      {"password", formDecodedQueryValue(q, "password")}, {"hashes", formDecodedQueryValue(q, "hashes")}};
+        const QString label = q.hasQueryItem("name") ? formDecodedQueryValue(q, "name") : u.fragment(QUrl::FullyDecoded);
+        if (!label.isEmpty()) o["tag"] = label;
+        if (q.hasQueryItem("max_workers")) { bool ok; const int n = q.queryItemValue("max_workers").toInt(&ok); if (!ok) return false; o["max_workers"] = n; o["workers"] = n; }
+        return ParseFromJson(o);
+    }
     if (value.startsWith("qwdtt:config", Qt::CaseInsensitive)) value.replace(0, 12, "qwdtt://config");
     if (value.startsWith("qwdtt://", Qt::CaseInsensitive)) {
         const QUrl u(value);
@@ -115,14 +144,25 @@ bool qwdtt::ParseFromLink(const QString &link) {
 }
 
 QJsonObject qwdtt::ExportToJson() {
-    return {{"type", "qwdtt"}, {"tag", name}, {"server", server}, {"server_port", server_port},
+    QJsonObject o{{"type", wdttPlus ? "wdttplus" : "qwdtt"}, {"tag", name}, {"server", server}, {"server_port", server_port},
             {"password", password}, {"hashes", QJsonArray::fromStringList(hashes)}, {"mode", mode},
             {"raw_port", rawPort}, {"workers", workers}, {"turn_tcp", turnTCP},
             {"obfs", obfs}, {"go_dns", goDNS}, {"device_id", deviceID},
             {"vk_anon_path", vkAnonPath}, {"captcha_mode", captchaMode}};
+    if (wdttPlus) { o.remove("mode"); o.remove("raw_port"); o.remove("turn_tcp"); o.remove("obfs"); o.remove("go_dns"); o.remove("vk_anon_path"); o.insert("wg_port", wgPort); o.insert("local_port", localPort); if (maxWorkers > 0) o.insert("max_workers", maxWorkers); }
+    return o;
 }
 QJsonObject qwdtt::ExportIdentity() { auto o = ExportToJson(); o.remove("tag"); o.remove("device_id"); return o; }
 QString qwdtt::ExportToLink() {
+    if (wdttPlus) {
+        QUrl u("wdtt://connect"); QUrlQuery q;
+        const auto add = [&q](const QString &key, const QString &v) { q.addQueryItem(key, QString::fromLatin1(QUrl::toPercentEncoding(v))); };
+        q.addQueryItem("v", "1"); add("host", server); q.addQueryItem("dtls", QString::number(server_port));
+        q.addQueryItem("wg", QString::number(wgPort)); q.addQueryItem("local", QString::number(localPort));
+        add("password", password); add("hashes", hashes.join(','));
+        if (!name.isEmpty()) add("name", name); if (maxWorkers > 0) q.addQueryItem("max_workers", QString::number(maxWorkers));
+        u.setQuery(q); return u.toString(QUrl::FullyEncoded);
+    }
     QUrl u("qwdtt://config");
     QUrlQuery q;
     // Android uses form encoding: encode literal '+' so it survives import there.
@@ -147,6 +187,43 @@ QString qwdtt::ExportToLink() {
 }
 
 QString qwdtt::Prepare() {
+    if (wdttPlus) {
+        hashes = NormalizeHashes(hashes);
+        if (server.isEmpty() || !validPort(server_port) || !validPort(wgPort) || !validPort(localPort)) return QObject::tr("WDTT Plus: invalid server address or port");
+        if (password.isEmpty() || password.contains('\n') || password.contains('\r')) return QObject::tr("WDTT Plus: a connection password is required");
+        if (hashes.isEmpty() || hashes.size() > 4) return QObject::tr("WDTT Plus: enter one to four VK call hashes");
+        if (deviceID.isEmpty()) deviceID = QUuid::createUuid().toString(QUuid::WithoutBraces);
+#ifdef ONLINESETI_EDITION
+        QString executable = "OnlineSetiWDTTPlus";
+#else
+        QString executable = "wdttplus";
+#endif
+#ifdef Q_OS_WIN
+        executable += ".exe";
+#endif
+        const QDir directory(QCoreApplication::applicationDirPath());
+        extraCorePath = directory.absoluteFilePath(executable);
+        if (!QFileInfo(extraCorePath).isExecutable()) return QObject::tr("WDTT Plus: bundled client is missing: %1").arg(extraCorePath);
+        QTcpServer tcp; QUdpSocket udp;
+        if (!tcp.listen(QHostAddress::LocalHost, 0) || !udp.bind(QHostAddress::LocalHost, 0)) return QObject::tr("WDTT Plus: cannot allocate loopback ports");
+        socksAddress = "127.0.0.1"; socksPort = tcp.serverPort();
+        const QString endpoint = [](const QString &host, int port) { return (host.contains(':') ? "[" + host + "]" : host) + ":" + QString::number(port); }(server, server_port);
+        const QString localUDP = QStringLiteral("127.0.0.1:%1").arg(udp.localPort());
+        QJsonArray args{"-peer", endpoint, "-startup-config-stdin=true", "-n", QString::number(workers), "-listen", localUDP,
+            "-transport-experiment", "auto", "-mode", "socks5", "-socks-listen", QStringLiteral("127.0.0.1:%1").arg(socksPort),
+            "-socks-udp=true", "-socks-auth=true", "-fingerprint", "firefox", "-client-ids", "6287487,8202606",
+            "-vkcalls-preflight=true", "-turn-stream-first=false", "-connection-udp-backoff=0", "-rt-masque=false",
+            "-device-id", deviceID, "-config-first-start=true", "-captcha-mode", captchaMode};
+        if (hashes.size() > 1) args.append("-hash-fallback=true");
+        QJsonObject start{{"vk_hashes", hashes.join(',')}, {"connection_password", password},
+                          {"socks_username", QUuid::createUuid().toString(QUuid::WithoutBraces)},
+                          {"socks_password", QUuid::createUuid().toString(QUuid::WithoutBraces)}};
+        const QString username = start["socks_username"].toString(), secret = start["socks_password"].toString();
+        extraCoreConf = QString::fromUtf8(QJsonDocument(QJsonObject{{"type", "wdttplus"}, {"peer", endpoint}, {"device_id", deviceID},
+            {"socks", QStringLiteral("127.0.0.1:%1").arg(socksPort)}, {"args", args}, {"start", start}}).toJson(QJsonDocument::Compact));
+        extraCoreArgs.clear(); bridgeAuth = username + ":" + secret;
+        return {};
+    }
     hashes = NormalizeHashes(hashes).mid(0, 4);
     workers = NormalizeWorkers(workers, hashes.size());
     if (server.isEmpty() || !validPort(server_port) || !validPort(rawPort)) return QObject::tr("qWDTT: invalid server address or port");
@@ -159,7 +236,11 @@ QString qwdtt::Prepare() {
     if (captchaMode != "auto" && captchaMode != "wv" && captchaMode != "rjs") return QObject::tr("qWDTT: invalid captcha mode");
     if (deviceID.isEmpty()) deviceID = QUuid::createUuid().toString(QUuid::WithoutBraces);
     if (deviceID.contains('|') || deviceID.contains('\n') || deviceID.contains('\r')) return QObject::tr("qWDTT: invalid device ID");
+#ifdef ONLINESETI_EDITION
+    QString executable = "OnlineSetiWDTT";
+#else
     QString executable = "qwdtt";
+#endif
 #ifdef Q_OS_WIN
     executable += ".exe";
 #endif
@@ -185,6 +266,7 @@ QString qwdtt::Prepare() {
 }
 BuildResult qwdtt::Build() {
     if (socksPort == 0 || bridgeAuth.isEmpty()) return {{}, "qWDTT bridge has not been prepared"};
+    if (wdttPlus) { const auto credentials = bridgeAuth.split(':'); return {QJsonObject{{"type", "socks"}, {"server", socksAddress}, {"server_port", socksPort}, {"version", "5"}, {"username", credentials.value(0)}, {"password", credentials.value(1)}}, {}}; }
     return {QJsonObject{{"type", "socks"}, {"server", socksAddress}, {"server_port", socksPort},
                         {"version", "5"}, {"username", bridgeAuth}, {"password", bridgeAuth}}, {}};
 }

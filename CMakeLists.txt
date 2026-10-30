@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.20)
 
 project(qThrone VERSION 1.0)
 
+option(ONLINESETI_EDITION "Build the branded OnlineSeti Windows client" OFF)
+
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 set(CMAKE_CXX_STANDARD 20)
@@ -730,6 +732,9 @@ target_compile_definitions(Throne PRIVATE
         SQLITE_OMIT_DESERIALIZE
         SQLITE_OMIT_JSON
 )
+if (ONLINESETI_EDITION)
+    target_compile_definitions(Throne PRIVATE ONLINESETI_EDITION)
+endif()
 
 # Target Source Translations
 
@@ -762,5 +767,9 @@ target_link_libraries(Throne PRIVATE
         ${PLATFORM_LIBRARIES}
 )
 
-set_target_properties(Throne PROPERTIES OUTPUT_NAME qThrone)
+if (ONLINESETI_EDITION)
+    set_target_properties(Throne PROPERTIES OUTPUT_NAME OnlineSetiVPN)
+else()
+    set_target_properties(Throne PROPERTIES OUTPUT_NAME qThrone)
+endif()
 qt_finalize_executable(Throne)

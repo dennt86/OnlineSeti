@@ -2,10 +2,13 @@ package rpc
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -14,6 +17,34 @@ import (
 	"ThroneCore/internal/boxmain"
 	"ThroneCore/internal/process"
 )
+
+func TestWDTTPlusCredentialsAreSentOnlyThroughStartupPipe(t *testing.T) {
+	config := `{"type":"wdttplus","args":["-mode","socks5"],"peer":"example.invalid:443","device_id":"test-device","start":{"connection_password":"secret-password","vk_hashes":"hash-one,hash-two","socks_username":"user","socks_password":"proxy-secret"}}`
+	args, initial, ok := wdttPlusProcess(config)
+	if !ok || len(args) != 2 || args[0] != "-mode" || !strings.HasPrefix(initial, "START_CONFIG|") {
+		t.Fatal("invalid WDTT Plus startup command")
+	}
+	payload := strings.TrimPrefix(initial, "START_CONFIG|")
+	decoded, err := base64.RawURLEncoding.DecodeString(payload)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var secrets map[string]string
+	if err := json.Unmarshal(decoded, &secrets); err != nil {
+		t.Fatal(err)
+	}
+	for _, key := range []string{"connection_password", "vk_hashes", "socks_username", "socks_password"} {
+		if secrets[key] == "" {
+			t.Fatalf("startup secret %q missing", key)
+		}
+	}
+	if strings.Contains(strings.Join(args, " "), "secret-password") || strings.Contains(strings.Join(args, " "), "hash-one") {
+		t.Fatal("credentials were placed in process arguments")
+	}
+	if _, _, ok := wdttPlusProcess(`{"type":"wdttplus","args":[]}`); ok {
+		t.Fatal("incomplete WDTT Plus config accepted")
+	}
+}
 
 func TestRoutedTunnelDuplicateDeviceRejectedBeforeStart(t *testing.T) {
 	conf := `{"backend":"csqtt","peer":"example.invalid:46000","device_id":"test-device"}`

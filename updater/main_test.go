@@ -49,3 +49,16 @@ func TestExtractRelease(t *testing.T) {
 		t.Fatalf("payload: %q, %v", data, err)
 	}
 }
+
+func TestExtractOnlineSetiRelease(t *testing.T) {
+	old := productName
+	productName = "OnlineSetiVPN"
+	defer func() { productName = old }()
+	stage := t.TempDir()
+	if err := extract(archiveFor(t, "OnlineSetiVPN/OnlineSetiCore.exe"), stage); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(stage, "OnlineSetiCore.exe")); err != nil {
+		t.Fatalf("branded executable missing after extraction: %v", err)
+	}
+}

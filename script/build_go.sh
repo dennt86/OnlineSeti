@@ -12,9 +12,32 @@ if $IS_LEGACY; then
   export GOTOOLCHAIN=local
 fi
 
+if [[ "${ONLINESETI_EDITION:-0}" == "1" ]]; then
+    PRODUCT_NAME="OnlineSetiVPN"
+    UPDATE_ARCHIVE="OnlineSetiVPN.zip"
+    CORE_NAME="OnlineSetiCore"
+    CORE_BRAND="OnlineSeti"
+    UPDATER_NAME="OnlineSetiUpdater"
+    WDTT_NAME="OnlineSetiWDTT"
+    WDTT_PLUS_NAME="OnlineSetiWDTTPlus"
+    OPENFLUX_NAME="OnlineSetiOpenFlux"
+    OLCRTC_NAME="OnlineSetiOLCRTC"
+else
+    PRODUCT_NAME="qThrone"
+    UPDATE_ARCHIVE="qThrone.zip"
+    CORE_NAME="qThroneCore"
+    CORE_BRAND="qThrone"
+    UPDATER_NAME="qThroneUpdater"
+    WDTT_NAME="qwdtt"
+    WDTT_PLUS_NAME="wdttplus"
+    OPENFLUX_NAME="openflux"
+    OLCRTC_NAME="olcrtc"
+fi
+export CORE_NAME CORE_BRAND UPDATER_NAME WDTT_NAME WDTT_PLUS_NAME OPENFLUX_NAME OLCRTC_NAME PRODUCT_NAME UPDATE_ARCHIVE
+
 if [[ "$GOOS" == "windows" || "$GOOS" == "linux" ]]; then
     pushd updater
-    CGO_ENABLED=0 $GOCMD build -trimpath -ldflags="-s -w" -o "$DEST/qThroneUpdater$([[ "$GOOS" == "windows" ]] && echo ".exe")" .
+    CGO_ENABLED=0 $GOCMD build -trimpath -ldflags="-s -w -X main.productName=$PRODUCT_NAME -X main.coreName=$CORE_NAME -X main.archiveName=$UPDATE_ARCHIVE" -o "$DEST/$UPDATER_NAME$([[ "$GOOS" == "windows" ]] && echo ".exe")" .
     popd
 fi
 
@@ -41,8 +64,23 @@ esac
 
 #### qWDTT: portable userspace bridge (RAW/WG, no host WireGuard interface) ####
 pushd qwdtt
-CGO_ENABLED=0 $GOCMD build -trimpath -ldflags="-s -w" -o "$DEST/qwdtt$([[ "$GOOS" == "windows" ]] && echo ".exe")" .
+CGO_ENABLED=0 $GOCMD build -trimpath -ldflags="-s -w" -o "$DEST/$WDTT_NAME$([[ "$GOOS" == "windows" ]] && echo ".exe")" .
 cp LICENSE "$DEST/qwdtt-LICENSE"
+popd
+
+#### WDTT Plus: native Go client used by the Android profile ####
+WDTT_PLUS_REVISION=f706ccd373685bbde20cae33b2b7f400e8335ecc
+if [ ! -d wdttplus-source/.git ]; then
+    git init wdttplus-source
+    git -C wdttplus-source fetch --depth=1 https://github.com/Ivan4537/WDTT-Plus.git "$WDTT_PLUS_REVISION"
+    git -C wdttplus-source checkout FETCH_HEAD
+fi
+test "$(git -C wdttplus-source rev-parse HEAD)" = "$WDTT_PLUS_REVISION"
+pushd wdttplus-source/go_client
+CGO_ENABLED=0 "$GOCMD" build -trimpath -buildvcs=false -ldflags='-s -w' -o "$DEST/$WDTT_PLUS_NAME$([[ "$GOOS" == windows ]] && echo '.exe')" .
+cp ../LICENSE "$DEST/WDTT-Plus-LICENSE"
+printf '%s\n' 'https://github.com/Ivan4537/WDTT-Plus' "Revision: $WDTT_PLUS_REVISION" > "$DEST/WDTT-Plus-SOURCE"
+tar -czf "$DEST/wdttplus-source.tar.gz" --exclude=.git --exclude=.idea -C .. .
 popd
 
 #### Go: core ####
@@ -68,5 +106,5 @@ if [[ "$GOOS" == "darwin" ]]; then
   done
 fi
 VERSION_SINGBOX=$(go list -m -f '{{.Version}}' github.com/sagernet/sing-box)
-$GOCMD build -v -o "$DEST/qThroneCore$([[ "$GOOS" == "windows" ]] && echo ".exe")" -trimpath -ldflags "-w -s -X 'github.com/sagernet/sing-box/constant.Version=${VERSION_SINGBOX}' -X 'internal/godebug.defaultGODEBUG=multipathtcp=0' -checklinkname=0" -tags "$TAGS"
+$GOCMD build -v -o "$DEST/$CORE_NAME$([[ "$GOOS" == "windows" ]] && echo ".exe")" -trimpath -ldflags "-w -s -X 'github.com/sagernet/sing-box/constant.Version=${VERSION_SINGBOX}' -X 'main.coreBrand=${CORE_BRAND}' -X 'internal/godebug.defaultGODEBUG=multipathtcp=0' -checklinkname=0" -tags "$TAGS"
 popd

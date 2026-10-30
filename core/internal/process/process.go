@@ -23,6 +23,7 @@ type Process struct {
 	run             running
 	stopped         atomic.Bool
 	stopCommand     string
+	initialCommand  string
 	stopTimeout     time.Duration
 	stdin           *os.File
 	done            chan struct{}
@@ -55,6 +56,9 @@ func (p *Process) EnableStdinShutdown(command string) {
 	}
 }
 
+// SetStdinInitialCommand sends private startup credentials over the pipe after the child starts.
+func (p *Process) SetStdinInitialCommand(command string) { p.initialCommand = command }
+
 // Probe failures belong to the test RPC, not the active profile crash handler.
 func (p *Process) SetBackgroundProbe() { p.backgroundProbe = true }
 
@@ -85,6 +89,13 @@ func (p *Process) Start() error {
 	p.run = run
 	p.stopped.Store(false)
 	p.done = make(chan struct{})
+	if p.initialCommand != "" && p.stdin != nil {
+		if _, err := p.stdin.WriteString(p.initialCommand + "\n"); err != nil {
+			_ = p.run.Kill()
+			p.cleanup()
+			return err
+		}
+	}
 
 	go func() {
 		defer close(p.done)

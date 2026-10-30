@@ -92,6 +92,7 @@ inline std::function<void(QStringList)> MW_import_files;
 // The pending buffer covers URLs arriving before the main window exists.
 QString Deeplink_ExtractFromArgs(const QStringList &args);
 void Deeplink_Submit(const QString &url);
+bool Deeplink_IsSupported(const QString &url);
 void Deeplink_FlushPending();
 
 // Paths may be given either as a plain path or as a file:// URL.

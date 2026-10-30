@@ -11,6 +11,12 @@ set(QTHRONE_REPOSITORY "$ENV{GITHUB_REPOSITORY}" CACHE STRING "qThrone GitHub re
 if (QTHRONE_REPOSITORY STREQUAL "throneproj/Throne")
     set(QTHRONE_REPOSITORY "")
 endif ()
+if (ONLINESETI_EDITION)
+    # The OnlineSeti updater consumes the branded release assets published here.
+    if (QTHRONE_REPOSITORY STREQUAL "")
+        set(QTHRONE_REPOSITORY "$ENV{GITHUB_REPOSITORY}" CACHE STRING "GitHub repository (owner/name)" FORCE)
+    endif ()
+endif ()
 
 # Derive numeric parts for Windows PE VERSIONINFO (X.Y.Z.W) from NKR_VERSION.
 # Examples:

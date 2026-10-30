@@ -74,6 +74,7 @@ namespace Subscription {
         };
 
         const char *typeForScheme(std::string_view link) {
+            if (scan::startsWithNoCase(link, "wdtt://connect?")) return "wdttplus";
             for (const auto &p : kProtocols) {
                 for (const char *scheme : p.schemes) {
                     if (scheme != nullptr && ((std::string_view(p.type) == "qwdtt" || std::string_view(p.type) == "csqtt")
@@ -418,13 +419,13 @@ namespace Subscription {
             if (doc.isArray()) qProfiles = doc.array();
             else if (doc.isObject()) {
                 const auto o = doc.object();
-                if (o.contains("peer") || o["type"].toString() == "qwdtt" || o["type"].toString() == "wdtt") qProfiles.append(o);
+                if (o.contains("peer") || o["type"].toString() == "qwdtt" || o["type"].toString() == "wdtt" || o["type"].toString() == "wdttplus") qProfiles.append(o);
                 else if (o["profiles"].isArray()) qProfiles = o["profiles"].toArray();
                 else if (o["servers"].isArray()) qProfiles = o["servers"].toArray();
             }
             const auto isQwdtt = [](const QJsonObject &o) {
                 const auto type = o["type"].toString();
-                return type == "qwdtt" || type == "wdtt" || (type.isEmpty() && o.contains("peer"));
+                return type == "qwdtt" || type == "wdtt" || type == "wdttplus" || (type.isEmpty() && o.contains("peer"));
             };
             if (std::any_of(qProfiles.cbegin(), qProfiles.cend(), [&](const QJsonValue &v) { return isQwdtt(v.toObject()); })) {
                 // Preserve every protocol and the original document order.
@@ -432,7 +433,7 @@ namespace Subscription {
                     if (!value.isObject()) continue;
                     const auto o = value.toObject();
                     if (isQwdtt(o)) {
-                        auto ent = Configs::ProfilesRepo::NewProfile("qwdtt");
+                        auto ent = Configs::ProfilesRepo::NewProfile(o["type"].toString() == "wdttplus" ? "wdttplus" : "qwdtt");
                         if (ent->outbound->ParseFromJson(o)) produce(ent);
                         else log("Invalid qWDTT profile");
                     } else {
@@ -627,7 +628,7 @@ namespace Subscription {
             // Bot exports wrap share links in Markdown code spans.
             if (line.size() >= 2 && line.front() == '`' && line.back() == '`') {
                 auto unwrapped = scan::trim(line.substr(1, line.size() - 2));
-                if (const auto type = typeForScheme(unwrapped); type && std::string_view(type) == "qwdtt") line = unwrapped;
+                if (const auto type = typeForScheme(unwrapped); type && (std::string_view(type) == "qwdtt" || std::string_view(type) == "wdttplus")) line = unwrapped;
             }
             if (line.starts_with("//") || line.starts_with("#") || line.size() < 2) return;
 
@@ -654,7 +655,8 @@ namespace Subscription {
                 ent = Configs::ProfilesRepo::NewProfile(profileType);
             }
             if (!ent->outbound->ParseFromLink(str)) {
-                if (std::string_view(profileType) == "qwdtt") log("Invalid qWDTT link: check the peer address, ports and mode.");
+                if (std::string_view(profileType) == "wdttplus") log("Invalid WDTT Plus link: check the host, ports, password and VK hashes.");
+                else if (std::string_view(profileType) == "qwdtt") log("Invalid qWDTT link: check the peer address, ports and mode.");
                 return;
             }
 

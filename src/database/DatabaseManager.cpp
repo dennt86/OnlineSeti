@@ -24,7 +24,11 @@
 namespace Configs {
     std::string DatabaseManager::deriveStatsDbPath(const std::string& dbPath) {
         const QFileInfo fi(QString::fromStdString(dbPath));
+#ifdef ONLINESETI_EDITION
+        return QDir(fi.absolutePath()).filePath("OnlineSeti_stats.db").toStdString();
+#else
         return QDir(fi.absolutePath()).filePath("throne_stats.db").toStdString();
+#endif
     }
 
     // Empty when usable. Only file-level verdicts count; anything else is left for the real open to report.

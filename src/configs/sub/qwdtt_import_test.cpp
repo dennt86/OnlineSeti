@@ -147,6 +147,29 @@ int TestQwdttImport() {
     check(defaults.ParseFromLink(QString::fromUtf8(android) + "&vk_anon_path=legacy&captcha_mode=wv"), "captcha mode import");
     Configs::qwdtt exported;
     check(exported.ParseFromLink(defaults.ExportToLink()) && exported.vkAnonPath == "legacy" && exported.captchaMode == "wv", "captcha settings round trip");
+    const QByteArray wdttPlusLink = "wdtt://connect?v=1&host=203.0.113.25&dtls=443&wg=56001&local=9000&password=p%2Bss%26x&hashes=hash-one%2Chash-two&name=WDTT%2B%20test&max_workers=54";
+    const auto wdttPlusProfiles = parse(wdttPlusLink);
+    check(wdttPlusProfiles.size() == 1, "Android WDTT Plus link imports as one profile");
+    if (wdttPlusProfiles.size() == 1) {
+        auto *plus = dynamic_cast<Configs::qwdtt *>(wdttPlusProfiles.first()->outbound.get());
+        check(plus && plus->wdttPlus && plus->server == "203.0.113.25" && plus->server_port == 443 && plus->wgPort == 56001 && plus->localPort == 9000,
+              "WDTT Plus server and ports imported");
+        check(plus && plus->password == "p+ss&x" && plus->hashes == QStringList({"hash-one", "hash-two"}), "WDTT Plus credentials decode without losing plus signs");
+        check(plus && plus->DisplayType() == "WDTT Plus" && plus->workers == 54 && plus->maxWorkers == 54, "WDTT Plus profile label and worker limit imported");
+        if (plus) {
+            Configs::qwdtt plusRoundTrip;
+            check(plusRoundTrip.ParseFromLink(plus->ExportToLink()) && plusRoundTrip.wdttPlus && plusRoundTrip.password == plus->password &&
+                  plusRoundTrip.hashes == plus->hashes && plusRoundTrip.maxWorkers == 54, "WDTT Plus link round trip");
+            const auto jsonRoundTrip = plus->ExportToJson();
+            Configs::qwdtt fromJson;
+            check(fromJson.ParseFromJson(jsonRoundTrip) && fromJson.wdttPlus && fromJson.wgPort == 56001 && fromJson.localPort == 9000,
+                  "WDTT Plus JSON profile round trip");
+        }
+        EditQWDTT plusEditor;
+        plusEditor.onStart(wdttPlusProfiles.first());
+        check(plusEditor.findChild<QSpinBox *>("wdttPlusWgPort") && plusEditor.findChild<QSpinBox *>("wdttPlusLocalPort"),
+              "WDTT Plus editor exposes WG and local ports");
+    }
     auto testProfiles = parse(android);
     const auto fixtureGroups = Configs::dataManager->groupsRepo->GetAllGroupIds();
     check(!fixtureGroups.isEmpty(), "isolated repository has a group");

@@ -27,6 +27,12 @@
 #include "include/sys/SystemProxy.hpp"
 #include "include/ui/mainWindow/MainWindowInternal.h"
 
+#ifdef ONLINESETI_EDITION
+static constexpr auto dashboardEntry = "onlineseti.html";
+#else
+static constexpr auto dashboardEntry = "throne.html";
+#endif
+
 #include "include/ui/group/dialog_manage_groups.h"
 #include "include/ui/setting/dialog_basic_settings.h"
 #include "include/ui/setting/dialog_integration.h"
@@ -196,9 +202,15 @@ void MainWindow::on_menu_exit_triggered() {
     if (exit_reason == ExitReason::RunUpdater) {
         QDir::setCurrent(QApplication::applicationDirPath());
 #ifdef Q_OS_WIN
+#ifdef ONLINESETI_EDITION
+        QFile::remove("./OnlineSetiUpdater.old");
+        QFile::copy("./OnlineSetiUpdater.exe", "./OnlineSetiUpdater.old");
+        QProcess::startDetached("./OnlineSetiUpdater.old", QStringList{QString::number(QCoreApplication::applicationPid())});
+#else
         QFile::remove("./qThroneUpdater.old");
         QFile::copy("./qThroneUpdater.exe", "./qThroneUpdater.old");
         QProcess::startDetached("./qThroneUpdater.old", QStringList{QString::number(QCoreApplication::applicationPid())});
+#endif
 #else
         QProcess::startDetached("./qThroneUpdater", QStringList{QString::number(QCoreApplication::applicationPid())});
 #endif
@@ -588,9 +600,14 @@ void MainWindow::SeedDashboard() {
     // Reinstalling replaces the whole directory, so this cannot be a one-time copy.
     auto src = QFile(":/Throne/dashboard-bootstrap.html");
     if (!src.open(QIODevice::ReadOnly)) return;
-    const auto data = src.readAll();
+    auto data = src.readAll();
     src.close();
-    if (auto dest = QFile(dashDir.filePath("throne.html")); dest.open(QIODevice::Truncate | QIODevice::WriteOnly)) {
+#ifdef ONLINESETI_EDITION
+    data.replace("<title>Throne</title>", "<title>OnlineSeti VPN</title>");
+    data.replace("id: \"throne\"", "id: \"onlineseti\"");
+    data.replace("name: \"Throne\"", "name: \"OnlineSeti VPN\"");
+#endif
+    if (auto dest = QFile(dashDir.filePath(dashboardEntry)); dest.open(QIODevice::Truncate | QIODevice::WriteOnly)) {
         dest.write(data);
         dest.close();
     }
@@ -611,7 +628,7 @@ void MainWindow::OpenDashboard() {
     const auto show = [this, port] {
         SeedDashboard();
         // Fragment, not query: browsers never send it to the server.
-        QUrl url(QString("http://127.0.0.1:%1/dashboard/throne.html").arg(port));
+        QUrl url(QString("http://127.0.0.1:%1/dashboard/%2").arg(port).arg(dashboardEntry));
         url.setFragment(QString("secret=%1&url=127.0.0.1:%2")
                             .arg(QString::fromUtf8(QUrl::toPercentEncoding(Configs::dataManager->settingsRepo->core_box_api_secret)))
                             .arg(port),
@@ -699,7 +716,11 @@ void MainWindow::CheckUpdate() {
     // Releases carry no checksum or signature, so TLS is all that vouches for the download URL and the archive.
     HttpGetOptions options;
     options.strictTls = true;
+#ifdef ONLINESETI_EDITION
     const QString forkRepository = QStringLiteral(QTHRONE_REPOSITORY);
+#else
+    const QString forkRepository = QStringLiteral(QTHRONE_REPOSITORY);
+#endif
     if (forkRepository.isEmpty()) {
         runOnUiThread([=,this] { MessageBoxInfo(tr("Update"), tr("This qThrone build has no update repository configured.")); });
         return;
@@ -762,7 +783,12 @@ void MainWindow::CheckUpdate() {
                 }
                 QString errors;
                 if (!release_download_url.isEmpty()) {
-                    auto res = NetworkRequestHelper::DownloadAsset(release_download_url, "qThrone.zip", false, true);
+#ifdef ONLINESETI_EDITION
+                    const auto updateArchive = QStringLiteral("OnlineSetiVPN.zip");
+#else
+                    const auto updateArchive = QStringLiteral("qThrone.zip");
+#endif
+                    auto res = NetworkRequestHelper::DownloadAsset(release_download_url, updateArchive, false, true);
                     if (!res.isEmpty()) {
                         errors += res;
                     }

@@ -411,15 +411,24 @@ void runOnUiThread(const std::function<void()> &callback, bool wait) {
 
 static QString g_pendingDeeplink;
 
+bool Deeplink_IsSupported(const QString &url) {
+    if (url.startsWith("throne://", Qt::CaseInsensitive)) return true;
+#ifdef ONLINESETI_EDITION
+    return url.startsWith("onlineseti://", Qt::CaseInsensitive);
+#else
+    return false;
+#endif
+}
+
 QString Deeplink_ExtractFromArgs(const QStringList &args) {
     for (const auto &arg : args) {
-        if (arg.startsWith("throne://")) return arg;
+        if (Deeplink_IsSupported(arg)) return arg;
     }
     return {};
 }
 
 void Deeplink_Submit(const QString &url) {
-    if (url.isEmpty() || !url.startsWith("throne://")) return;
+    if (url.isEmpty() || !Deeplink_IsSupported(url)) return;
     if (MW_handle_deeplink) {
         MW_handle_deeplink(url);
     } else {
@@ -445,7 +454,7 @@ QStringList LaunchFiles_ExtractFromArgs(const QStringList &args, const QDir &lau
             if (arg == "-appdata") i++;
             continue;
         }
-        if (arg.startsWith("throne://")) continue;
+        if (Deeplink_IsSupported(arg)) continue;
 
         // A relative path resolves against the directory we were launched from, which main() abandons early.
         auto path = arg.startsWith("file://") ? QUrl(arg).toLocalFile() : arg;

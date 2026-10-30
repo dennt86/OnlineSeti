@@ -665,7 +665,7 @@ namespace Subscription {
         for (const auto &profile : profiles) {
             const auto object = profile.toObject();
             const auto type = object.value("type").toString();
-            if (object.contains("peer") && (type.isEmpty() || type == "qwdtt" || type == "wdtt")) {
+            if ((object.contains("peer") || type == "wdttplus") && (type.isEmpty() || type == "qwdtt" || type == "wdtt" || type == "wdttplus")) {
                 isQwdttSubscription = true;
                 break;
             }

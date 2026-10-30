@@ -90,7 +90,11 @@ DialogBasicSettings::DialogBasicSettings(QWidget *parent)
         });
     };
     connectAssociation(Association::Links, ui->url_scheme_auto_register, ui->url_scheme_install, ui->url_scheme_uninstall,
+#ifdef ONLINESETI_EDITION
+                       tr("Could not register the handler for onlineseti:// links."));
+#else
                        tr("Could not register the handler for throne:// links."));
+#endif
     connectAssociation(Association::ConfigFiles, ui->file_assoc_auto_register, ui->file_assoc_install, ui->file_assoc_uninstall,
                        tr("Could not register the config file associations."));
 #ifdef Q_OS_MACOS

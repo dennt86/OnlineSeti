@@ -117,7 +117,11 @@ QString csqtt::Prepare() {
         seen.insert(hash);
     }
     if (deviceID.isEmpty()) deviceID = QUuid::createUuid().toString(QUuid::WithoutBraces);
+#ifdef ONLINESETI_EDITION
+    QString helper = "OnlineSetiWDTT", transport = "csqtt-transport";
+#else
     QString helper = "qwdtt", transport = "csqtt-transport";
+#endif
 #ifdef Q_OS_WIN
     helper += ".exe"; transport += ".exe";
 #endif

@@ -48,13 +48,18 @@ int TestCoreStartup() {
     QByteArray output = core.readAll();
     QElapsedTimer deadline;
     deadline.start();
+#ifdef ONLINESETI_EDITION
+    const QByteArray successMessage = "Core Has Successfully Connected to OnlineSeti!";
+#else
+    const QByteArray successMessage = "Core Has Successfully Connected to qThrone!";
+#endif
     while (socket && core.state() == QProcess::Running && deadline.elapsed() < 5000 &&
-           !output.contains("Core Has Successfully Connected to qThrone!")) {
+           !output.contains(successMessage)) {
         core.waitForReadyRead(250);
         output += core.readAll();
     }
     const bool ok = socket && core.state() == QProcess::Running &&
-                    output.contains("Core Has Successfully Connected to qThrone!");
+                    output.contains(successMessage);
     if (!ok) qCritical() << "Packaged core startup failed:" << core.errorString() << output;
     core.terminate();
     if (!core.waitForFinished(5000)) {

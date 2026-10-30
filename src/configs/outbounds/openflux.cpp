@@ -91,7 +91,11 @@ QString openflux::ExportToLink() {
 }
 QString openflux::Prepare() {
     if (const auto error = Validate(); !error.isEmpty()) return error;
+#ifdef ONLINESETI_EDITION
+    QString executable = "OnlineSetiOpenFlux";
+#else
     QString executable = "openflux";
+#endif
 #ifdef Q_OS_WIN
     executable += ".exe";
 #endif

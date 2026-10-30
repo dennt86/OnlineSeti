@@ -56,7 +56,7 @@ std::pair<QWidget *, ProfileEditor *> makeEditor(QWidget *parent) {
 
 EditorFactory editorFactory(const QString &type) {
     static const QHash<QString, EditorFactory> factories = {
-        {"qwdtt", makeEditor<EditQWDTT>},
+        {"qwdtt", makeEditor<EditQWDTT>}, {"wdttplus", makeEditor<EditQWDTT>},
         {"csqtt", makeEditor<EditCSQTT>},
         {"openflux", makeEditor<EditOpenFlux>},
         {"olcrtc", makeEditor<EditOLCRTC>},
@@ -210,9 +210,9 @@ DialogEditProfile::~DialogEditProfile() {
 
 void DialogEditProfile::setupTypeList() {
     const auto addType = [this](const QString &t) {
-        ui->type->addItem(t == "qwdtt" ? QStringLiteral("qWDTT") : t == "csqtt" ? QStringLiteral("CSQTT") : Configs::dataManager->profilesRepo->NewProfile(t)->outbound->DisplayType(), t);
+        ui->type->addItem(t == "qwdtt" ? QStringLiteral("qWDTT") : t == "wdttplus" ? QStringLiteral("WDTT Plus") : t == "csqtt" ? QStringLiteral("CSQTT") : Configs::dataManager->profilesRepo->NewProfile(t)->outbound->DisplayType(), t);
     };
-    for (const auto *t: {"qwdtt", "csqtt", "openflux", "olcrtc", "autoselector", "socks", "http", "shadowsocks", "trojan", "vmess", "vless", "xrayvless",
+    for (const auto *t: {"qwdtt", "wdttplus", "csqtt", "openflux", "olcrtc", "autoselector", "socks", "http", "shadowsocks", "trojan", "vmess", "vless", "xrayvless",
                          "hysteria", "tuic", "juicity", "naive", "trusttunnel", "anytls", "mieru", "snell",
                          "shadowtls", "wireguard", "masque", "openvpn", "openconnect", "tailscale", "ssh", "direct"}) {
         addType(t);
@@ -323,7 +323,7 @@ void DialogEditProfile::updateCommonRows() {
     addressEffective->setToolTip(!overridden ? QString()
                                  : own.isEmpty() ? tr("Set by %1.").arg(endpoint.origin)
                                                  : tr("Set by %1; the profile's own address is %2.").arg(endpoint.origin, own));
-    ui->advanced_button->setVisible((server && type != "qwdtt" && type != "csqtt" && type != "openflux" && type != "olcrtc") || type == "direct");
+    ui->advanced_button->setVisible((server && type != "qwdtt" && type != "wdttplus" && type != "csqtt" && type != "openflux" && type != "olcrtc") || type == "direct");
 }
 
 void DialogEditProfile::relayout() {

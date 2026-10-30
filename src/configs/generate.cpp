@@ -357,6 +357,11 @@ namespace Configs {
             name += ".exe";
 #endif
             add(QFileInfo(QCoreApplication::applicationDirPath() + "/" + name).canonicalFilePath());
+            name = "OnlineSetiWDTTPlus";
+#ifdef Q_OS_WIN
+            name += ".exe";
+#endif
+            add(QFileInfo(QCoreApplication::applicationDirPath() + "/" + name).canonicalFilePath());
             name = "olcrtc";
 #ifdef Q_OS_WIN
             name += ".exe";
@@ -715,7 +720,7 @@ namespace Configs {
                     ctx.error = "The routing profile is referencing outbounds that no longer exist, consider revising your settings";
                     return;
                 }
-                const bool routedTransport = neededEnt->type == "qwdtt" || neededEnt->type == "csqtt" || neededEnt->type == "openflux" || neededEnt->type == "olcrtc";
+                const bool routedTransport = neededEnt->type == "qwdtt" || neededEnt->type == "wdttplus" || neededEnt->type == "csqtt" || neededEnt->type == "openflux" || neededEnt->type == "olcrtc";
                 if ((neededEnt->outbound != nullptr && neededEnt->outbound->IsExtraCore() && !routedTransport) || isCustomFullConfig(neededEnt) || isXrayFullConfig(neededEnt)) {
                     ctx.error = "Outbounds used in routing profile cannot use an extra core or be a custom full config";
                     return;
@@ -875,7 +880,7 @@ namespace Configs {
             for (const auto &group : preReqs.routing.routeOutboundGroups) {
                 if (group.hopIDs.size() != 1) continue;
                 auto routed = getProfile(group.hopIDs.first());
-                if (routed == nullptr || (routed->type != "qwdtt" && routed->type != "csqtt" && routed->type != "openflux" && routed->type != "olcrtc")) continue;
+                if (routed == nullptr || (routed->type != "qwdtt" && routed->type != "wdttplus" && routed->type != "csqtt" && routed->type != "openflux" && routed->type != "olcrtc")) continue;
                 if (mainExtraCore != nullptr && routed->id == mainExtraCore->id) continue;
                 extraCoreProfiles.append(routed);
             }
@@ -912,7 +917,7 @@ namespace Configs {
                     extraCoreData.outboundTag = preReqs.routing.outboundMap.at(extraCoreEnt->id);
                     ctx.result->routedExtraCores.append(extraCoreData);
                 }
-                if (extraCoreEnt->type == "qwdtt" || extraCoreEnt->type == "csqtt" || extraCoreEnt->type == "openflux" || extraCoreEnt->type == "olcrtc") ctx.ipv4TransportTags.insert(extraCoreData.outboundTag);
+                if (extraCoreEnt->type == "qwdtt" || extraCoreEnt->type == "wdttplus" || extraCoreEnt->type == "csqtt" || extraCoreEnt->type == "openflux" || extraCoreEnt->type == "olcrtc") ctx.ipv4TransportTags.insert(extraCoreData.outboundTag);
             }
             // A transport's address family must not disable IPv6 for other exits.
             ctx.qwdttIPv4Only = ctx.ipv4TransportTags.contains(tags::proxy) && preReqs.routing.routeOutboundGroups.isEmpty();
@@ -2873,7 +2878,7 @@ namespace Configs {
 
         for (const auto& item : profiles)
         {
-            if (item->type == "qwdtt" || item->type == "csqtt" || item->type == "openflux" || item->type == "olcrtc") {
+            if (item->type == "qwdtt" || item->type == "wdttplus" || item->type == "csqtt" || item->type == "openflux" || item->type == "olcrtc") {
                 // Clone runtime fields so probing cannot replace live SOCKS credentials.
                 std::unique_ptr<extracore> holder;
                 if (item->type == "csqtt") holder = std::make_unique<csqtt>();

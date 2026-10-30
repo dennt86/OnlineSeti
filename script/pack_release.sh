@@ -4,6 +4,8 @@ set -euo pipefail
 USAGE="usage: pack_release.sh <windows|linux-amd64|linux-arm64|macos|debug> <tag>"
 TARGET="${1:?$USAGE}"
 export TAG="${2:?$USAGE}"
+APP_NAME="${APP_NAME:-qThrone}"
+ARCHIVE_NAME="${ARCHIVE_NAME:-$APP_NAME}"
 export ROOT="$PWD"
 export DEPLOY="$ROOT/deployment"
 export WORK="$ROOT/.pack"
@@ -38,16 +40,16 @@ build_installer() {
         "$(cygpath -w "$ROOT/script/windows_installer.iss")"
 }
 
-# Hard links give the archive its qThrone/ root without moving a dir other tasks still read.
+# Hard links give the archive its branded root without moving files other tasks read.
 zip_dir() {
     mkdir -p "$WORK/$2"
-    cp -al "$DEPLOY/$1" "$WORK/$2/qThrone"
+    cp -al "$DEPLOY/$1" "$WORK/$2/$APP_NAME"
     cd "$WORK/$2"
     if command -v zip >/dev/null; then
-        zip -q -r "$DEPLOY/qThrone-$TAG-$2.zip" qThrone
+        zip -q -r "$DEPLOY/$ARCHIVE_NAME-$TAG-$2.zip" "$APP_NAME"
     else
         # Windows runners ship 7-Zip but not Info-ZIP.
-        7z a -tzip -mx=5 -bd -bso0 "$DEPLOY/qThrone-$TAG-$2.zip" qThrone
+        7z a -tzip -mx=5 -bd -bso0 "$DEPLOY/$ARCHIVE_NAME-$TAG-$2.zip" "$APP_NAME"
     fi
 }
 
@@ -89,12 +91,14 @@ case "$TARGET" in
 windows)
     untar 'windows*' --exclude='*.pdb'
     TASKS=(
-        "installer build_installer"
         "zip-windows64 zip_dir windows-amd64 windows64"
-        "zip-windows-arm64 zip_dir windows-arm64 windows-arm64"
-        "zip-windows32 zip_dir windowslegacy-386 windows32"
-        "zip-windowslegacy64 zip_dir windowslegacy-amd64 windowslegacy64"
     )
+    if [[ "$APP_NAME" == "qThrone" ]]; then
+        TASKS=("installer build_installer" "${TASKS[@]}" \
+            "zip-windows-arm64 zip_dir windows-arm64 windows-arm64" \
+            "zip-windows32 zip_dir windowslegacy-386 windows32" \
+            "zip-windowslegacy64 zip_dir windowslegacy-amd64 windowslegacy64")
+    fi
     ;;
 linux-amd64 | linux-arm64)
     arch="${TARGET#linux-}"

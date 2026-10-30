@@ -5,7 +5,7 @@
 #include <QSignalBlocker>
 
 EditQWDTT::EditQWDTT(QWidget *parent) : QWidget(parent) {
-    auto *form = new QFormLayout(this);
+    form = new QFormLayout(this);
     mode = new QComboBox(this);
     mode->addItem("RAW", "raw");
     mode->addItem("WG", "wg");
@@ -24,6 +24,10 @@ EditQWDTT::EditQWDTT(QWidget *parent) : QWidget(parent) {
     rawPort->setValue(56003);
     form->addRow(tr("RAW server port"), rawPort);
     rawPort->setToolTip(tr("qWDTT RAW listener, normally 56003. The main server port is used by WG."));
+    wgPort = new QSpinBox(this); wgPort->setRange(1, 65535); wgPort->setValue(56001); wgPort->setObjectName("wdttPlusWgPort");
+    form->addRow(tr("WireGuard server port"), wgPort);
+    localPort = new QSpinBox(this); localPort->setRange(1, 65535); localPort->setValue(9000); localPort->setObjectName("wdttPlusLocalPort");
+    form->addRow(tr("Client local port"), localPort);
     workers = new QComboBox(this);
     workers->setObjectName("qwdttWorkers");
     for (auto *field : hashes) connect(field, &QLineEdit::textChanged, this, [this] { updateWorkers(); });
@@ -62,10 +66,19 @@ void EditQWDTT::onStart(std::shared_ptr<Configs::Profile> profile) {
     ent = std::move(profile);
     auto *o = dynamic_cast<Configs::qwdtt *>(ent->outbound.get());
     if (!o) return;
+    const auto hideField = [this](QWidget *field, bool hide) {
+        field->setVisible(!hide);
+        if (auto *label = form->labelForField(field)) label->setVisible(!hide);
+    };
+    for (auto *field : {static_cast<QWidget *>(mode), static_cast<QWidget *>(rawPort), static_cast<QWidget *>(transport),
+                        static_cast<QWidget *>(authorization), static_cast<QWidget *>(obfs), static_cast<QWidget *>(dns)}) hideField(field, o->wdttPlus);
+    hideField(wgPort, !o->wdttPlus); hideField(localPort, !o->wdttPlus);
     mode->setCurrentIndex(o->mode == "wg" ? 1 : 0);
     password->setText(o->password);
     for (int i = 0; i < 4; ++i) hashes[i]->setText(i < o->hashes.size() ? o->hashes[i] : QString());
     rawPort->setValue(o->rawPort);
+    wgPort->setValue(o->wgPort);
+    localPort->setValue(o->localPort);
     rawPort->setEnabled(o->mode == "raw");
     updateWorkers(o->workers);
     transport->setCurrentIndex(o->turnTCP ? 1 : 0);
@@ -101,6 +114,7 @@ bool EditQWDTT::onEnd() {
     o->obfs = obfs->currentData().toString();
     o->goDNS = dns->currentText().trimmed();
     o->deviceID = device->text().trimmed();
+    o->wgPort = wgPort->value(); o->localPort = localPort->value();
     return true;
 }
 
@@ -109,10 +123,14 @@ void EditQWDTT::updateWorkers(int requested) {
     for (auto *field : hashes) values.append(field->text());
     const int hashCount = Configs::qwdtt::NormalizeHashes(values).size();
     if (requested < 0) requested = workers->currentData().toInt();
-    const int selected = Configs::qwdtt::NormalizeWorkers(requested, hashCount);
+    const auto *profile = ent ? dynamic_cast<const Configs::qwdtt *>(ent->outbound.get()) : nullptr;
+    const int maximum = profile && profile->wdttPlus && profile->maxWorkers >= 9
+                            ? qBound(9, (profile->maxWorkers / 9) * 9, 108) : 108;
+    const int selected = profile && profile->wdttPlus ? qBound(9, ((qMax(9, requested) + 4) / 9) * 9, maximum)
+                                                       : Configs::qwdtt::NormalizeWorkers(requested, hashCount);
     const QSignalBlocker blocker(workers);
     workers->clear();
-    for (int count = 9; count <= Configs::qwdtt::MaxWorkers(hashCount); count += 9)
+    for (int count = 9; count <= (profile && profile->wdttPlus ? maximum : Configs::qwdtt::MaxWorkers(hashCount)); count += 9)
         workers->addItem(QString::number(count), count);
     workers->setCurrentIndex(workers->findData(selected));
 }

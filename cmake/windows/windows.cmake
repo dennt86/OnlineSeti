@@ -2,15 +2,26 @@ set(PLATFORM_SOURCES 3rdparty/WinCommander.cpp src/sys/windows/guihelper.cpp src
 set(PLATFORM_LIBRARIES wininet wsock32 ws2_32 user32 rasapi32 iphlpapi ntdll wbemuuid psapi shell32)
 
 include(cmake/windows/generate_product_version.cmake)
+if (ONLINESETI_EDITION)
+    set(EDITION_NAME "OnlineSeti VPN")
+    set(EDITION_FILE "OnlineSetiVPN.exe")
+    set(EDITION_COMPANY "OnlineSeti")
+    set(EDITION_ICON "${CMAKE_SOURCE_DIR}/res/OnlineSeti.ico")
+else()
+    set(EDITION_NAME "qThrone")
+    set(EDITION_FILE "qThrone.exe")
+    set(EDITION_COMPANY "qThrone")
+    set(EDITION_ICON "${CMAKE_SOURCE_DIR}/res/Throne.ico")
+endif()
 generate_product_version(
         QV2RAY_RC
-        ICON "${CMAKE_SOURCE_DIR}/res/Throne.ico"
-        NAME "qThrone"
-        BUNDLE "qThrone"
-        COMPANY_NAME "qThrone"
-        COMPANY_COPYRIGHT "qThrone"
-        FILE_DESCRIPTION "qThrone"
-        ORIGINAL_FILENAME "qThrone.exe"
+        ICON "${EDITION_ICON}"
+        NAME "${EDITION_NAME}"
+        BUNDLE "${EDITION_NAME}"
+        COMPANY_NAME "${EDITION_COMPANY}"
+        COMPANY_COPYRIGHT "${EDITION_COMPANY}"
+        FILE_DESCRIPTION "${EDITION_NAME}"
+        ORIGINAL_FILENAME "${EDITION_FILE}"
         VERSION_MAJOR ${NKR_VERSION_MAJOR}
         VERSION_MINOR ${NKR_VERSION_MINOR}
         VERSION_PATCH ${NKR_VERSION_PATCH}

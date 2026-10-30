@@ -23,6 +23,7 @@
         <file>icon/material/swap-horizontal.png</file>
     </qresource>
     <qresource prefix="/Throne">
+        <file alias="OnlineSeti.png">OnlineSeti.png</file>
         <file alias="Throne.png">public/Throne.png</file>
         <file alias="Off.png">public/Off.png</file>
         <file alias="Connecting.png">public/Connecting.png</file>

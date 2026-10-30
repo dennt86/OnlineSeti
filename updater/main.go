@@ -12,6 +12,11 @@ import (
 	"strings"
 )
 
+// The release workflow overrides these values for branded editions.
+var productName = "qThrone"
+var coreName = "qThroneCore"
+var archiveName = "qThrone.zip"
+
 func extract(archive, stage string) error {
 	z, err := zip.OpenReader(archive)
 	if err != nil {
@@ -19,8 +24,8 @@ func extract(archive, stage string) error {
 	}
 	defer z.Close()
 	for _, f := range z.File {
-		name := strings.TrimPrefix(f.Name, "qThrone/")
-		if f.Name == "qThrone/" {
+		name := strings.TrimPrefix(f.Name, productName+"/")
+		if f.Name == productName+"/" {
 			continue
 		}
 		if name == f.Name || strings.Contains(name, "\\") || filepath.IsAbs(name) || filepath.Clean(name) == ".." || strings.HasPrefix(filepath.Clean(name), ".."+string(filepath.Separator)) || f.Mode()&os.ModeSymlink != 0 {
@@ -75,16 +80,16 @@ func update() error {
 			return err
 		}
 	}
-	stage, err := os.MkdirTemp(".", ".qthrone-update-")
+	stage, err := os.MkdirTemp(".", ".onlineseti-update-")
 	if err != nil {
 		return err
 	}
 	defer os.RemoveAll(stage)
-	if err := extract("qThrone.zip", stage); err != nil {
+	if err := extract(archiveName, stage); err != nil {
 		return err
 	}
-	executable := "qThrone"
-	core := "qThroneCore"
+	executable := productName
+	core := coreName
 	if runtime.GOOS == "windows" {
 		executable += ".exe"
 		core += ".exe"
@@ -94,7 +99,7 @@ func update() error {
 			return fmt.Errorf("missing release executable %s", name)
 		}
 	}
-	backup, err := os.MkdirTemp(".", ".qthrone-backup-")
+	backup, err := os.MkdirTemp(".", ".onlineseti-backup-")
 	if err != nil {
 		return err
 	}
@@ -135,14 +140,14 @@ func update() error {
 		installed = append(installed, name)
 	}
 	os.RemoveAll(backup)
-	os.Remove("qThrone.zip")
+	os.Remove(archiveName)
 	return exec.Command("./" + executable).Start()
 }
 
 func main() {
 	if err := update(); err != nil {
-		message := fmt.Sprintf("qThrone update failed: %v\n", err)
-		os.WriteFile("qThrone-update-error.log", []byte(message), 0600)
+		message := fmt.Sprintf("%s update failed: %v\n", productName, err)
+		os.WriteFile(productName+"-update-error.log", []byte(message), 0600)
 		fmt.Fprint(os.Stderr, message)
 		os.Exit(1)
 	}
