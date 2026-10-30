@@ -64,7 +64,20 @@ jobs:
           export GOOS=windows GOARCH=amd64 RUNNER_OS=Windows ARCH=x64
           export DEST="$(cygpath -u "$GITHUB_WORKSPACE/deployment/windows-amd64")"
           bash script/build_csqtt.sh
-          bash script/build_go.sh
+          # Windows hosted runners occasionally get HTTP/2 resets from proxy.golang.org
+          # while downloading the large sing-box dependency graph. Retry in-place so
+          # already downloaded modules stay cached for the next attempt.
+          for attempt in 1 2 3; do
+            if bash script/build_go.sh; then
+              break
+            fi
+            if [[ "$attempt" == 3 ]]; then
+              echo "Go transport/core build failed after $attempt attempts" >&2
+              exit 1
+            fi
+            echo "Go transport/core build failed (attempt $attempt); retrying after network backoff..." >&2
+            sleep $((attempt * 10))
+          done
           cp csqtt-artifact/* "$DEST/"
       - name: Bundle the web dashboard
         shell: bash
