@@ -32,6 +32,10 @@ def patch(core: Path):
                 old_file.chmod(stat.S_IWRITE | stat.S_IREAD)
         shutil.rmtree(target)
     shutil.copytree(info["Dir"], target, ignore=shutil.ignore_patterns(".git", "vendor"))
+    # Go's module cache marks source files read-only. copytree preserves those
+    # modes, but the patch below must edit the copied sources.
+    for copied_path in target.rglob("*"):
+        copied_path.chmod(copied_path.stat().st_mode | stat.S_IWUSR)
 
     options = target / "option" / "group.go"
     replace_once(options,
