@@ -18,12 +18,15 @@ import app.qthrone.mobile.R
 import app.qthrone.mobile.SagerNet
 import app.qthrone.mobile.aidl.SpeedDisplayData
 import app.qthrone.mobile.database.DataStore
+import app.qthrone.mobile.database.GroupRepo
 import app.qthrone.mobile.database.ProfileOrder
 import app.qthrone.mobile.database.ProxyEntity
 import app.qthrone.mobile.database.SagerDatabase
+import app.qthrone.mobile.group.OnlinesetiAutoSetup
 import app.qthrone.mobile.ktx.app
 import app.qthrone.mobile.ktx.getColorAttr
 import app.qthrone.mobile.ktx.runOnMainDispatcher
+import app.qthrone.mobile.outbound.types.AutoSelector
 import app.qthrone.mobile.ui.SwitchActivity
 import app.qthrone.mobile.utils.Theme
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -63,6 +66,14 @@ class ServiceNotification(
         }
 
         fun genTitle(ent: ProxyEntity): String {
+            val selector = ent.outbound as? AutoSelector
+            if (selector != null && OnlinesetiAutoSetup.isManagedSelectorName(selector.name)) {
+                return OnlinesetiAutoSetup.AUTOMATIC_NOTIFICATION_NAME
+            }
+            val group = GroupRepo.get(ent.groupId)
+            if (group?.isSubscription == true && OnlinesetiAutoSetup.owns(group.url)) {
+                return OnlinesetiAutoSetup.MANUAL_NOTIFICATION_NAME
+            }
             return ent.displayName()
         }
     }

@@ -11,7 +11,15 @@ import java.net.URLEncoder
 
 /** Keep the selector outside the subscription, so refreshing it cannot delete Auto mode. */
 object OnlinesetiAutoSetup {
-    private const val SELECTOR_NAME = "Автоматически · Onlineseti"
+    const val AUTOMATIC_NOTIFICATION_NAME = "Onlineseti — A"
+    const val MANUAL_NOTIFICATION_NAME = "Onlineseti — M"
+    private const val SELECTOR_NAME = AUTOMATIC_NOTIFICATION_NAME
+    private const val LEGACY_SELECTOR_NAME = "Автоматически · Onlineseti"
+
+    fun isManagedSelectorName(name: String?): Boolean =
+        name == SELECTOR_NAME || name == LEGACY_SELECTOR_NAME
+
+    private fun isManaged(selector: AutoSelector): Boolean = isManagedSelectorName(selector.name)
 
     fun owns(url: String): Boolean = OnlinesetiLinks.subscription(
         "onlineseti://import?url=" + URLEncoder.encode(url, "UTF-8")
@@ -65,7 +73,7 @@ object OnlinesetiAutoSetup {
     /** Repair an app-managed selector from its current Onlineseti subscription before attempting to connect. */
     fun repairOrphan(profile: ProxyEntity): Boolean {
         val selector = profile.outbound as? AutoSelector ?: return false
-        if (selector.name != SELECTOR_NAME) return false
+        if (!isManaged(selector)) return false
         val boundGroup = GroupRepo.get(selector.gid)
         // A subscription refresh can preserve an empty group after receiving an unusable response. If this device
         // already has another populated first-party subscription (for example, the old group before recreation),
@@ -86,17 +94,19 @@ object OnlinesetiAutoSetup {
             (profile.outbound as? AutoSelector)?.let { profile to it }
         }
         val selectedId = DataStore.selectedProxy
-        val selected = selectors.firstOrNull { it.first.id == selectedId && it.second.name == SELECTOR_NAME }
+        val selected = selectors.firstOrNull { it.first.id == selectedId && isManaged(it.second) }
         val existing = selected
-            ?: selectors.firstOrNull { it.second.gid == groupId && it.second.name == SELECTOR_NAME }
-            ?: selectors.firstOrNull { it.second.name == SELECTOR_NAME }
+            ?: selectors.firstOrNull { it.second.gid == groupId && isManaged(it.second) }
+            ?: selectors.firstOrNull { isManaged(it.second) }
         val selector = if (existing == null) {
             ProfileManager.addProfile(policy(groupId), localGroup)
         } else {
             val (profile, outbound) = existing
             val groupChanged = rebind(outbound, groupId)
             val smoothingChanged = migrateSmoothingPolicy(outbound)
-            if (groupChanged || smoothingChanged) {
+            val nameChanged = outbound.name != SELECTOR_NAME
+            outbound.name = SELECTOR_NAME
+            if (groupChanged || smoothingChanged || nameChanged) {
                 profile.putOutbound(outbound)
                 ProfileManager.updateProfile(profile)
             }

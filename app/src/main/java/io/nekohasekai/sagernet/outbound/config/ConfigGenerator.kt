@@ -733,6 +733,12 @@ class ConfigGenerator @JvmOverloads constructor(
         )
         if (warm.isNotEmpty()) group["warm"] = warm
         if (pinnedTag.isNotEmpty()) group["pinned"] = pinnedTag
+        // Cellular WDTT is the preferred transport. Keep short probe failures from sending
+        // traffic to a reserve; the core still probes every member and requires five consecutive
+        // WDTT failures before allowing a healthy reserve to carry traffic.
+        if (tracked.wdttPlusPreferred && plannedMembers.any { it.member.outbound?.type == "wdttplus" }) {
+            group["pinned_failover_failures"] = 5
+        }
         if (selector.maxRTTms > 0) group["max_rtt"] = "${selector.maxRTTms}ms"
         // Never the latency test URL: that one is fetched through the proxy and is routinely blocked directly.
         val connectivityUrl = selector.connectivityURL.ifEmpty { settings.directTestUrl }
