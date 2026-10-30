@@ -461,11 +461,13 @@ object AutoSelectorRuntime {
         val idle = run.service.data.isDeviceIdle(run.core.box)
         var exhausted = false
         var persist = false
+        var initialObservation = false
         var selectionChanged: Pair<String, String>? = null
         synchronized(lock) {
             if (this.run !== run) return
             val previousTag = run.lastObservedSelectedTag
             val previousSwitchMs = run.lastObservedSwitchMs
+            initialObservation = previousTag == null
             if (previousTag != null && (previousTag != sample.selectedTag || previousSwitchMs != sample.lastSwitchMs)) {
                 selectionChanged = previousTag to sample.selectedTag
             }
@@ -505,7 +507,7 @@ object AutoSelectorRuntime {
                     "reason=${sample.lastSwitchReason.ifEmpty { "unspecified" }}",
             )
         }
-        stabilizeCellularPin(run, sample)
+        stabilizeCellularPin(run, sample, initialObservation)
         // Nothing shows it while the screen is off, and a frozen UI process would only pile the callbacks up; the
         // screen coming on polls and publishes at once.
         if (run.service.data.notification?.screenOn?.value != false) publish()
@@ -514,7 +516,7 @@ object AutoSelectorRuntime {
     }
 
     /** Anchor a confirmed cellular failover, without failing back merely because WDTT recovers. */
-    private fun stabilizeCellularPin(run: Run, sample: AutoSelectorCore.Sample) {
+    private fun stabilizeCellularPin(run: Run, sample: AutoSelectorCore.Sample, initialObservation: Boolean) {
         val wdttTag = run.preferredWdttTag ?: return
         if (sample.suspended) return
         val wdtt = sample.members.firstOrNull { it.tag == wdttTag } ?: return
@@ -528,6 +530,8 @@ object AutoSelectorRuntime {
             wdttState = wdtt.state,
             pinnedState = pinned?.state.orEmpty(),
             selectedState = selected?.state.orEmpty(),
+            allowInitialWdttPin = initialObservation && sample.lastSwitchReason != "failover succeeded",
+            stabilizeSelectedAfterFailover = sample.lastSwitchReason == "failover succeeded",
         ) ?: return
         val now = System.currentTimeMillis()
         val shouldSelect = synchronized(lock) {

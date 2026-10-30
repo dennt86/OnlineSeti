@@ -91,6 +91,19 @@ class WdttPlusNetworkPolicyTest {
         )
 
         assertTrue(target("probing", "backup", "", "ok", "", "ok") == "wdtt")
+        // A live failover with no explicit pin must be anchored to the working
+        // backup before the startup preference check can send traffic back to WDTT.
+        assertTrue(WdttPlusNetworkPolicy.cellularPinTarget(
+            phase = "ready",
+            selectedTag = "backup",
+            pinnedTag = "",
+            wdttTag = "wdtt",
+            wdttState = "ok",
+            pinnedState = "",
+            selectedState = "ok",
+            allowInitialWdttPin = false,
+            stabilizeSelectedAfterFailover = true,
+        ) == "backup")
         assertTrue(target("ready", "backup", "wdtt", "dead", "dead", "ok") == "backup")
         // Do not fail back to WDTT on a transient recovery while the pinned backup is healthy.
         assertTrue(target("ready", "backup", "backup", "ok", "ok", "ok") == null)

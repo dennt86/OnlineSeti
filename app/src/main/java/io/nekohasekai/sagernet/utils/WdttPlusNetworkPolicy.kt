@@ -54,9 +54,19 @@ object WdttPlusNetworkPolicy {
         wdttState: String,
         pinnedState: String,
         selectedState: String,
+        allowInitialWdttPin: Boolean = true,
+        stabilizeSelectedAfterFailover: Boolean = false,
     ): String? {
         if (wdttTag.isEmpty() || selectedTag.isEmpty() || selectedTag == pinnedTag) return null
         if (pinnedTag.isEmpty()) {
+            // Anchor a successful failover before applying startup preference.
+            // The failed member's probe may still look healthy for a short time.
+            if (stabilizeSelectedAfterFailover) {
+                return selectedTag.takeIf { selectedState == "ok" || selectedState == "degraded" }
+            }
+            // Initial cellular preference is a startup action. A later unpinned
+            // selection must not be mistaken for startup and pulled back to WDTT.
+            if (!allowInitialWdttPin) return null
             return wdttTag.takeIf { wdttState == "ok" || wdttState == "degraded" }
         }
         if (phase != "ready" || (pinnedState != "dead" && pinnedState != "cooldown")) return null
