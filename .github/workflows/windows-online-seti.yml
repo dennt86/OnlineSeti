@@ -4,8 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: Release version (for example 0.1.29)
+        description: Release version (for example 1.1.2)
         required: true
+        default: "1.1.2"
         type: string
       publish:
         description: Publish this build to GitHub Releases for in-app updates
@@ -28,6 +29,18 @@ jobs:
       ARCH: x64
     steps:
       - uses: actions/checkout@v7.0.1
+        with:
+          ref: windows-client
+      - name: Validate release version and record source revision
+        shell: bash
+        run: |
+          version="${INPUT_VERSION#v}"
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
+            echo "Invalid release version: $INPUT_VERSION" >&2
+            exit 1
+          fi
+          echo "INPUT_VERSION=$version" >> "$GITHUB_ENV"
+          echo "SOURCE_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
       - uses: actions/setup-go@v7.0.0
         with:
           go-version: "1.27.0"
@@ -82,7 +95,7 @@ jobs:
           ninja
           cd ..
           mkdir -p "download-artifact/Throne-${GITHUB_SHA}-windows-amd64"
-          tar czf "download-artifact/Throne-${GITHUB_SHA}-windows-amd64/artifacts.tgz" deployment/windows-amd64
+          tar czf "download-artifact/Throne-${SOURCE_SHA}-windows-amd64/artifacts.tgz" deployment/windows-amd64
           export DEST="$GITHUB_WORKSPACE/deployment/windows-amd64"
           ./script/deploy_windows.sh
       - name: Verify packaged startup and updater
@@ -91,6 +104,8 @@ jobs:
           $app = Join-Path $env:GITHUB_WORKSPACE 'deployment/windows-amd64/OnlineSetiVPN.exe'
           $p = Start-Process -FilePath $app -ArgumentList '--self-test-core-startup' -Wait -PassThru -WindowStyle Hidden
           if ($p.ExitCode -ne 0) { throw "Packaged core startup failed: $($p.ExitCode)" }
+          $import = Start-Process -FilePath $app -ArgumentList '--self-test-qwdtt-import' -Wait -PassThru -WindowStyle Hidden
+          if ($import.ExitCode -ne 0) { throw "Release asset and profile import tests failed: $($import.ExitCode)" }
           Push-Location updater
           go test ./...
           Pop-Location
@@ -99,6 +114,33 @@ jobs:
         run: |
           export APP_NAME=OnlineSetiVPN ARCHIVE_NAME=OnlineSetiVPN
           bash script/pack_release.sh windows "$INPUT_VERSION"
+      - name: Verify portable archive layout
+        shell: pwsh
+        run: |
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $archive = Join-Path $env:GITHUB_WORKSPACE "deployment/OnlineSetiVPN-$env:INPUT_VERSION-windows64.zip"
+          if (!(Test-Path -LiteralPath $archive)) { throw "Portable archive missing: $archive" }
+          $zip = [System.IO.Compression.ZipFile]::OpenRead($archive)
+          try {
+            $names = @($zip.Entries | ForEach-Object { $_.FullName })
+            foreach ($required in @(
+              'OnlineSetiVPN/OnlineSetiVPN.exe',
+              'OnlineSetiVPN/OnlineSetiCore.exe',
+              'OnlineSetiVPN/OnlineSetiUpdater.exe',
+              'OnlineSetiVPN/OnlineSetiWDTT.exe',
+              'OnlineSetiVPN/OnlineSetiWDTTPlus.exe',
+              'OnlineSetiVPN/OnlineSetiOpenFlux.exe',
+              'OnlineSetiVPN/OnlineSetiOLCRTC.exe',
+              'OnlineSetiVPN/csqtt-transport.exe'
+            )) {
+              if ($names -notcontains $required) { throw "Required runtime file missing from archive: $required" }
+            }
+            if ($names | Where-Object { $_ -match '(^|/)(config|profiles)/|\.db($|/)' }) {
+              throw 'Portable release archive must not contain user settings or databases'
+            }
+          } finally { $zip.Dispose() }
+          & 7z t $archive
+          if ($LASTEXITCODE -ne 0) { throw 'Portable archive integrity check failed' }
       - uses: actions/upload-artifact@v7.0.1
         with:
           name: OnlineSetiVPN-${{ inputs.version }}-windows64
@@ -114,5 +156,5 @@ jobs:
           set -euo pipefail
           tag="v${INPUT_VERSION#v}"
           gh release create "$tag" "deployment/OnlineSetiVPN-${INPUT_VERSION}-windows64.zip" \
-            --target "$GITHUB_SHA" --title "OnlineSeti VPN $INPUT_VERSION" \
+            --target "$SOURCE_SHA" --title "OnlineSeti VPN $INPUT_VERSION for Windows" \
             --notes "OnlineSeti VPN for Windows. This release is available from the in-app updater."

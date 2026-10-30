@@ -722,7 +722,7 @@ void MainWindow::CheckUpdate() {
     const QString forkRepository = QStringLiteral(QTHRONE_REPOSITORY);
 #endif
     if (forkRepository.isEmpty()) {
-        runOnUiThread([=,this] { MessageBoxInfo(tr("Update"), tr("This qThrone build has no update repository configured.")); });
+        runOnUiThread([=,this] { MessageBoxInfo(tr("Update"), tr("This build has no update repository configured.")); });
         return;
     }
     auto resp = NetworkRequestHelper::HttpGet("https://api.github.com/repos/" + forkRepository + "/releases", options);

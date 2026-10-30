@@ -409,11 +409,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     });
     // Checking releases also supports manual installation (AppData/macOS),
     // so it must not depend on the presence or name of an updater executable.
-#ifdef ONLINESETI_EDITION
-    ui->actionCheck_For_Update->setEnabled(false);
-#else
     ui->actionCheck_For_Update->setEnabled(!QStringLiteral(QTHRONE_REPOSITORY).isEmpty());
-#endif
 
     setupConnectionList();
     ui->stats_widget->tabBar()->setCurrentIndex(Configs::dataManager->settingsRepo->stats_tab);

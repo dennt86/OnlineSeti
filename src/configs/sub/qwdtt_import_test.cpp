@@ -391,6 +391,7 @@ int TestQwdttImport() {
     check(!ReleaseVersion::IsNewer("invalid", "1.0"), "invalid update version");
     check(ReleaseVersion::FromAsset("qThrone-1.0-beta.2-windows-amd64.zip") == "1.0-beta.2", "beta asset version");
     check(ReleaseVersion::FromAsset("qThrone-1.0-linux-amd64.tar.gz") == "1.0", "stable asset version");
+    check(ReleaseVersion::FromAsset("OnlineSetiVPN-1.1.2-windows64.zip") == "1.1.2", "OnlineSeti Windows asset version");
     qInfo() << "qWDTT import and release version tests:" << failures << "failures";
     return failures == 0 ? 0 : 1;
 }
