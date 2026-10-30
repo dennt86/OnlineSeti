@@ -507,7 +507,7 @@ object AutoSelectorRuntime {
                     "reason=${sample.lastSwitchReason.ifEmpty { "unspecified" }}",
             )
         }
-        stabilizeCellularPin(run, sample, initialObservation)
+        stabilizeCellularPin(run, sample, initialObservation, selectionChanged != null)
         // Nothing shows it while the screen is off, and a frozen UI process would only pile the callbacks up; the
         // screen coming on polls and publishes at once.
         if (run.service.data.notification?.screenOn?.value != false) publish()
@@ -516,7 +516,12 @@ object AutoSelectorRuntime {
     }
 
     /** Anchor a confirmed cellular failover, without failing back merely because WDTT recovers. */
-    private fun stabilizeCellularPin(run: Run, sample: AutoSelectorCore.Sample, initialObservation: Boolean) {
+    private fun stabilizeCellularPin(
+        run: Run,
+        sample: AutoSelectorCore.Sample,
+        initialObservation: Boolean,
+        selectionChanged: Boolean,
+    ) {
         val wdttTag = run.preferredWdttTag ?: return
         if (sample.suspended) return
         val wdtt = sample.members.firstOrNull { it.tag == wdttTag } ?: return
@@ -531,7 +536,10 @@ object AutoSelectorRuntime {
             pinnedState = pinned?.state.orEmpty(),
             selectedState = selected?.state.orEmpty(),
             allowInitialWdttPin = initialObservation && sample.lastSwitchReason != "failover succeeded",
-            stabilizeSelectedAfterFailover = sample.lastSwitchReason == "failover succeeded",
+            // lastSwitchReason is the core's *last* reason and remains set after the event.
+            // Only treat it as a fresh failover when this sample observed a new selection event;
+            // otherwise an unrelated "best available" choice can be pinned as a failover target.
+            stabilizeSelectedAfterFailover = selectionChanged && sample.lastSwitchReason == "failover succeeded",
         ) ?: return
         val now = System.currentTimeMillis()
         val shouldSelect = synchronized(lock) {

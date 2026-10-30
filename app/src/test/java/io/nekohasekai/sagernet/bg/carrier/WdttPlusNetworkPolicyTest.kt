@@ -105,6 +105,19 @@ class WdttPlusNetworkPolicyTest {
             stabilizeSelectedAfterFailover = true,
         ) == "backup")
         assertTrue(target("ready", "backup", "wdtt", "dead", "dead", "ok") == "backup")
+        // The core keeps this reason after the event. A later unrelated "best available"
+        // selection must not be mistaken for a fresh failover and pinned by the app.
+        assertTrue(WdttPlusNetworkPolicy.cellularPinTarget(
+            phase = "ready",
+            selectedTag = "backup",
+            pinnedTag = "",
+            wdttTag = "wdtt",
+            wdttState = "ok",
+            pinnedState = "",
+            selectedState = "ok",
+            allowInitialWdttPin = false,
+            stabilizeSelectedAfterFailover = false,
+        ) == null)
         // Do not fail back to WDTT on a transient recovery while the pinned backup is healthy.
         assertTrue(target("ready", "backup", "backup", "ok", "ok", "ok") == null)
         assertTrue(target("ready", "wdtt", "backup", "ok", "dead", "ok") == "wdtt")
