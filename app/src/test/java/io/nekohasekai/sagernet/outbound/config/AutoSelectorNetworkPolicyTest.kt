@@ -52,8 +52,9 @@ class AutoSelectorNetworkPolicyTest {
         val group = selectorGroup(wdttPlusPreferred = false, wdttLatency = 0)
         val plan = AutoSelectorPlanner(SelectorStore { group }, { 1_000L }).plan(99L, selector)
 
-        assertEquals(listOf(3L, 1L, 2L), plan.pool)
-        assertEquals(listOf(3L, 1L, 2L), plan.build)
+        // Existing pool order is the core's saved ranking; append WDTT after those members.
+        assertEquals(listOf(1L, 3L, 2L), plan.pool)
+        assertEquals(listOf(1L, 3L, 2L), plan.build)
     }
 
     @Test
@@ -63,8 +64,9 @@ class AutoSelectorNetworkPolicyTest {
             SelectorStore { selectorGroup(wdttPlusPreferred = false) }, { 1_000L },
         ).plan(99L, selector)
 
-        assertEquals(listOf(3L, 1L, 2L), plan.pool)
-        assertEquals(listOf(3L, 1L, 2L), plan.build)
+        // poolCap truncates ordinary candidates, but the Wi-Fi emergency member survives at the end.
+        assertEquals(listOf(1L, 3L, 2L), plan.pool)
+        assertEquals(listOf(1L, 3L, 2L), plan.build)
     }
 
     @Test
