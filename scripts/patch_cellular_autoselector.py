@@ -52,6 +52,15 @@ def patch(core: Path):
 
     selector = target / "protocol" / "group" / "autoselector.go"
     replace_once(selector,
+        '\tfor _, health := range s.members {\n\t\trolledSamples += health.rollbackFailuresSince(since)\n',
+        '\tfor _, health := range s.members {\n\t\t// Do not carry a failover streak through a confirmed local network outage.\n\t\thealth.consecutiveProbeFailures = 0\n\t\trolledSamples += health.rollbackFailuresSince(since)\n')
+    replace_once(selector,
+        '\twasSuspended := s.suspended\n\ts.suspended = false\n\ts.suspendedSince = time.Time{}\n',
+        '\twasSuspended := s.suspended\n\tif wasSuspended {\n\t\t// Start a fresh streak after the local network has recovered.\n\t\tfor _, health := range s.members {\n\t\t\thealth.consecutiveProbeFailures = 0\n\t\t}\n\t}\n\ts.suspended = false\n\ts.suspendedSince = time.Time{}\n')
+    replace_once(selector,
+        '\t\tif isLocalNetworkError(err) {\n\t\t\tgo s.assessOutage()\n\t\t\tcontinue\n\t\t}\n\t\t// One failed probe is a signal, not a verdict',
+        '\t\tif isLocalNetworkError(err) || s.networkInterfaceDown() {\n\t\t\t// The default route is gone; suspend before this probe can count toward failover.\n\t\t\tgo s.assessOutage()\n\t\t\tcontinue\n\t\t}\n\t\t// One failed probe is a signal, not a verdict')
+    replace_once(selector,
         '\tpinnedTag        string\n',
         '\tpinnedTag        string\n\tpinnedFailoverFailures int\n')
     replace_once(selector,
