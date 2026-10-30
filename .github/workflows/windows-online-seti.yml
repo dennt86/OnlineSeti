@@ -62,7 +62,7 @@ jobs:
         shell: bash
         run: |
           export GOOS=windows GOARCH=amd64 RUNNER_OS=Windows ARCH=x64
-          export DEST="$GITHUB_WORKSPACE/deployment/windows-amd64"
+          export DEST="$(cygpath -u "$GITHUB_WORKSPACE/deployment/windows-amd64")"
           bash script/build_csqtt.sh
           bash script/build_go.sh
           cp csqtt-artifact/* "$DEST/"
@@ -96,7 +96,7 @@ jobs:
           cd ..
           mkdir -p "download-artifact/Throne-${GITHUB_SHA}-windows-amd64"
           tar czf "download-artifact/Throne-${SOURCE_SHA}-windows-amd64/artifacts.tgz" deployment/windows-amd64
-          export DEST="$GITHUB_WORKSPACE/deployment/windows-amd64"
+          export DEST="$(cygpath -u "$GITHUB_WORKSPACE/deployment/windows-amd64")"
           ./script/deploy_windows.sh
       - name: Verify packaged startup and updater
         shell: pwsh
