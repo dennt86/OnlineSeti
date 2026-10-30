@@ -107,7 +107,7 @@ jobs:
             -DINPUT_VERSION="$INPUT_VERSION" -DQTHRONE_REPOSITORY="$GITHUB_REPOSITORY" ..
           ninja
           cd ..
-          mkdir -p "download-artifact/Throne-${GITHUB_SHA}-windows-amd64"
+          mkdir -p "download-artifact/Throne-${SOURCE_SHA}-windows-amd64"
           tar czf "download-artifact/Throne-${SOURCE_SHA}-windows-amd64/artifacts.tgz" deployment/windows-amd64
           export DEST="$(cygpath -u "$GITHUB_WORKSPACE/deployment/windows-amd64")"
           ./script/deploy_windows.sh
