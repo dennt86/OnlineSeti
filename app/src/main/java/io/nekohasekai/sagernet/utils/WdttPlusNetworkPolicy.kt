@@ -41,6 +41,28 @@ object WdttPlusNetworkPolicy {
     ): Boolean = cellularDefault && wdttTag.isNotEmpty() && selectedTag != wdttTag &&
         pinnedTag.isEmpty() && memberUsable
 
+    /**
+     * Keep cellular failover stable: pin WDTT as the initial preference, then pin a selected
+     * backup only after the currently pinned member has a confirmed dead/cooldown state.
+     * A healthy backup remains pinned when WDTT recovers, avoiding a disruptive failback.
+     */
+    fun cellularPinTarget(
+        phase: String,
+        selectedTag: String,
+        pinnedTag: String,
+        wdttTag: String,
+        wdttState: String,
+        pinnedState: String,
+        selectedState: String,
+    ): String? {
+        if (wdttTag.isEmpty() || selectedTag.isEmpty() || selectedTag == pinnedTag) return null
+        if (pinnedTag.isEmpty()) {
+            return wdttTag.takeIf { wdttState == "ok" || wdttState == "degraded" }
+        }
+        if (phase != "ready" || (pinnedState != "dead" && pinnedState != "cooldown")) return null
+        return selectedTag.takeIf { selectedState == "ok" || selectedState == "degraded" }
+    }
+
     /** Unknown, disconnected, Wi-Fi, Ethernet and other upstreams are denied. */
     fun isCellularDefault(): Boolean {
         // Before VpnService publishes its underlying network, Android's default network is the

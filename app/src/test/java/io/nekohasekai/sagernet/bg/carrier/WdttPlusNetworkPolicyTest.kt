@@ -84,6 +84,23 @@ class WdttPlusNetworkPolicyTest {
     }
 
     @Test
+    fun cellularPinAnchorsInitialWdttAndOnlyMovesAfterConfirmedFailure() {
+        fun target(phase: String, selected: String, pinned: String, wdttState: String,
+                   pinnedState: String, selectedState: String) = WdttPlusNetworkPolicy.cellularPinTarget(
+            phase, selected, pinned, "wdtt", wdttState, pinnedState, selectedState,
+        )
+
+        assertTrue(target("probing", "backup", "", "ok", "", "ok") == "wdtt")
+        assertTrue(target("ready", "backup", "wdtt", "dead", "dead", "ok") == "backup")
+        // Do not fail back to WDTT on a transient recovery while the pinned backup is healthy.
+        assertTrue(target("ready", "backup", "backup", "ok", "ok", "ok") == null)
+        assertTrue(target("ready", "wdtt", "backup", "ok", "dead", "ok") == "wdtt")
+        // Startup's untested WDTT is not a confirmed outage and must not pin a backup.
+        assertTrue(target("probing", "backup", "", "untested", "", "ok") == null)
+        assertTrue(target("ready", "backup", "wdtt", "dead", "dead", "untested") == null)
+    }
+
+    @Test
     fun wifiFallbackPrefersAutomaticSelectorOverIndividualServers() {
         val fallback = WdttPlusNetworkPolicy.wifiFallback(
             selectedId = 1,

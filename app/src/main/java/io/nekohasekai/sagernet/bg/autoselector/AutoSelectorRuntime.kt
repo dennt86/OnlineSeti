@@ -505,7 +505,7 @@ object AutoSelectorRuntime {
                     "reason=${sample.lastSwitchReason.ifEmpty { "unspecified" }}",
             )
         }
-        reassertHealthyCellularWdtt(run, sample)
+        stabilizeCellularPin(run, sample)
         // Nothing shows it while the screen is off, and a frozen UI process would only pile the callbacks up; the
         // screen coming on polls and publishes at once.
         if (run.service.data.notification?.screenOn?.value != false) publish()
@@ -513,17 +513,22 @@ object AutoSelectorRuntime {
         if (exhausted) onExhausted(run)
     }
 
-    /** A configured pin is a core preference, but some startup probes can temporarily select a backup first. */
-    private fun reassertHealthyCellularWdtt(run: Run, sample: AutoSelectorCore.Sample) {
-        val tag = run.preferredWdttTag ?: return
-        val member = sample.members.firstOrNull { it.tag == tag } ?: return
-        if (sample.suspended || !WdttPlusNetworkPolicy.shouldPinCellularWdtt(
-                cellularDefault = true,
-                selectedTag = sample.selectedTag,
-                pinnedTag = sample.pinnedTag,
-                wdttTag = tag,
-                memberUsable = member.isUsable,
-            )) return
+    /** Anchor a confirmed cellular failover, without failing back merely because WDTT recovers. */
+    private fun stabilizeCellularPin(run: Run, sample: AutoSelectorCore.Sample) {
+        val wdttTag = run.preferredWdttTag ?: return
+        if (sample.suspended) return
+        val wdtt = sample.members.firstOrNull { it.tag == wdttTag } ?: return
+        val pinned = sample.members.firstOrNull { it.tag == sample.pinnedTag }
+        val selected = sample.members.firstOrNull { it.tag == sample.selectedTag }
+        val target = WdttPlusNetworkPolicy.cellularPinTarget(
+            phase = sample.phase,
+            selectedTag = sample.selectedTag,
+            pinnedTag = sample.pinnedTag,
+            wdttTag = wdttTag,
+            wdttState = wdtt.state,
+            pinnedState = pinned?.state.orEmpty(),
+            selectedState = selected?.state.orEmpty(),
+        ) ?: return
         val now = System.currentTimeMillis()
         val shouldSelect = synchronized(lock) {
             if (this.run !== run || run.preferredSelectInFlight || now - run.lastPreferredSelectMs < 5_000L) {
@@ -537,11 +542,12 @@ object AutoSelectorRuntime {
         if (!shouldSelect) return
         scope.launch(Dispatchers.IO) {
             try {
-                // Keep the normal members in the selector: its pin still falls back when WDTT is unhealthy.
-                run.core.select(tag)
-                Logs.i("[Auto selector] WDTT Plus is healthy on cellular; restored it ahead of the backup route.")
+                // Keep all normal members: the selector can still fail over from this anchor if it dies.
+                run.core.select(target)
+                val reason = if (target == wdttTag) "WDTT cellular preference" else "cellular failover stabilized"
+                Logs.i("[Auto selector] Pinned $target ($reason).")
             } catch (e: Exception) {
-                Logs.w("[Auto selector] Could not restore healthy cellular WDTT Plus: ${e.readableMessage}")
+                Logs.w("[Auto selector] Could not stabilize cellular route on $target: ${e.readableMessage}")
             } finally {
                 synchronized(lock) { run.preferredSelectInFlight = false }
                 run.kick.trySend(Unit)
