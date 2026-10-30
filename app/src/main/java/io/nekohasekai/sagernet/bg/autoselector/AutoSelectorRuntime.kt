@@ -570,6 +570,7 @@ object AutoSelectorRuntime {
             wdttState = wdtt.state,
             pinnedState = pinned?.state.orEmpty(),
             selectedState = selected?.state.orEmpty(),
+            selectedQualified = selected?.qualified == true,
             allowInitialWdttPin = initialObservation && sample.lastSwitchReason != "failover succeeded",
             // lastSwitchReason is the core's *last* reason and remains set after the event.
             // Only treat it as a fresh failover when this sample observed a new selection event;

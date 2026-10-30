@@ -105,6 +105,18 @@ class WdttPlusNetworkPolicyTest {
             stabilizeSelectedAfterFailover = true,
         ) == "backup")
         assertTrue(target("ready", "backup", "wdtt", "dead", "dead", "ok") == "backup")
+        // A transiently selected but unqualified degraded member must not be pinned back
+        // after a failover; keep the automatic selector free to choose a qualified route.
+        assertTrue(WdttPlusNetworkPolicy.cellularPinTarget(
+            phase = "ready",
+            selectedTag = "wdtt",
+            pinnedTag = "backup",
+            wdttTag = "wdtt",
+            wdttState = "degraded",
+            pinnedState = "dead",
+            selectedState = "degraded",
+            selectedQualified = false,
+        ) == null)
         // The core keeps this reason after the event. A later unrelated "best available"
         // selection must not be mistaken for a fresh failover and pinned by the app.
         assertTrue(WdttPlusNetworkPolicy.cellularPinTarget(

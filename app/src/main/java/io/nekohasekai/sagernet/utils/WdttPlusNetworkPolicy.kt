@@ -54,9 +54,14 @@ object WdttPlusNetworkPolicy {
         wdttState: String,
         pinnedState: String,
         selectedState: String,
+        selectedQualified: Boolean = true,
         allowInitialWdttPin: Boolean = true,
         stabilizeSelectedAfterFailover: Boolean = false,
     ): String? {
+        // A degraded member can still be a useful automatic fallback, but pinning it
+        // suppresses selection of other candidates. Require the core's qualification
+        // check before making that transient choice sticky.
+        if (selectedState == "degraded" && !selectedQualified) return null
         if (wdttTag.isEmpty() || selectedTag.isEmpty() || selectedTag == pinnedTag) return null
         if (pinnedTag.isEmpty()) {
             // Anchor a successful failover before applying startup preference.
