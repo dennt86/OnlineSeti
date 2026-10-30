@@ -59,6 +59,31 @@ class WdttPlusNetworkPolicyTest {
     }
 
     @Test
+    fun doesNotRepinWdttWhenCoreAlreadyOwnsTheCellularFallbackPin() {
+        assertTrue(WdttPlusNetworkPolicy.shouldPinCellularWdtt(
+            cellularDefault = true,
+            selectedTag = "backup",
+            pinnedTag = "",
+            wdttTag = "wdtt",
+            memberUsable = true,
+        ))
+        assertFalse(WdttPlusNetworkPolicy.shouldPinCellularWdtt(
+            cellularDefault = true,
+            selectedTag = "backup",
+            pinnedTag = "wdtt",
+            wdttTag = "wdtt",
+            memberUsable = true,
+        ))
+        assertFalse(WdttPlusNetworkPolicy.shouldPinCellularWdtt(
+            cellularDefault = true,
+            selectedTag = "backup",
+            pinnedTag = "",
+            wdttTag = "wdtt",
+            memberUsable = false,
+        ))
+    }
+
+    @Test
     fun wifiFallbackPrefersAutomaticSelectorOverIndividualServers() {
         val fallback = WdttPlusNetworkPolicy.wifiFallback(
             selectedId = 1,

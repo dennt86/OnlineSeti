@@ -516,9 +516,14 @@ object AutoSelectorRuntime {
     /** A configured pin is a core preference, but some startup probes can temporarily select a backup first. */
     private fun reassertHealthyCellularWdtt(run: Run, sample: AutoSelectorCore.Sample) {
         val tag = run.preferredWdttTag ?: return
-        if (sample.suspended || sample.selectedTag == tag) return
         val member = sample.members.firstOrNull { it.tag == tag } ?: return
-        if (!member.isUsable) return
+        if (sample.suspended || !WdttPlusNetworkPolicy.shouldPinCellularWdtt(
+                cellularDefault = true,
+                selectedTag = sample.selectedTag,
+                pinnedTag = sample.pinnedTag,
+                wdttTag = tag,
+                memberUsable = member.isUsable,
+            )) return
         val now = System.currentTimeMillis()
         val shouldSelect = synchronized(lock) {
             if (this.run !== run || run.preferredSelectInFlight || now - run.lastPreferredSelectMs < 5_000L) {

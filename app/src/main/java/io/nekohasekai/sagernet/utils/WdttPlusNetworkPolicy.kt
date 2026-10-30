@@ -31,6 +31,16 @@ object WdttPlusNetworkPolicy {
     ): Boolean = cellularDefault && wdttProfileId > 0L && fallbackProfileId > 0L &&
         wdttProfileId != fallbackProfileId && selectedProfileId == fallbackProfileId
 
+    /** Set WDTT as the initial cellular preference only when the core has no existing pin to manage failover. */
+    fun shouldPinCellularWdtt(
+        cellularDefault: Boolean,
+        selectedTag: String,
+        pinnedTag: String,
+        wdttTag: String,
+        memberUsable: Boolean,
+    ): Boolean = cellularDefault && wdttTag.isNotEmpty() && selectedTag != wdttTag &&
+        pinnedTag.isEmpty() && memberUsable
+
     /** Unknown, disconnected, Wi-Fi, Ethernet and other upstreams are denied. */
     fun isCellularDefault(): Boolean {
         // Before VpnService publishes its underlying network, Android's default network is the
