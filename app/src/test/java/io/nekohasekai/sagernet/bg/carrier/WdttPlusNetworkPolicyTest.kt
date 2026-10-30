@@ -16,6 +16,23 @@ class WdttPlusNetworkPolicyTest {
         assertTrue(WdttPlusNetworkPolicy.needsAutoSelectorRecheck(true, false))
         assertTrue(WdttPlusNetworkPolicy.needsAutoSelectorRecheck(false, true))
     }
+
+    @Test
+    fun sameCellularTypeStillRechecksAfterTheDefaultNetworkReconnects() {
+        // A temporary lost callback clears observedNetwork but leaves the last transport type intact.
+        // When mobile data returns, cellular -> cellular still represents a new upstream and must
+        // rebuild the selector so WDTT Plus is restored to its cellular-first position.
+        assertTrue(WdttPlusNetworkPolicy.needsAutoSelectorRecheck(
+            previousCellularDefault = true,
+            cellularDefault = true,
+            defaultNetworkChanged = true,
+        ))
+        assertFalse(WdttPlusNetworkPolicy.needsAutoSelectorRecheck(
+            previousCellularDefault = true,
+            cellularDefault = true,
+            defaultNetworkChanged = false,
+        ))
+    }
     @Test
     fun onlyCellularDefaultIsAllowed() {
         assertTrue(WdttPlusNetworkPolicy.isCellularDefault(hasCellular = true, hasWifi = false))

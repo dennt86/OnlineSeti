@@ -12,8 +12,11 @@ object WdttPlusNetworkPolicy {
     fun isCellularDefault(hasCellular: Boolean, hasWifi: Boolean): Boolean = hasCellular && !hasWifi
 
     /** The first observed default network matters too: an auto-selector may have started before Android reported it. */
-    fun needsAutoSelectorRecheck(previousCellularDefault: Boolean?, cellularDefault: Boolean): Boolean =
-        previousCellularDefault == null || previousCellularDefault != cellularDefault
+    fun needsAutoSelectorRecheck(
+        previousCellularDefault: Boolean?,
+        cellularDefault: Boolean,
+        defaultNetworkChanged: Boolean = false,
+    ): Boolean = defaultNetworkChanged || previousCellularDefault == null || previousCellularDefault != cellularDefault
 
     /** A persisted manual WDTT pin must not survive startup on cellular, where WDTT is eligible. */
     fun shouldClearCellularWdttPin(cellularDefault: Boolean, pinnedId: Long, wdttProfileIds: Collection<Long>): Boolean =

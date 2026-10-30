@@ -609,6 +609,7 @@ class BaseService {
                     val networkNeedsRecheck = WdttPlusNetworkPolicy.needsAutoSelectorRecheck(
                         observedCellular,
                         cellularDefault,
+                        defaultNetworkChanged = previousNetwork != network,
                     )
                     if (observedCellular != cellularDefault) {
                         Logs.i("Default uplink changed: network=$network cellular=$cellularDefault previousCellular=$observedCellular")
