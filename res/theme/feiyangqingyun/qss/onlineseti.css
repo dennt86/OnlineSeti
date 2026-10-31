@@ -1,0 +1,130 @@
+/* OnlineSeti brand layer over qdarkstyle. Keep this file to stable widget selectors;
+   the shared client also relies on Qt's native painting for custom widgets and dialogs. */
+QMainWindow, QDialog, QWidget {
+    color: #E8F1FC;
+}
+
+QMainWindow::separator, QSplitter::handle {
+    background: #203C60;
+}
+QSplitter::handle:hover {
+    background: #43DDDF;
+}
+
+QToolButton, QPushButton {
+    background-color: #102848;
+    border: 1px solid #284766;
+    border-radius: 8px;
+    padding: 6px 10px;
+}
+QToolButton:hover, QPushButton:hover {
+    background-color: #173653;
+    border-color: #368BA0;
+}
+QToolButton:pressed, QPushButton:pressed {
+    background-color: #1A6474;
+}
+QToolButton:disabled, QPushButton:disabled {
+    color: #70869F;
+    border-color: #203651;
+}
+
+QToolButton#toolButton_startstop {
+    border: 1px solid #2D7080;
+    border-radius: 12px;
+    padding: 8px 14px;
+}
+
+QLineEdit, QTextEdit, QPlainTextEdit, QComboBox, QSpinBox, QDoubleSpinBox,
+QDateEdit, QTimeEdit, QDateTimeEdit {
+    background-color: #091A33;
+    border: 1px solid #284766;
+    border-radius: 7px;
+    padding: 5px 8px;
+    selection-background-color: #1A6474;
+}
+QLineEdit:focus, QTextEdit:focus, QPlainTextEdit:focus, QComboBox:focus,
+QSpinBox:focus, QDoubleSpinBox:focus {
+    border-color: #43DDDF;
+}
+
+QTabWidget::pane {
+    border: 1px solid #203C60;
+    border-radius: 9px;
+    top: -1px;
+    background-color: #0B1D37;
+}
+QTabBar::tab {
+    background-color: transparent;
+    border: 1px solid transparent;
+    border-radius: 7px 7px 0 0;
+    color: #9FB5CB;
+    padding: 7px 13px;
+    margin-right: 3px;
+}
+QTabBar::tab:hover:!selected {
+    background-color: #102746;
+    color: #E8F1FC;
+}
+QTabBar::tab:selected {
+    background-color: #102746;
+    border-color: #284766;
+    border-bottom-color: #102746;
+    color: #43DDDF;
+}
+
+QTableView, QTreeView, QListView, QTableWidget, QTreeWidget, QListWidget {
+    alternate-background-color: #0D2240;
+    gridline-color: #203C60;
+    border: 1px solid #203C60;
+    border-radius: 7px;
+    selection-background-color: #1A6474;
+    selection-color: #FFFFFF;
+}
+QHeaderView::section {
+    background-color: #102746;
+    border: 0;
+    border-right: 1px solid #203C60;
+    border-bottom: 1px solid #203C60;
+    color: #B9CCDF;
+    padding: 7px 8px;
+}
+
+QGroupBox {
+    border: 1px solid #203C60;
+    border-radius: 9px;
+    margin-top: 12px;
+    padding-top: 10px;
+}
+QGroupBox::title {
+    subcontrol-origin: margin;
+    left: 10px;
+    padding: 0 5px;
+    color: #A9C4DC;
+}
+
+QMenu {
+    background-color: #0D2240;
+    border: 1px solid #284766;
+    border-radius: 7px;
+    padding: 4px;
+}
+QMenu::item {
+    border-radius: 5px;
+    padding: 6px 24px 6px 10px;
+}
+QMenu::item:selected {
+    background-color: #1A6474;
+    color: #FFFFFF;
+}
+QMenu::separator {
+    height: 1px;
+    background: #203C60;
+    margin: 4px 7px;
+}
+
+QStatusBar {
+    background-color: #091A33;
+    border-top: 1px solid #203C60;
+}
+

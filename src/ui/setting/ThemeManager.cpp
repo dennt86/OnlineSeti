@@ -148,6 +148,18 @@ static const QMap<QString, QPalette> &customThemePalettes() {
             .placeholder = "#9DA9B5", .disabledText = "#788D9C",
         });
 
+        m["onlineseti"] = buildThemePalette({
+            .window = "#07152D", .windowText = "#F2F7FF",
+            .base = "#091A33", .alternateBase = "#102746",
+            .text = "#E8F1FC",
+            .button = "#102848", .buttonText = "#EAF5FF",
+            .brightText = "#FFFFFF",
+            .highlight = "#1A6474", .highlightedText = "#FFFFFF",
+            .link = "#43DDDF",
+            .tooltipBase = "#102746", .tooltipText = "#F2F7FF",
+            .placeholder = "#8DA6C1", .disabledText = "#70869F",
+        });
+
         return m;
     }();
     return palettes;
@@ -334,8 +346,14 @@ void ThemeManager::ApplyTheme(const QString &theme, bool force) {
     if (enteringCustom) {
         // The whole palette goes on first, or a colour role leaks from Qt or the previous theme.
         qApp->setPalette(palettes.value(lowerTheme));
-        themeSheet = lowerTheme == "qdarkstyle" ? ReadFileText(":/qdarkstyle/dark/darkstyle.qss")
-                                                : ReadFileText(":/qss/" + lowerTheme + ".css");
+        if (lowerTheme == "qdarkstyle") {
+            themeSheet = ReadFileText(":/qdarkstyle/dark/darkstyle.qss");
+        } else if (lowerTheme == "onlineseti") {
+            themeSheet = ReadFileText(":/qdarkstyle/dark/darkstyle.qss")
+                         + ReadFileText(":/qss/onlineseti.css");
+        } else {
+            themeSheet = ReadFileText(":/qss/" + lowerTheme + ".css");
+        }
     } else {
         if (leavingCustom) {
             // Drop the outgoing sheet before restyling, or its rules paint a frame against the
@@ -368,3 +386,4 @@ void ThemeManager::ApplyTheme(const QString &theme, bool force) {
 
     emit themeChanged(theme);
 }
+

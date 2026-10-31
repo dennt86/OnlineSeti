@@ -1,3 +1,6 @@
+Warning: truncated output (original token count: 11019)
+Total output lines: 892
+
 #include "include/ui/setting/dialog_basic_settings.h"
 
 #include "include/ui/widget/json/JsonEditorDialog.h"
@@ -189,6 +192,9 @@ DialogBasicSettings::DialogBasicSettings(QWidget *parent)
     ui->theme->addItem("QDarkStyle");
     // Custom stylesheet themes, not QStyleFactory keys.
     ui->theme->addItems({"FlatGray", "LightBlue", "SoftPink", "BlackSoft"});
+#ifdef ONLINESETI_EDITION
+    ui->theme->addItem("OnlineSeti");
+#endif
     ui->enable_custom_icon->setChecked(Configs::dataManager->settingsRepo->use_custom_icons);
     ui->follow_status_in_taskbar->setChecked(Configs::dataManager->settingsRepo->follow_status_in_taskbar);
     ui->follow_status_in_taskbar->setEnabled(ui->enable_custom_icon->isChecked());
@@ -390,60 +396,7 @@ void DialogBasicSettings::accept() {
 
     D_SAVE_STRING(inbound_address)
     Configs::dataManager->settingsRepo->custom_inbound = CACHE.custom_inbound;
-    D_SAVE_INT(inbound_socks_port)
-    if (!Configs::dataManager->settingsRepo->random_inbound_port && ui->random_listen_port->isChecked())
-    {
-        needChoosePort = true;
-    }
-    Configs::dataManager->settingsRepo->random_inbound_port = ui->random_listen_port->isChecked();
-    D_SAVE_INT(test_concurrent)
-    D_SAVE_STRING(test_latency_url)
-    Configs::dataManager->settingsRepo->direct_test_url = ui->direct_test_url->text().trimmed();
-    D_SAVE_BOOL(disable_tray)
-    Configs::dataManager->settingsRepo->proxy_scheme = ui->proxy_scheme->currentText().toLower();
-    Configs::dataManager->settingsRepo->speed_test_mode = ui->speedtest_mode->currentIndex();
-    Configs::dataManager->settingsRepo->simple_dl_url = ui->simple_down_url->text().trimmed();
-    Configs::dataManager->settingsRepo->url_test_timeout_ms = ui->url_timeout->text().trimmed().toInt();
-    Configs::dataManager->settingsRepo->speed_test_timeout_ms = ui->test_timeout->text().trimmed().toInt();
-    Configs::dataManager->settingsRepo->allow_beta_update = ui->allow_beta->isChecked();
-    Configs::dataManager->settingsRepo->disable_mixed_inbound = ui->disable_mixed_inbound->isChecked();
-    Configs::dataManager->settingsRepo->reset_proxy_on_disable_sp = ui->reset_proxy_on_disable_sp->isChecked();
-    D_SAVE_BOOL(inbound_auth)
-    D_SAVE_STRING(inbound_user)
-    D_SAVE_STRING(inbound_pass)
-
-    const bool registrationTurnedOn =
-        (!Configs::dataManager->settingsRepo->url_scheme_auto_register && ui->url_scheme_auto_register->isChecked()) ||
-        (!Configs::dataManager->settingsRepo->file_assoc_auto_register && ui->file_assoc_auto_register->isChecked());
-    Configs::dataManager->settingsRepo->url_scheme_auto_register = ui->url_scheme_auto_register->isChecked();
-    Configs::dataManager->settingsRepo->file_assoc_auto_register = ui->file_assoc_auto_register->isChecked();
-    if (registrationTurnedOn) UrlScheme_RegisterIfNeeded();
-
-    auto oldMaxLogLines = Configs::dataManager->settingsRepo->max_log_line;
-    Configs::dataManager->settingsRepo->max_log_line = ui->max_log_line->text().trimmed().toInt();
-    if (oldMaxLogLines != Configs::dataManager->settingsRepo->max_log_line) CACHE.updateMaxLogLines = true;
-    Configs::dataManager->settingsRepo->log_level = ui->log_level->currentText().trimmed();
-    Configs::dataManager->settingsRepo->xray_log_level = ui->xray_loglevel->currentText().trimmed();
-    Configs::dataManager->settingsRepo->log_enable_include = ui->enable_log_include->isChecked();
-    Configs::dataManager->settingsRepo->log_enable_exclude = ui->enable_log_exclude->isChecked();
-    Configs::dataManager->settingsRepo->log_include_keyword = SplitAndTrim(ui->log_include_keyword->toPlainText(), "\n", false);
-    Configs::dataManager->settingsRepo->log_exclude_keyword = SplitAndTrim(ui->log_exclude_keyword->toPlainText(), "\n", false);
-
-    Configs::dataManager->settingsRepo->log_include_regex.clear();
-    Configs::dataManager->settingsRepo->log_exclude_regex.clear();
-    QRegularExpression regexValidator;
-    for (QStringList log_include_lines = SplitAndTrim(ui->log_include_regex->toPlainText(), "\n", false); const QString &line : log_include_lines) {
-        if (regexValidator.setPattern(line); regexValidator.isValid()) Configs::dataManager->settingsRepo->log_include_regex << line;
-    }
-    for (QStringList log_exclude_lines = SplitAndTrim(ui->log_exclude_regex->toPlainText(), "\n", false); const QString &line : log_exclude_lines) {
-        if (regexValidator.setPattern(line); regexValidator.isValid()) Configs::dataManager->settingsRepo->log_exclude_regex << line;
-    }
-
-    Configs::dataManager->settingsRepo->enable_stats = ui->connection_statistics->isChecked();
-    Configs::dataManager->settingsRepo->disable_traffic_aggregation = ui->disable_traffic_aggregation->isChecked();
-    Configs::dataManager->settingsRepo->language = ui->language->currentIndex();
-    auto oldUseCustomIcon = Configs::dataManager->settingsRepo->use_custom_icons;
-    Configs::dataManager->settingsRepo->use_custom_icons = ui->enable_custom_icon->isChecked();
+    D_SAV…1019 tokens truncated…;
     if (oldUseCustomIcon != Configs::dataManager->settingsRepo->use_custom_icons) CACHE.updateTrayIcon = true;
     auto oldFollowStatusInTaskbar = Configs::dataManager->settingsRepo->follow_status_in_taskbar;
     Configs::dataManager->settingsRepo->follow_status_in_taskbar = ui->follow_status_in_taskbar->isChecked();
@@ -885,4 +838,5 @@ void DialogBasicSettings::on_backup_restore_clicked() {
     MW_dialog_message(MwMessage::RestartProgram, {});
     QDialog::reject();
 }
+
 

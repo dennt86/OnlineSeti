@@ -96,5 +96,7 @@
         <file>qss/softpink/radiobutton_checked_disable.png</file>
         <file>qss/softpink/radiobutton_unchecked.png</file>
         <file>qss/softpink/radiobutton_unchecked_disable.png</file>
+        <file>qss/onlineseti.css</file>
     </qresource>
 </RCC>
+
