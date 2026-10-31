@@ -475,7 +475,161 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
         if (logicalIndex == ProfilesTableModel::ColType) {
             auto group = Configs::dataManager->groupsRepo->CurrentGroup();
             action.method = (Configs::dataManager->settingsRepo->show_config_security && group
-                             && group->type_sort_by == Configs::typeBy::byS…4123 tokens truncated…Url::fromLocalFile(QDir::currentPath())); });
+                             && group->type_sort_by == Configs::typeBy::bySecurity)
+                                ? GroupSortMethod::BySecurity
+                                : GroupSortMethod::ByType;
+        } else if (logicalIndex == ProfilesTableModel::ColAddress) {
+            action.method = GroupSortMethod::ByAddress;
+        } else if (logicalIndex == ProfilesTableModel::ColName) {
+            action.method = GroupSortMethod::ByName;
+        } else if (logicalIndex == ProfilesTableModel::ColTestResult) {
+            action.method = GroupSortMethod::ByTestResult;
+        } else if (logicalIndex == ProfilesTableModel::ColTraffic) {
+            action.method = GroupSortMethod::ByTraffic;
+        } else {
+            return;
+        }
+        runOnNewThread([=, this] {
+            auto currGroup = Configs::dataManager->groupsRepo->CurrentGroup();
+            if (currGroup == nullptr) return;
+            if (!currGroup->SortProfiles(action)) {
+                runOnUiThread([=] {
+                    MessageBoxWarning("Action already in progress", "A sort action is already in progress");
+                });
+                return;
+            }
+            Configs::dataManager->groupsRepo->Save(currGroup);
+            runOnUiThread([=, this] {
+                refresh_proxy_list({}, true);
+            });
+        });
+    });
+    connect(ui->profilesTableView->horizontalHeader(), &QHeaderView::sectionResized, this, [=, this](int, int, int) {
+        auto group = Configs::dataManager->groupsRepo->CurrentGroup();
+        if (m_adjustingColumns || Configs::dataManager->settingsRepo->refreshing_group || group == nullptr) return;
+        group->column_width.clear();
+        for (int i = 0; i < ui->profilesTableView->horizontalHeader()->count(); i++) {
+            group->column_width.push_back(ui->profilesTableView->horizontalHeader()->sectionSize(i));
+        }
+        Configs::dataManager->groupsRepo->Save(Configs::dataManager->groupsRepo->CurrentGroup());
+    });
+    ui->profilesTableView->horizontalHeader()->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(ui->profilesTableView->horizontalHeader(), &QWidget::customContextMenuRequested, this, [this](const QPoint& pos) {
+        auto* header = ui->profilesTableView->horizontalHeader();
+        int columnIndex = header->logicalIndexAt(pos);
+        auto group = Configs::dataManager->groupsRepo->CurrentGroup();
+        if (group == nullptr) return;
+        // The column-widths action carries its shortcut id as data, so it must never be read as a sort key.
+        auto execWithResetWidths = [&](QMenu& menu) -> QAction* {
+            if (!menu.isEmpty()) menu.addSeparator();
+            menu.addAction(ui->actionRefresh_Column_Widths);
+            auto* chosen = menu.exec(header->mapToGlobal(pos));
+            return chosen == ui->actionRefresh_Column_Widths ? nullptr : chosen;
+        };
+        if (columnIndex == ProfilesTableModel::ColType && Configs::dataManager->settingsRepo->show_config_security) {
+            QMenu menu(this);
+            auto* sortByLabel = menu.addAction(tr("Sort By:"));
+            sortByLabel->setEnabled(false);
+
+            struct TypeSortOption { Configs::typeBy value; QString label; };
+            const QList<TypeSortOption> options = {
+                { Configs::typeBy::byType, tr("Type") },
+                { Configs::typeBy::bySecurity, tr("Security") },
+            };
+            for (const auto& opt : options) {
+                auto* act = menu.addAction(opt.label);
+                act->setData(static_cast<int>(opt.value));
+                act->setCheckable(true);
+                act->setChecked(group->type_sort_by == opt.value);
+            }
+
+            auto* chosen = execWithResetWidths(menu);
+            if (chosen == nullptr || !chosen->data().isValid()) return;
+
+            group->type_sort_by = static_cast<Configs::typeBy>(chosen->data().toInt());
+            Configs::dataManager->groupsRepo->Save(group);
+            GroupSortAction action;
+            action.method = group->type_sort_by == Configs::typeBy:…2123 tokens truncated…rHeader, &ProfilesTableFilterHeader::nameFilterChanged, this, [this](const QString& currentText)
+    {
+       nameFilterString = currentText;
+       m_filterRefreshDebounce->start();
+    });
+    connect(filterHeader, &ProfilesTableFilterHeader::testFilterChanged, this, [this](const QString& currentText)
+    {
+       countryFilterString = currentText;
+       m_filterRefreshDebounce->start();
+    });
+    connect(filterHeader, &ProfilesTableFilterHeader::focusTableRequested, this,
+            [this](bool selectFirst) { focusProfilesTable(selectFirst); });
+
+    connect(Subscription::updater(), &Subscription::GroupUpdater::asyncUpdateCallback, this, [this](int gid) {
+        if (gid >= 0) updateTabToolTip(gid);
+    });
+
+    this->refresh_groups();
+
+    tray = new TrayIcon(this);
+    tray->setIcon(Icon::GetTrayIcon(Icon::TrayIconStatus::None));
+    QApplication::setWindowIcon(Icon::GetTaskbarIcon(Icon::TrayIconStatus::None));
+    trayMenu = new QMenu();
+    trayMenu->addAction(ui->actionShow_window);
+    trayMenu->addSeparator();
+
+    trayConnectAction = new QAction(tr("Connect"), trayMenu);
+    connect(trayConnectAction, &QAction::triggered, this, [this]() {
+        if (running != nullptr) profile_stop(false, false, true);
+        else profile_start();
+    });
+    trayMenu->addAction(trayConnectAction);
+    trayMenu->addSeparator();
+
+    trayMenu->addAction(ui->actionStart_with_system);
+    trayMenu->addAction(ui->actionRemember_last_proxy);
+    trayMenu->addAction(ui->actionAllow_LAN);
+    trayMenu->addSeparator();
+
+    auto *actSelectServer = new QAction(tr("Select Profile"), trayMenu);
+    connect(actSelectServer, &QAction::triggered, this, [this]() { openTraySelector(false); });
+    trayMenu->addAction(actSelectServer);
+    auto *actSelectRouting = new QAction(tr("Select Routing"), trayMenu);
+    connect(actSelectRouting, &QAction::triggered, this, [this]() { openTraySelector(true); });
+    trayMenu->addAction(actSelectRouting);
+    auto *actOtpCodes = new QAction(tr("OTP Codes"), trayMenu);
+    connect(actOtpCodes, &QAction::triggered, this, [this]() { openTrayOtpCodes(); });
+    trayMenu->addAction(actOtpCodes);
+    // MacOS cannot reuse menus across different parents properly
+    if (getOS() == Darwin) {
+        auto* traySpmodeMenu = new QMenu(ui->menu_spmode->title(), trayMenu);
+        traySpmodeMenu->addAction(ui->menu_spmode_system_proxy);
+        traySpmodeMenu->addAction(ui->menu_spmode_vpn);
+        connect(traySpmodeMenu, &QMenu::aboutToShow, this, [=,this]() {
+            ui->menu_spmode_disabled->setChecked(!(Configs::dataManager->settingsRepo->spmode_system_proxy || Configs::dataManager->settingsRepo->spmode_vpn));
+            ui->menu_spmode_system_proxy->setChecked(Configs::dataManager->settingsRepo->spmode_system_proxy);
+            ui->menu_spmode_vpn->setChecked(Configs::dataManager->settingsRepo->spmode_vpn);
+        });
+        trayMenu->addMenu(traySpmodeMenu);
+    } else {
+        trayMenu->addMenu(ui->menu_spmode);
+    }
+    trayMenu->addSeparator();
+
+    trayMenu->addAction(ui->actionRestart_Proxy);
+    trayMenu->addAction(ui->actionRestart_Program);
+    trayMenu->addAction(ui->menu_exit);
+    tray->setVisible(!Configs::dataManager->settingsRepo->disable_tray);
+    tray->setContextMenu(trayMenu);
+    connect(tray, &TrayIcon::activated, qApp, [=, this](QSystemTrayIcon::ActivationReason reason) {
+        if (reason == QSystemTrayIcon::Trigger && getOS() != Darwin) {
+            trayClickEvent();
+        }
+    });
+
+    ui->actionRemember_last_proxy->setChecked(Configs::dataManager->settingsRepo->remember_enable);
+    ui->actionStart_with_system->setChecked(AutoRun_IsEnabled());
+    ui->actionAllow_LAN->setChecked(QStringList{"::", "0.0.0.0"}.contains(Configs::dataManager->settingsRepo->inbound_address));
+
+    connect(ui->actionHide_window, &QAction::triggered, this, [=, this](){ HideWindow(this); });
+    connect(ui->menu_open_config_folder, &QAction::triggered, this, [=,this] { QDesktopServices::openUrl(QUrl::fromLocalFile(QDir::currentPath())); });
     connect(ui->menu_open_dashboard, &QAction::triggered, this, [=,this] { OpenDashboard(); });
     connect(ui->actionRestart_Proxy, &QAction::triggered, this, [=,this] { RestartCore(); });
     connect(ui->actionRestart_Program, &QAction::triggered, this, [=,this] { MW_dialog_message(MwMessage::RestartProgram, {}); });
