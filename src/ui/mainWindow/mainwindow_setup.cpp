@@ -142,8 +142,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
         });
     };
     MW_import_files = [=,this](const QStringList &paths) {
-        runOnUiThread([=,thi
-s]
+        runOnUiThread([=,this]
         {
             importFromFiles(paths);
         });
@@ -256,8 +255,7 @@ s]
             if (Configs::dataManager->settingsRepo->remember_enable &&
                 Configs::dataManager->settingsRepo->remember_id >= 0) {
                 core_process->start_profile_when_core_is_up =
-                    Configs::dataManager->settingsRepo->
-remember_id;
+                    Configs::dataManager->settingsRepo->remember_id;
             }
             core_process->Start();
         },
@@ -339,8 +337,7 @@ remember_id;
         if (auto dashFile = QFile(":/Throne/dashboard-notice.html"); dashFile.exists() && dashFile.open(QIODevice::ReadOnly))
         {
             auto data = dashFile.readAll();
-            if (auto dest = QFile("dashboard
-/index.html"); dest.open(QIODevice::Truncate | QIODevice::WriteOnly))
+            if (auto dest = QFile("dashboard/index.html"); dest.open(QIODevice::Truncate | QIODevice::WriteOnly))
             {
                 dest.write(data);
                 dest.close();
@@ -440,8 +437,7 @@ remember_id;
     ui->runtime_tab->layout()->addWidget(runtimeScroll);
 
     profilesTableModel = new ProfilesTableModel(this);
-    // A profile fed by an IP list shows
- the list's first entry, which any list change can move.
+    // A profile fed by an IP list shows the list's first entry, which any list change can move.
     const auto refreshEffectiveAddresses = [this] {
         Configs::InvalidateEndpointDisplayCache();
         profilesTableModel->invalidateAddresses();
@@ -521,8 +517,7 @@ remember_id;
         auto group = Configs::dataManager->groupsRepo->CurrentGroup();
         if (group == nullptr) return;
         // The column-widths action carries its shortcut id as data, so it must never be read as a sort key.
-        auto execWit
-hResetWidths = [&](QMenu& menu) -> QAction* {
+        auto execWithResetWidths = [&](QMenu& menu) -> QAction* {
             if (!menu.isEmpty()) menu.addSeparator();
             menu.addAction(ui->actionRefresh_Column_Widths);
             auto* chosen = menu.exec(header->mapToGlobal(pos));
@@ -608,8 +603,7 @@ hResetWidths = [&](QMenu& menu) -> QAction* {
 
             struct SortOption { int value; QString label; };
             QList<SortOption> options = {
-                { static_cast<in
-t>(Configs::testBy::latency), tr("Latency") },
+                { static_cast<int>(Configs::testBy::latency), tr("Latency") },
                 { static_cast<int>(Configs::testBy::dlSpeed), tr("Download Speed") },
                 { static_cast<int>(Configs::testBy::ulSpeed), tr("Upload Speed") },
                 { static_cast<int>(Configs::testBy::ipOut), tr("IP Out") }
@@ -706,8 +700,7 @@ t>(Configs::testBy::latency), tr("Latency") },
     ui->profilesTableView->viewport()->installEventFilter(this);
 
     auto *filterHeader = static_cast<ProfilesTableFilterHeader*>(ui->profilesTableView->horizontalHeader());
-    filterHeader->setLastF
-ilterColumn(Configs::dataManager->settingsRepo->last_filter_column);
+    filterHeader->setLastFilterColumn(Configs::dataManager->settingsRepo->last_filter_column);
     connect(filterHeader, &ProfilesTableFilterHeader::lastFilterColumnChanged, this, [](int column)
     {
         Configs::dataManager->settingsRepo->last_filter_column = column;
@@ -804,8 +797,7 @@ ilterColumn(Configs::dataManager->settingsRepo->last_filter_column);
         }
     });
 
-    ui->a
-ctionRemember_last_proxy->setChecked(Configs::dataManager->settingsRepo->remember_enable);
+    ui->actionRemember_last_proxy->setChecked(Configs::dataManager->settingsRepo->remember_enable);
     ui->actionStart_with_system->setChecked(AutoRun_IsEnabled());
     ui->actionAllow_LAN->setChecked(QStringList{"::", "0.0.0.0"}.contains(Configs::dataManager->settingsRepo->inbound_address));
 
@@ -880,8 +872,7 @@ ctionRemember_last_proxy->setChecked(Configs::dataManager->settingsRepo->remembe
         ui->actionSpeedtest_Current->setEnabled(running != nullptr);
     });
 
-    connect(ui->actionAdd_New_Group, &Q
-Action::triggered, this, [=,this]{
+    connect(ui->actionAdd_New_Group, &QAction::triggered, this, [=,this]{
         auto ent = Configs::dataManager->groupsRepo->NewGroup();
         auto dialog = new DialogEditGroup(ent, this);
         int ret = dialog->exec();
@@ -972,8 +963,7 @@ Action::triggered, this, [=,this]{
                 auto resp = NetworkRequestHelper::HttpGet(Configs::get_jsdelivr_link("https://raw.githubusercontent.com/throneproj/routeprofiles/profile/Profile_" + country));
                 if (!resp.error.isEmpty()) {
                     runOnUiThread([=] {
-              
-          MessageBoxWarning(QObject::tr("Download Profiles"), QObject::tr("Requesting profile error: %1").arg(resp.error + "\n" + resp.data));
+                        MessageBoxWarning(QObject::tr("Download Profiles"), QObject::tr("Requesting profile error: %1").arg(resp.error + "\n" + resp.data));
                     });
                     return;
                 }
@@ -1069,8 +1059,7 @@ Action::triggered, this, [=,this]{
 
         QMessageBox msg(QMessageBox::Information, tr("Config copied"), config_core);
         QPushButton *button_1 = msg.addButton(tr("Copy core config"), QMessageBox::YesRole);
-        QPushButton *button_2 = ms
-g.addButton(tr("Copy test config"), QMessageBox::YesRole);
+        QPushButton *button_2 = msg.addButton(tr("Copy test config"), QMessageBox::YesRole);
         msg.addButton(QMessageBox::Ok);
         msg.setEscapeButton(QMessageBox::Ok);
         msg.setDefaultButton(QMessageBox::Ok);
@@ -1163,8 +1152,7 @@ g.addButton(tr("Copy test config"), QMessageBox::YesRole);
             [minutesOf] { return minutesOf(Configs::dataManager->settingsRepo->route_auto_update); },
             [] { return Configs::dataManager->settingsRepo->route_auto_update_last; },
             [](qint64 t) {
-                Configs::dataManager->s
-ettingsRepo->route_auto_update_last = t;
+                Configs::dataManager->settingsRepo->route_auto_update_last = t;
                 Configs::dataManager->settingsRepo->Save();
             },
             [] { UI_update_all_remote_routes(true); },
@@ -1218,5 +1206,4 @@ MainWindow::~MainWindow() {
     Subscription::updater()->SetUrlTester(nullptr);
     delete ui;
 }
-
 
