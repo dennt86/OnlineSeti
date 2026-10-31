@@ -285,6 +285,9 @@ void MainWindow::refresh_startstop_button() {
         if (tray != nullptr) tray->setIcon(Icon::GetTrayIcon(iconStatus));
         icon_status = iconStatus;
     }
+#ifdef ONLINESETI_EDITION
+    refreshOnlineSetiDashboard();
+#endif
 }
 
 void MainWindow::update_traffic_graph(int proxyDl, int proxyUp, int directDl, int directUp)
@@ -300,6 +303,9 @@ void MainWindow::update_traffic_graph(int proxyDl, int proxyUp, int directDl, in
 
         speedChartWidget->AddPointData(pointData);
     }
+#ifdef ONLINESETI_EDITION
+    refreshOnlineSetiDashboard();
+#endif
 }
 
 void MainWindow::refresh_proxy_list_column_size() {

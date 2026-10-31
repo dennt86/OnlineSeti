@@ -128,3 +128,191 @@ QStatusBar {
     border-top: 1px solid #203C60;
 }
 
+/* OnlineSeti dashboard: calm navy surfaces, clear hierarchy and roomy controls. */
+QLabel {
+    background-color: transparent;
+}
+QWidget#onlineSetiShell, QWidget#onlineSetiContentHost, QWidget#onlineSetiPages, QWidget#onlineSetiHomePage,
+QWidget#onlineSetiSubPage, QWidget#onlineSetiServersPage {
+    background: #07152D;
+}
+QWidget#onlineSetiRail {
+    background: #091A33;
+    border-right: 1px solid #203C60;
+}
+QWidget#onlineSetiBrand {
+    background: transparent;
+}
+QLabel#onlineSetiBrandMark {
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+}
+QLabel#onlineSetiBrandText {
+    color: #F2F7FF;
+    font-size: 15px;
+    font-weight: 700;
+}
+QPushButton#onlineSetiNavButton {
+    text-align: left;
+    color: #A9BDD4;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 11px;
+    padding: 12px 13px;
+    font-size: 13px;
+}
+QPushButton#onlineSetiNavButton:hover {
+    background: #102746;
+    color: #F2F7FF;
+}
+QPushButton#onlineSetiNavButton[active="true"] {
+    color: #DFFFFF;
+    background: #12344F;
+    border-color: #214864;
+    border-left: 3px solid #43DDDF;
+    padding-left: 11px;
+    font-weight: 650;
+}
+QLabel#onlineSetiRailNote {
+    color: #839BB5;
+    background: #0B1D37;
+    border: 1px solid #203C60;
+    border-radius: 12px;
+    padding: 12px;
+    font-size: 11px;
+}
+QLabel#onlineSetiRailVersion {
+    color: #839BB5;
+    font-size: 10px;
+    padding-left: 12px;
+}
+QLabel#onlineSetiAppRuleRow {
+    color: #CBE3F5;
+    background: #0A1B35;
+    border: 1px solid #244564;
+    border-radius: 10px;
+    padding: 9px 11px;
+    font-size: 12px;
+}
+QLabel#onlineSetiAppsEmpty {
+    color: #8DA6C1;
+    background: transparent;
+    font-size: 12px;
+}
+QWidget#onlineSetiAppsRuleList {
+    background: transparent;
+}
+QLabel#onlineSetiRouteRow {
+    color: #CBE3F5;
+    background: #0A1B35;
+    border: 1px solid #244564;
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 12px;
+}
+QLabel#onlineSetiEyebrow {
+    color: #83A1BD;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+QLabel#onlineSetiPageHeading {
+    color: #F2F7FF;
+    font-size: 25px;
+    font-weight: 700;
+}
+QFrame#onlineSetiConnectCard, QFrame#onlineSetiInfoCard, QFrame#onlineSetiRouteCard {
+    background: #0D2140;
+    border: 1px solid #203C60;
+    border-radius: 18px;
+}
+QFrame#onlineSetiEmptyProfiles {
+    background: #0D2140;
+    border: 1px dashed #284766;
+    border-radius: 16px;
+}
+QFrame#onlineSetiConnectCard {
+    background: #0D2443;
+    border-color: #285276;
+}
+QLabel#onlineSetiStatusPill {
+    color: #AABDD2;
+    background: #102746;
+    border: 1px solid #284766;
+    border-radius: 14px;
+    padding: 6px 10px;
+    font-size: 10px;
+    font-weight: 700;
+}
+QLabel#onlineSetiStatusPill[connected="true"] {
+    color: #A5F0D1;
+    background: #103A36;
+    border-color: #276D69;
+}
+QPushButton#onlineSetiPowerButton {
+    color: #43DDDF;
+    background: #0D2948;
+    border: 2px solid #3C9EBC;
+    border-radius: 54px;
+    font-size: 40px;
+    padding: 0;
+}
+QPushButton#onlineSetiPowerButton:hover {
+    background: #143956;
+    border-color: #43DDDF;
+}
+QPushButton#onlineSetiPowerButton[connected="true"] {
+    color: #A5F0D1;
+    background: #103A36;
+    border-color: #39D5A0;
+}
+QLabel#onlineSetiConnectDetail {
+    color: #F2F7FF;
+    font-size: 17px;
+    font-weight: 700;
+    padding-top: 2px;
+}
+QLabel#onlineSetiMutedText {
+    color: #8DA6C1;
+    font-size: 12px;
+}
+QLabel#onlineSetiCardTitle {
+    color: #9DB5D1;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .7px;
+}
+QLabel#onlineSetiCardValue {
+    color: #F2F7FF;
+    font-size: 16px;
+    font-weight: 650;
+}
+QPushButton#onlineSetiPrimaryButton {
+    color: #FFFFFF;
+    background: #166A82;
+    border: 1px solid #2D9BB0;
+    border-radius: 10px;
+    padding: 10px 16px;
+    font-weight: 650;
+}
+QPushButton#onlineSetiPrimaryButton:hover {
+    background: #1A7E91;
+}
+QPushButton#onlineSetiSecondaryButton, QPushButton#onlineSetiMenuButton {
+    color: #CBE3F5;
+    background: #102746;
+    border: 1px solid #284766;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 12px;
+}
+QPushButton#onlineSetiSecondaryButton:hover, QPushButton#onlineSetiMenuButton:hover {
+    color: #F2F7FF;
+    background: #143956;
+    border-color: #368BA0;
+}
+QPushButton#onlineSetiMenuButton {
+    text-align: left;
+    padding: 14px 16px;
+}

@@ -179,6 +179,22 @@ void MainWindow::keyPressEvent(QKeyEvent *event) {
 bool MainWindow::eventFilter(QObject *obj, QEvent *event) {
     const QEvent::Type type = event->type();
 
+#ifdef ONLINESETI_EDITION
+    if (type == QEvent::Resize && obj == onlineSetiAppsPage && onlineSetiAppsGrid &&
+        onlineSetiAppsProfileCard && onlineSetiAppsRulesCard) {
+        const bool wideLayout = static_cast<QWidget *>(obj)->width() >= 1040;
+        if (wideLayout != onlineSetiAppsWideLayout) {
+            onlineSetiAppsWideLayout = wideLayout;
+            onlineSetiAppsGrid->setColumnStretch(0, 1);
+            onlineSetiAppsGrid->setColumnStretch(1, wideLayout ? 1 : 0);
+            onlineSetiAppsGrid->removeWidget(onlineSetiAppsProfileCard);
+            onlineSetiAppsGrid->removeWidget(onlineSetiAppsRulesCard);
+            onlineSetiAppsGrid->addWidget(onlineSetiAppsProfileCard, 0, 0);
+            onlineSetiAppsGrid->addWidget(onlineSetiAppsRulesCard, wideLayout ? 0 : 1, wideLayout ? 1 : 0);
+        }
+    }
+#endif
+
     // Accepting the override keeps any window-level Esc shortcut from taking the key first.
     if ((type == QEvent::ShortcutOverride || type == QEvent::KeyPress) && static_cast<QKeyEvent *>(event)->key() == Qt::Key_Escape
         && obj->isWidgetType() && ui->logToolbar->isAncestorOf(static_cast<QWidget *>(obj))) {

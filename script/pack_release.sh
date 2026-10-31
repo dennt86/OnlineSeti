@@ -53,6 +53,12 @@ zip_dir() {
     fi
 }
 
+tar_dir() {
+    mkdir -p "$WORK/tar-$2"
+    cp -a "$DEPLOY/$1" "$WORK/tar-$2/$APP_NAME"
+    tar -czf "$DEPLOY/$ARCHIVE_NAME-$TAG-$2.tar.gz" -C "$WORK/tar-$2" "$APP_NAME"
+}
+
 zip_app() {
     mkdir -p "$WORK/$2/qThrone"
     mv "$DEPLOY/$1/qThrone.app" "$WORK/$2/qThrone/"
@@ -85,7 +91,7 @@ run_task() {
     return $rc
 }
 
-export -f build_installer zip_dir zip_app zip_debug pack_deb pack_rpm run_task
+export -f build_installer zip_dir tar_dir zip_app zip_debug pack_deb pack_rpm run_task
 
 case "$TARGET" in
 windows)
@@ -98,6 +104,8 @@ windows)
             "zip-windows-arm64 zip_dir windows-arm64 windows-arm64" \
             "zip-windows32 zip_dir windowslegacy-386 windows32" \
             "zip-windowslegacy64 zip_dir windowslegacy-amd64 windowslegacy64")
+    else
+        TASKS+=("tar-gz-windows64 tar_dir windows-amd64 windows64")
     fi
     ;;
 linux-amd64 | linux-arm64)

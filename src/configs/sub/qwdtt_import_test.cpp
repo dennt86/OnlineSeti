@@ -26,6 +26,7 @@
 #include <QApplication>
 #include <QMainWindow>
 #include <QDir>
+#include <QFile>
 #include "ui_mainwindow.h"
 #include "include/ui/widget/SeasonalDecoration.hpp"
 
@@ -45,8 +46,9 @@ int TestQwdttImport() {
         Configs::dataManager = previousManager;
     });
     int failures = 0;
-    const auto check = [&failures](bool ok, const char *name) {
-        if (!ok) { qCritical() << "qWDTT import test failed:" << name; ++failures; }
+    QStringList failedChecks;
+    const auto check = [&failures, &failedChecks](bool ok, const char *name) {
+        if (!ok) { failedChecks.append(QString::fromUtf8(name)); qCritical() << "qWDTT import test failed:" << name; ++failures; }
     };
     {
         // Exercise the real .ui hierarchy: a splitter silently adopts direct QWidget children.
@@ -392,6 +394,13 @@ int TestQwdttImport() {
     check(ReleaseVersion::FromAsset("qThrone-1.0-beta.2-windows-amd64.zip") == "1.0-beta.2", "beta asset version");
     check(ReleaseVersion::FromAsset("qThrone-1.0-linux-amd64.tar.gz") == "1.0", "stable asset version");
     check(ReleaseVersion::FromAsset("OnlineSetiVPN-1.1.2-windows64.zip") == "1.1.2", "OnlineSeti Windows asset version");
+    const auto reportPath = qEnvironmentVariable("THRONE_TEST_REPORT_PATH");
+    if (!reportPath.isEmpty()) {
+        QFile report(reportPath);
+        if (report.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text)) {
+            report.write((failedChecks.isEmpty() ? QStringLiteral("passed") : failedChecks.join('\n')).toUtf8());
+        }
+    }
     qInfo() << "qWDTT import and release version tests:" << failures << "failures";
     return failures == 0 ? 0 : 1;
 }

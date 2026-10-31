@@ -7677,7 +7677,83 @@ Name: %1</source>
         <source>Close all connections for &quot;%1&quot; (%2)</source>
         <translation>Закрыть все соединения &quot;%1&quot; (%2)</translation>
     </message>
-</context>
+    <message><source>Home</source><translation>Главная</translation></message>
+    <message><source>Servers</source><translation>Серверы</translation></message>
+    <message><source>Applications</source><translation>Приложения</translation></message>
+    <message><source>Settings</source><translation>Настройки</translation></message>
+    <message><source>Your apps use the currently selected traffic routing profile.</source><translation>Приложения используют выбранный профиль маршрутизации трафика.</translation></message>
+    <message><source>Application routing</source><translation>Маршрутизация приложений</translation></message>
+    <message><source>Current routing profile: %1</source><translation>Текущий профиль маршрутизации: %1</translation></message>
+    <message><source>Choose a routing profile  ›</source><translation>Выбрать профиль маршрутизации  ›</translation></message>
+    <message><source>CONTROL PANEL</source><translation>ПАНЕЛЬ УПРАВЛЕНИЯ</translation></message>
+    <message><source>Subscription and support</source><translation>Подписка и поддержка</translation></message>
+    <message><source>Choose a profile or manage your subscriptions.</source><translation>Выберите профиль или настройте подписки.</translation></message>
+    <message><source>No profiles in this group</source><translation>В этой группе пока нет профилей</translation></message>
+    <message><source>Import a profile or choose another group or subscription.</source><translation>Импортируйте профиль или выберите другую группу либо подписку.</translation></message>
+    <message><source>Import profile</source><translation>Импортировать профиль</translation></message>
+    <message><source>Groups and subscriptions  ▾</source><translation>Группы и подписки  ▾</translation></message>
+    <message><source>Groups and subscriptions</source><translation>Группы и подписки</translation></message>
+    <message><source>Connection mode</source><translation>Режим подключения</translation></message>
+    <message><source>Tools and diagnostics</source><translation>Инструменты и диагностика</translation></message>
+
+    <message><source>More</source><translation>Ещё</translation></message>
+    <message><source>VPN connection</source><translation>VPN-подключение</translation></message>
+    <message><source>Choose server  ›</source><translation>Выбрать сервер  ›</translation></message>
+    <message><source>ACTIVE PROFILE</source><translation>АКТИВНЫЙ ПРОФИЛЬ</translation></message>
+    <message><source>TRAFFIC</source><translation>ТРАФИК</translation></message>
+    <message><source>Routing mode</source><translation>Режим маршрутизации</translation></message>
+    <message><source>Manage direct traffic, VPN routing and DNS behavior</source><translation>Настройте прямой трафик, маршрутизацию через VPN и DNS</translation></message>
+    <message><source>Open routes  ›</source><translation>Открыть маршруты  ›</translation></message>
+    <message><source>Choose how apps and destinations use your connection.</source><translation>Выберите, как приложения и адреса используют подключение.</translation></message>
+    <message><source>Local networks and configured exclusions can stay direct.</source><translation>Локальные сети и исключения могут работать напрямую.</translation></message>
+    <message><source>Manage routing rules and profiles</source><translation>Управление правилами и профилями маршрутизации</translation></message>
+    <message><source>Settings, maintenance and diagnostics</source><translation>Настройки, обслуживание и диагностика</translation></message>
+    <message><source>Open runtime statistics and logs</source><translation>Открыть статистику и журналы</translation></message>
+    <message><source>Active routing profile</source><translation>Активный профиль маршрутизации</translation></message>
+    <message><source>Traffic behavior</source><translation>Поведение трафика</translation></message>
+    <message><source>Applications use the selected profile</source><translation>Приложения используют выбранный профиль</translation></message>
+    <message><source>Local network addresses remain direct</source><translation>Адреса локальной сети идут напрямую</translation></message>
+    <message><source>DNS follows the active routing rules</source><translation>DNS следует активным правилам маршрутизации</translation></message>
+    <message><source>Traffic follows the active profile and its rules</source><translation>Трафик следует активному профилю и его правилам</translation></message>
+    <message><source>Application, domain and address rules are configurable</source><translation>Правила для приложений, доменов и адресов можно настроить</translation></message>
+    <message><source>DNS behavior follows the client configuration</source><translation>Поведение DNS задаётся настройками клиента</translation></message>
+    <message><source>Routing rules</source><translation>Правила маршрутизации</translation></message>
+    <message><source>Application, domain, address and direct-connection rules are managed in routing profiles.</source><translation>Правила для приложений, доменов, адресов и прямых подключений задаются в профилях маршрутизации.</translation></message>
+    <message><source>Connection</source><translation>Подключение</translation></message>
+    <message><source>VPN behavior, system mode and network switching.</source><translation>Поведение VPN, системный режим и переключение сетей.</translation></message>
+    <message><source>Configure connection</source><translation>Настроить подключение</translation></message>
+    <message><source>Application</source><translation>Приложение</translation></message>
+    <message><source>Appearance, updates and local configuration.</source><translation>Внешний вид, обновления и локальная конфигурация.</translation></message>
+    <message><source>Open application options</source><translation>Открыть настройки приложения</translation></message>
+    <message><source>Subscriptions and profiles</source><translation>Подписки и профили</translation></message>
+    <message><source>Manage profile groups and subscription sources.</source><translation>Управление группами профилей и источниками подписок.</translation></message>
+    <message><source>Manage subscriptions</source><translation>Управлять подписками</translation></message>
+    <message><source>Review runtime state, traffic counters and connection logs.</source><translation>Состояние клиента, счётчики трафика и журналы подключений.</translation></message>
+    <message><source>Open tools</source><translation>Открыть инструменты</translation></message>
+    <message><source>Check for updates</source><translation>Проверить обновления</translation></message>
+    <message><source>Open configuration folder</source><translation>Открыть папку конфигурации</translation></message>
+    <message><source>Secure connection for Windows</source><translation>Защищённое подключение для Windows</translation></message>
+    <message><source>Traffic is routed through the selected profile</source><translation>Трафик идёт через выбранный профиль</translation></message>
+    <message><source>●  CONNECTED</source><translation>●  ПОДКЛЮЧЕНО</translation></message>
+    <message><source>●  CONNECTING</source><translation>●  ПОДКЛЮЧЕНИЕ</translation></message>
+    <message><source>●  DISCONNECTING</source><translation>●  ОТКЛЮЧЕНИЕ</translation></message>
+    <message><source>○  NOT CONNECTED</source><translation>○  НЕ ПОДКЛЮЧЕНО</translation></message>
+    <message><source>Connected</source><translation>Подключено</translation></message>
+    <message><source>Starting a secure connection…</source><translation>Устанавливаем защищённое подключение…</translation></message>
+    <message><source>Disconnecting…</source><translation>Отключаемся…</translation></message>
+    <message><source>Click the power button to connect</source><translation>Нажмите кнопку питания для подключения</translation></message>
+    <message><source>No profile selected</source><translation>Профиль не выбран</translation></message>
+    <message><source>Open Servers to choose a connection profile</source><translation>Откройте раздел «Серверы», чтобы выбрать профиль</translation></message>
+    <message><source>Connected profile</source><translation>Подключённый профиль</translation></message>
+    <message><source>Ready to connect</source><translation>Готов к подключению</translation></message>
+    <message><source>Connection active</source><translation>Подключение активно</translation></message>
+    <message><source>Waiting for connection</source><translation>Ожидание подключения</translation></message>
+    <message><source>Traffic counters appear while connected</source><translation>Счётчики трафика появятся после подключения</translation></message>
+    <message><source>Default routing</source><translation>Маршрутизация по умолчанию</translation></message>
+    <message><source>Version %1</source><translation>Версия %1</translation></message>
+    <message><source>App-specific rules</source><translation>Правила для приложений</translation></message>
+    <message numerus="yes"><source>%n rule(s)</source><translation><numerusform>%n правило</numerusform><numerusform>%n правила</numerusform><numerusform>%n правил</numerusform></translation></message>
+    <message><source>This routing profile has no app-specific rules.</source><translation>В этом профиле нет правил для отдельных приложений.</translation></message></context>
 <context>
     <name>OtpItem</name>
     <message>

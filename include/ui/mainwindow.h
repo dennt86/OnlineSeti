@@ -36,6 +36,11 @@
 #include <QPixmap>
 #include <QToolButton>
 #include <QCheckBox>
+#ifdef ONLINESETI_EDITION
+#include <QStackedWidget>
+#include <QLabel>
+#include <QPushButton>
+#endif
 #include <QSemaphore>
 #include <QMutex>
 #include <QThreadPool>
@@ -315,6 +320,31 @@ private slots:
     void on_tabWidget_customContextMenuRequested(const QPoint& p);
 
 private:
+#ifdef ONLINESETI_EDITION
+    QStackedWidget *onlineSetiPages = nullptr;
+    QWidget *onlineSetiHome = nullptr;
+    QLabel *onlineSetiConnectionStatus = nullptr;
+    QLabel *onlineSetiConnectionDetail = nullptr;
+    QLabel *onlineSetiProfileName = nullptr;
+    QLabel *onlineSetiProfileMeta = nullptr;
+    QLabel *onlineSetiTraffic = nullptr;
+    QLabel *onlineSetiRoute = nullptr;
+    QLabel *onlineSetiRoutingProfile = nullptr;
+    QLabel *onlineSetiAppsRuleCount = nullptr;
+    QLabel *onlineSetiAppsProfile = nullptr;
+    QWidget *onlineSetiAppsRuleList = nullptr;
+    QVBoxLayout *onlineSetiAppsRuleLayout = nullptr;
+    QGridLayout *onlineSetiAppsGrid = nullptr;
+    QWidget *onlineSetiAppsPage = nullptr;
+    QWidget *onlineSetiAppsProfileCard = nullptr;
+    QWidget *onlineSetiAppsRulesCard = nullptr;
+    bool onlineSetiAppsWideLayout = false;
+    QPushButton *onlineSetiPowerButton = nullptr;
+    QList<QPushButton*> onlineSetiNavButtons;
+    void setupOnlineSetiDashboard();
+    void refreshOnlineSetiDashboard();
+    void showOnlineSetiPage(int index);
+#endif
     Ui::MainWindow *ui;
     SeasonalDecoration *seasonalDecoration = nullptr;
     QElapsedTimer sinceWindowDeactivated;

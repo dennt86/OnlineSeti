@@ -6,7 +6,7 @@ on:
       version:
         description: Release version (for example 1.1.2)
         required: true
-        default: "1.1.3"
+        default: "1.1.5"
         type: string
       publish:
         description: Publish this build to GitHub Releases for in-app updates
@@ -154,10 +154,36 @@ jobs:
           } finally { $zip.Dispose() }
           & 7z t $archive
           if ($LASTEXITCODE -ne 0) { throw 'Portable archive integrity check failed' }
+      - name: Verify portable tarball layout
+        shell: pwsh
+        run: |
+          $archive = Join-Path $env:GITHUB_WORKSPACE "deployment/OnlineSetiVPN-$env:INPUT_VERSION-windows64.tar.gz"
+          if (!(Test-Path -LiteralPath $archive)) { throw "Portable tarball missing: $archive" }
+          $entries = @(& tar -tzf $archive)
+          if ($LASTEXITCODE -ne 0) { throw 'Portable tarball integrity check failed' }
+          foreach ($required in @(
+            'OnlineSetiVPN/OnlineSetiVPN.exe',
+            'OnlineSetiVPN/OnlineSetiCore.exe',
+            'OnlineSetiVPN/OnlineSetiUpdater.exe',
+            'OnlineSetiVPN/OnlineSetiWDTT.exe',
+            'OnlineSetiVPN/OnlineSetiWDTTPlus.exe',
+            'OnlineSetiVPN/OnlineSetiOpenFlux.exe',
+            'OnlineSetiVPN/OnlineSetiOLCRTC.exe',
+            'OnlineSetiVPN/csqtt-transport.exe'
+          )) {
+            if ($entries -notcontains $required) { throw "Required runtime file missing from tarball: $required" }
+          }
+          if ($entries | Where-Object { $_ -match '(^|/)(config|profiles)/|\.db($|/)' }) {
+            throw 'Portable tarball must not contain user settings or databases'
+          }
+          & 7z t $archive
+          if ($LASTEXITCODE -ne 0) { throw 'Portable tarball integrity check failed' }
       - uses: actions/upload-artifact@v7.0.1
         with:
           name: OnlineSetiVPN-${{ inputs.version }}-windows64
-          path: deployment/OnlineSetiVPN-${{ inputs.version }}-windows64.zip
+          path: |
+            deployment/OnlineSetiVPN-${{ inputs.version }}-windows64.zip
+            deployment/OnlineSetiVPN-${{ inputs.version }}-windows64.tar.gz
           if-no-files-found: error
           compression-level: 0
       - name: Publish in-app update release
@@ -168,7 +194,9 @@ jobs:
         run: |
           set -euo pipefail
           tag="v${INPUT_VERSION#v}"
-          gh release create "$tag" "deployment/OnlineSetiVPN-${INPUT_VERSION}-windows64.zip" \
+          gh release create "$tag" \
+            "deployment/OnlineSetiVPN-${INPUT_VERSION}-windows64.zip" \
+            "deployment/OnlineSetiVPN-${INPUT_VERSION}-windows64.tar.gz" \
             --target "$SOURCE_SHA" --title "OnlineSeti VPN $INPUT_VERSION for Windows" \
-            --notes "OnlineSeti VPN for Windows. This release is available from the in-app updater."
+            --notes "OnlineSeti VPN for Windows. Use ZIP for in-app updates or TAR.GZ for manual extraction."
 

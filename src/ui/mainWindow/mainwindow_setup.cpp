@@ -74,6 +74,15 @@
 #endif
 #include <QFileDialog>
 #include <QToolButton>
+#include <QFrame>
+#include <QGridLayout>
+#include <QVBoxLayout>
+#include <QHBoxLayout>
+#include <QStackedWidget>
+#include <QLabel>
+#include <QPixmap>
+#include <QPushButton>
+#include <QStyle>
 #include <QTextBrowser>
 #include <include/global/HTTPRequestHelper.hpp>
 #include "include/global/DeviceDetailsHelper.hpp"
@@ -1200,7 +1209,619 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
         else respond(RemoteApi::Response::Error(503, "exiting", "Throne is shutting down"));
     });
     RemoteApi::Server::instance()->apply(RemoteApi::ConfigFromSettings());
+#ifdef ONLINESETI_EDITION
+    setupOnlineSetiDashboard();
+#endif
 }
+
+#ifdef ONLINESETI_EDITION
+void MainWindow::showOnlineSetiPage(int index) {
+    if (!onlineSetiPages || index < 0 || index >= onlineSetiPages->count()) return;
+    onlineSetiPages->setCurrentIndex(index);
+    for (int i = 0; i < onlineSetiNavButtons.size(); ++i) {
+        onlineSetiNavButtons[i]->setProperty("active", i == index);
+        onlineSetiNavButtons[i]->style()->unpolish(onlineSetiNavButtons[i]);
+        onlineSetiNavButtons[i]->style()->polish(onlineSetiNavButtons[i]);
+    }
+    if (index == 0) refreshOnlineSetiDashboard();
+}
+
+void MainWindow::setupOnlineSetiDashboard() {
+    QWidget *legacyPage = ui->centralwidget;
+    legacyPage->setParent(nullptr);
+
+    auto *shell = new QWidget(this);
+    shell->setObjectName("onlineSetiShell");
+    auto *shellLayout = new QHBoxLayout(shell);
+    shellLayout->setContentsMargins(0, 0, 0, 0);
+    shellLayout->setSpacing(0);
+
+    auto *rail = new QWidget(shell);
+    rail->setObjectName("onlineSetiRail");
+    rail->setMinimumWidth(224);
+    rail->setMaximumWidth(224);
+    auto *railLayout = new QVBoxLayout(rail);
+    railLayout->setContentsMargins(14, 22, 14, 16);
+    railLayout->setSpacing(8);
+
+    auto *brand = new QWidget(rail);
+    brand->setObjectName("onlineSetiBrand");
+    auto *brandLayout = new QHBoxLayout(brand);
+    brandLayout->setContentsMargins(8, 0, 4, 24);
+    brandLayout->setSpacing(11);
+    auto *mark = new QLabel(brand);
+    mark->setObjectName("onlineSetiBrandMark");
+    mark->setAlignment(Qt::AlignCenter);
+    mark->setFixedSize(40, 40);
+    mark->setPixmap(QPixmap(QStringLiteral(":/Throne/OnlineSeti.png")).scaled(
+        40, 40, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+    auto *brandText = new QLabel(QStringLiteral("OnlineSeti VPN"), brand);
+    brandText->setObjectName("onlineSetiBrandText");
+    brandText->setWordWrap(true);
+    brandLayout->addWidget(mark);
+    brandLayout->addWidget(brandText, 1);
+    railLayout->addWidget(brand);
+
+    auto *contentHost = new QWidget(shell);
+    contentHost->setObjectName("onlineSetiContentHost");
+    auto *contentHostLayout = new QHBoxLayout(contentHost);
+    contentHostLayout->setContentsMargins(0, 0, 0, 0);
+    contentHostLayout->setSpacing(0);
+    contentHostLayout->addStretch();
+    onlineSetiPages = new QStackedWidget(contentHost);
+    onlineSetiPages->setObjectName("onlineSetiPages");
+    onlineSetiPages->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    onlineSetiPages->setMaximumWidth(1480);
+    contentHostLayout->addWidget(onlineSetiPages, 1);
+    contentHostLayout->addStretch();
+    onlineSetiHome = new QWidget(onlineSetiPages);
+    onlineSetiHome->setObjectName("onlineSetiHomePage");
+    auto *homeOuter = new QVBoxLayout(onlineSetiHome);
+    homeOuter->setContentsMargins(30, 26, 30, 28);
+    homeOuter->setSpacing(18);
+
+    auto *homeHeader = new QHBoxLayout;
+    auto *headingStack = new QVBoxLayout;
+    auto *eyebrow = new QLabel(tr("CONTROL PANEL"), onlineSetiHome);
+    eyebrow->setObjectName("onlineSetiEyebrow");
+    auto *heading = new QLabel(tr("VPN connection"), onlineSetiHome);
+    heading->setObjectName("onlineSetiPageHeading");
+    headingStack->addWidget(eyebrow);
+    headingStack->addWidget(heading);
+    homeHeader->addLayout(headingStack);
+    homeHeader->addStretch();
+    auto *openServers = new QPushButton(tr("Choose server  ›"), onlineSetiHome);
+    openServers->setObjectName("onlineSetiSecondaryButton");
+    homeHeader->addWidget(openServers);
+    homeOuter->addLayout(homeHeader);
+
+    auto *cards = new QGridLayout;
+    cards->setHorizontalSpacing(16);
+    cards->setVerticalSpacing(16);
+    cards->setColumnStretch(0, 13);
+    cards->setColumnStretch(1, 9);
+
+    auto *connectCard = new QFrame(onlineSetiHome);
+    connectCard->setObjectName("onlineSetiConnectCard");
+    auto *connectLayout = new QVBoxLayout(connectCard);
+    connectLayout->setContentsMargins(24, 22, 24, 22);
+    connectLayout->setSpacing(10);
+    auto *connectTop = new QHBoxLayout;
+    onlineSetiConnectionStatus = new QLabel(connectCard);
+    onlineSetiConnectionStatus->setObjectName("onlineSetiStatusPill");
+    connectTop->addWidget(onlineSetiConnectionStatus, 0, Qt::AlignLeft);
+    connectTop->addStretch();
+    connectLayout->addLayout(connectTop);
+    connectLayout->addStretch();
+    onlineSetiPowerButton = new QPushButton(QStringLiteral("⏻"), connectCard);
+    onlineSetiPowerButton->setObjectName("onlineSetiPowerButton");
+    onlineSetiPowerButton->setFixedSize(108, 108);
+    onlineSetiPowerButton->setCursor(Qt::PointingHandCursor);
+    connectCard->setMinimumHeight(287);
+    connectCard->setMaximumHeight(330);
+    connectLayout->addWidget(onlineSetiPowerButton, 0, Qt::AlignHCenter);
+    onlineSetiConnectionDetail = new QLabel(connectCard);
+    onlineSetiConnectionDetail->setObjectName("onlineSetiConnectDetail");
+    onlineSetiConnectionDetail->setAlignment(Qt::AlignCenter);
+    onlineSetiConnectionDetail->setWordWrap(true);
+    connectLayout->addWidget(onlineSetiConnectionDetail);
+    auto *helper = new QLabel(tr("Traffic is routed through the selected profile"), connectCard);
+    helper->setObjectName("onlineSetiMutedText");
+    helper->setAlignment(Qt::AlignCenter);
+    connectLayout->addWidget(helper);
+    connectLayout->addStretch();
+    cards->addWidget(connectCard, 0, 0, 2, 1);
+
+    auto makeCard = [this](const QString &title, QLabel **value, QLabel **meta) {
+        auto *card = new QFrame(onlineSetiHome);
+        card->setObjectName("onlineSetiInfoCard");
+        auto *layout = new QVBoxLayout(card);
+        layout->setContentsMargins(19, 17, 19, 17);
+        layout->setSpacing(7);
+        auto *head = new QLabel(title, card);
+        head->setObjectName("onlineSetiCardTitle");
+        *value = new QLabel(card);
+        (*value)->setObjectName("onlineSetiCardValue");
+        (*value)->setWordWrap(true);
+        *meta = new QLabel(card);
+        (*meta)->setObjectName("onlineSetiMutedText");
+        (*meta)->setWordWrap(true);
+        layout->addWidget(head);
+        layout->addWidget(*value);
+        layout->addWidget(*meta);
+        layout->addStretch();
+        return card;
+    };
+    auto *profileCard = makeCard(tr("ACTIVE PROFILE"), &onlineSetiProfileName, &onlineSetiProfileMeta);
+    profileCard->setMinimumHeight(132);
+    profileCard->setMaximumHeight(157);
+    cards->addWidget(profileCard, 0, 1);
+    auto *trafficCard = makeCard(tr("TRAFFIC"), &onlineSetiTraffic, &onlineSetiRoute);
+    trafficCard->setMinimumHeight(132);
+    trafficCard->setMaximumHeight(157);
+    cards->addWidget(trafficCard, 1, 1);
+
+    auto *routeCard = new QFrame(onlineSetiHome);
+    routeCard->setObjectName("onlineSetiRouteCard");
+    auto *routeLayout = new QHBoxLayout(routeCard);
+    routeLayout->setContentsMargins(20, 16, 20, 16);
+    auto *routeCopy = new QVBoxLayout;
+    auto *routeTitle = new QLabel(tr("Routing mode"), routeCard);
+    routeTitle->setObjectName("onlineSetiCardTitle");
+    auto *routeDesc = new QLabel(tr("Manage direct traffic, VPN routing and DNS behavior"), routeCard);
+    routeDesc->setObjectName("onlineSetiMutedText");
+    routeDesc->setWordWrap(true);
+    routeCopy->addWidget(routeTitle);
+    routeCopy->addWidget(routeDesc);
+    routeLayout->addLayout(routeCopy, 1);
+    auto *routeButton = new QPushButton(tr("Open routes  ›"), routeCard);
+    routeButton->setObjectName("onlineSetiSecondaryButton");
+    routeLayout->addWidget(routeButton);
+    routeCard->setMinimumHeight(82);
+    routeCard->setMaximumHeight(104);
+    cards->addWidget(routeCard, 2, 0, 1, 2);
+    homeOuter->addLayout(cards);
+    homeOuter->addStretch();
+
+    auto *serversPage = new QWidget(onlineSetiPages);
+    serversPage->setObjectName("onlineSetiServersPage");
+    auto *serversLayout = new QVBoxLayout(serversPage);
+    serversLayout->setContentsMargins(26, 24, 26, 22);
+    serversLayout->setSpacing(12);
+    auto *serversHeader = new QHBoxLayout;
+    auto *serversCopy = new QVBoxLayout;
+    auto *serversHeading = new QLabel(tr("Servers"), serversPage);
+    serversHeading->setObjectName("onlineSetiPageHeading");
+    auto *serversIntro = new QLabel(tr("Choose a profile or manage your subscriptions."), serversPage);
+    serversIntro->setObjectName("onlineSetiMutedText");
+    serversIntro->setWordWrap(true);
+    serversCopy->addWidget(serversHeading);
+    serversCopy->addWidget(serversIntro);
+    serversHeader->addLayout(serversCopy, 1);
+    auto *importProfile = new QPushButton(tr("Import profile"), serversPage);
+    importProfile->setObjectName("onlineSetiSecondaryButton");
+    serversHeader->addWidget(importProfile, 0, Qt::AlignVCenter);
+    auto *manageGroups = new QPushButton(tr("Groups and subscriptions  ▾"), serversPage);
+    manageGroups->setObjectName("onlineSetiSecondaryButton");
+    serversHeader->addWidget(manageGroups, 0, Qt::AlignVCenter);
+    serversLayout->addLayout(serversHeader);
+    serversLayout->setAlignment(serversHeader, Qt::AlignTop);
+    legacyPage->setParent(serversPage);
+    auto *serverContent = new QStackedWidget(serversPage);
+    serverContent->setObjectName("onlineSetiServerContent");
+    serverContent->addWidget(legacyPage);
+    serversLayout->addWidget(serverContent, 1);
+    ui->data_view->hide();
+    ui->splitter->widget(1)->hide();
+    auto *emptyProfiles = new QFrame(serverContent);
+    emptyProfiles->setObjectName("onlineSetiEmptyProfiles");
+    auto *emptyProfilesLayout = new QVBoxLayout(emptyProfiles);
+    emptyProfilesLayout->setContentsMargins(22, 18, 22, 18);
+    emptyProfilesLayout->setSpacing(7);
+    auto *emptyProfilesTitle = new QLabel(tr("No profiles in this group"), emptyProfiles);
+    emptyProfilesTitle->setObjectName("onlineSetiCardValue");
+    auto *emptyProfilesText = new QLabel(tr("Import a profile or choose another group or subscription."), emptyProfiles);
+    emptyProfilesText->setObjectName("onlineSetiMutedText");
+    emptyProfilesText->setWordWrap(true);
+    emptyProfilesText->setAlignment(Qt::AlignCenter);
+    emptyProfilesText->setFixedWidth(440);
+    emptyProfilesLayout->addStretch();
+    emptyProfilesLayout->addWidget(emptyProfilesTitle, 0, Qt::AlignHCenter);
+    emptyProfilesLayout->addWidget(emptyProfilesText, 0, Qt::AlignHCenter);
+    auto *emptyImport = new QPushButton(tr("Import profile"), emptyProfiles);
+    emptyImport->setObjectName("onlineSetiPrimaryButton");
+    emptyProfilesLayout->addWidget(emptyImport, 0, Qt::AlignHCenter);
+    emptyProfilesLayout->addStretch();
+    connect(emptyImport, &QPushButton::clicked, ui->actionAdd_profile_from_File, &QAction::trigger);
+    serverContent->addWidget(emptyProfiles);
+    const auto refreshEmptyProfiles = [this, emptyProfiles, serverContent, serversLayout] {
+        const bool isEmpty = !profilesFilterModel || profilesFilterModel->rowCount() == 0;
+        serverContent->setMaximumHeight(isEmpty ? 240 : QWIDGETSIZE_MAX);
+        serversLayout->setAlignment(serverContent, isEmpty ? Qt::AlignTop : Qt::Alignment());
+        serverContent->setCurrentWidget(isEmpty ? static_cast<QWidget*>(emptyProfiles)
+                                                : static_cast<QWidget*>(ui->centralwidget));
+    };
+    refreshEmptyProfiles();
+    connect(profilesFilterModel, &QAbstractItemModel::rowsInserted, this, refreshEmptyProfiles);
+    connect(profilesFilterModel, &QAbstractItemModel::rowsRemoved, this, refreshEmptyProfiles);
+    connect(profilesFilterModel, &QAbstractItemModel::modelReset, this, refreshEmptyProfiles);
+    connect(profilesFilterModel, &QAbstractItemModel::layoutChanged, this, refreshEmptyProfiles);
+    connect(ui->actionRuntime_Stats, &QAction::triggered, this, [this] {
+        ui->splitter->widget(1)->show();
+        ui->down_tab->show();
+        QTimer::singleShot(0, this, [this] {
+            const int height = ui->splitter->height();
+            if (height > 0) ui->splitter->setSizes({height * 2 / 3, height / 3});
+        });
+    });
+    for (auto *widget : {static_cast<QWidget*>(ui->toolButton_program), static_cast<QWidget*>(ui->toolButton_preferences),
+                         static_cast<QWidget*>(ui->toolButton_testing), static_cast<QWidget*>(ui->toolButton_routing),
+                         static_cast<QWidget*>(ui->toolButton_tools), static_cast<QWidget*>(ui->toolButton_startstop),
+                         static_cast<QWidget*>(ui->checkBox_VPN), static_cast<QWidget*>(ui->checkBox_SystemProxy),
+                         static_cast<QWidget*>(ui->label_running), static_cast<QWidget*>(ui->label_inbound),
+                         static_cast<QWidget*>(ui->label_speed)}) {
+        widget->hide();
+    }
+    QTimer::singleShot(0, this, [this] {
+        const int height = ui->splitter->height();
+        if (height > 0) ui->splitter->setSizes({height * 4 / 5, height / 5});
+    });
+    connect(importProfile, &QPushButton::clicked, ui->actionAdd_profile_from_File, &QAction::trigger);
+    connect(manageGroups, &QPushButton::clicked, this, [manageGroups, this] {
+        ui->menuTesting->popup(manageGroups->mapToGlobal(QPoint(0, manageGroups->height())));
+    });
+    auto *routesPage = new QWidget(onlineSetiPages);
+    routesPage->setObjectName("onlineSetiSubPage");
+    auto *routesLayout = new QVBoxLayout(routesPage);
+    routesLayout->setContentsMargins(30, 28, 30, 28);
+    routesLayout->setSpacing(15);
+    auto *routesHeading = new QLabel(tr("Routing"), routesPage);
+    routesHeading->setObjectName("onlineSetiPageHeading");
+    auto *routesIntro = new QLabel(tr("Choose how apps and destinations use your connection."), routesPage);
+    routesIntro->setObjectName("onlineSetiMutedText");
+    routesLayout->addWidget(routesHeading);
+    routesLayout->addWidget(routesIntro);
+    auto *routesGrid = new QGridLayout;
+    routesGrid->setHorizontalSpacing(16);
+    routesGrid->setVerticalSpacing(16);
+    auto *routesSummary = new QFrame(routesPage);
+    routesSummary->setObjectName("onlineSetiInfoCard");
+    auto *routesSummaryLayout = new QVBoxLayout(routesSummary);
+    routesSummaryLayout->setContentsMargins(20, 18, 20, 18);
+    routesSummaryLayout->setSpacing(12);
+    auto *routesCardTitle = new QLabel(tr("Active routing profile"), routesSummary);
+    routesCardTitle->setObjectName("onlineSetiCardTitle");
+    onlineSetiRoutingProfile = new QLabel(routesSummary);
+    onlineSetiRoutingProfile->setObjectName("onlineSetiCardValue");
+    auto *routesMeta = new QLabel(tr("Local networks and configured exclusions can stay direct."), routesSummary);
+    routesMeta->setObjectName("onlineSetiMutedText");
+    routesMeta->setWordWrap(true);
+    routesSummaryLayout->addWidget(routesCardTitle);
+    routesSummaryLayout->addWidget(onlineSetiRoutingProfile);
+    routesSummaryLayout->addWidget(routesMeta);
+    auto *routingBehavior = new QFrame(routesPage);
+    routingBehavior->setObjectName("onlineSetiInfoCard");
+    auto *routingBehaviorLayout = new QVBoxLayout(routingBehavior);
+    routingBehaviorLayout->setContentsMargins(20, 18, 20, 18);
+    routingBehaviorLayout->setSpacing(11);
+    auto *behaviorTitle = new QLabel(tr("Traffic behavior"), routingBehavior);
+    behaviorTitle->setObjectName("onlineSetiCardValue");
+    routingBehaviorLayout->addWidget(behaviorTitle);
+    for (const auto &rowText : {tr("Traffic follows the active profile and its rules"),
+                                tr("Application, domain and address rules are configurable"),
+                                tr("DNS behavior follows the client configuration")}) {
+        auto *row = new QLabel(QStringLiteral("✓   ") + rowText, routingBehavior);
+        row->setObjectName("onlineSetiRouteRow");
+        row->setWordWrap(true);
+        routingBehaviorLayout->addWidget(row);
+    }
+    routesGrid->addWidget(routesSummary, 0, 0);
+    routesGrid->addWidget(routingBehavior, 0, 1);
+    auto *rulesCard = new QFrame(routesPage);
+    rulesCard->setObjectName("onlineSetiInfoCard");
+    auto *rulesLayout = new QVBoxLayout(rulesCard);
+    rulesLayout->setContentsMargins(20, 18, 20, 18);
+    auto *rulesTitle = new QLabel(tr("Routing rules"), rulesCard);
+    rulesTitle->setObjectName("onlineSetiCardValue");
+    auto *rulesText = new QLabel(tr("Application, domain, address and direct-connection rules are managed in routing profiles."), rulesCard);
+    rulesText->setObjectName("onlineSetiMutedText");
+    rulesText->setWordWrap(true);
+    rulesLayout->addWidget(rulesTitle);
+    rulesLayout->addWidget(rulesText);
+    routesGrid->addWidget(rulesCard, 1, 0, 1, 2);
+    routesLayout->addLayout(routesGrid);
+    auto *manageRoutes = new QPushButton(tr("Manage routing rules and profiles"), routesPage);
+    manageRoutes->setObjectName("onlineSetiPrimaryButton");
+    routesLayout->addWidget(manageRoutes, 0, Qt::AlignLeft);
+    routesLayout->addStretch();
+
+    auto *appsPage = new QWidget(onlineSetiPages);
+    appsPage->setObjectName("onlineSetiSubPage");
+    onlineSetiAppsPage = appsPage;
+    auto *appsLayout = new QVBoxLayout(appsPage);
+    appsLayout->setContentsMargins(30, 28, 30, 28);
+    appsLayout->setSpacing(14);
+    auto *appsHeading = new QLabel(tr("Applications"), appsPage);
+    appsHeading->setObjectName("onlineSetiPageHeading");
+    auto *appsIntro = new QLabel(tr("Your apps use the currently selected traffic routing profile."), appsPage);
+    appsIntro->setObjectName("onlineSetiMutedText");
+    appsIntro->setWordWrap(true);
+    appsLayout->addWidget(appsHeading);
+    appsLayout->addWidget(appsIntro);
+    auto *appsGrid = new QGridLayout;
+    onlineSetiAppsGrid = appsGrid;
+    appsGrid->setHorizontalSpacing(16);
+    appsGrid->setVerticalSpacing(16);
+    appsGrid->setColumnStretch(0, 1);
+    appsGrid->setColumnStretch(1, 0);
+    auto *appsCard = new QFrame(appsPage);
+    onlineSetiAppsProfileCard = appsCard;
+    appsCard->setObjectName("onlineSetiInfoCard");
+    appsCard->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Maximum);
+    auto *appsCardLayout = new QVBoxLayout(appsCard);
+    appsCardLayout->setContentsMargins(20, 18, 20, 18);
+    appsCardLayout->setSpacing(10);
+    auto *appsCardTitle = new QLabel(tr("Application routing"), appsCard);
+    appsCardTitle->setObjectName("onlineSetiCardValue");
+    onlineSetiAppsProfile = new QLabel(appsCard);
+    onlineSetiAppsProfile->setObjectName("onlineSetiMutedText");
+    onlineSetiAppsProfile->setWordWrap(true);
+    auto *appsRules = new QPushButton(tr("Choose a routing profile  ›"), appsCard);
+    appsRules->setObjectName("onlineSetiPrimaryButton");
+    appsCardLayout->addWidget(appsCardTitle);
+    appsCardLayout->addWidget(onlineSetiAppsProfile);
+    appsCardLayout->addStretch();
+    appsCardLayout->addWidget(appsRules, 0, Qt::AlignLeft);
+    auto *appRulesCard = new QFrame(appsPage);
+    onlineSetiAppsRulesCard = appRulesCard;
+    appRulesCard->setObjectName("onlineSetiInfoCard");
+    appRulesCard->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Maximum);
+    auto *appRulesLayout = new QVBoxLayout(appRulesCard);
+    appRulesLayout->setContentsMargins(20, 18, 20, 18);
+    appRulesLayout->setSpacing(10);
+    auto *appRulesHeader = new QHBoxLayout;
+    auto *appRulesTitle = new QLabel(tr("App-specific rules"), appRulesCard);
+    appRulesTitle->setObjectName("onlineSetiCardValue");
+    onlineSetiAppsRuleCount = new QLabel(appRulesCard);
+    onlineSetiAppsRuleCount->setObjectName("onlineSetiMutedText");
+    appRulesHeader->addWidget(appRulesTitle);
+    appRulesHeader->addStretch();
+    appRulesHeader->addWidget(onlineSetiAppsRuleCount);
+    appRulesLayout->addLayout(appRulesHeader);
+    onlineSetiAppsRuleList = new QWidget(appRulesCard);
+    onlineSetiAppsRuleList->setObjectName("onlineSetiAppsRuleList");
+    onlineSetiAppsRuleLayout = new QVBoxLayout(onlineSetiAppsRuleList);
+    onlineSetiAppsRuleLayout->setContentsMargins(0, 0, 0, 0);
+    onlineSetiAppsRuleLayout->setSpacing(7);
+    appRulesLayout->addWidget(onlineSetiAppsRuleList);
+    auto *manageAppRules = new QPushButton(tr("Manage routing rules and profiles"), appRulesCard);
+    manageAppRules->setObjectName("onlineSetiSecondaryButton");
+    appRulesLayout->addStretch();
+    appRulesLayout->addWidget(manageAppRules, 0, Qt::AlignLeft);
+    appsGrid->addWidget(appsCard, 0, 0);
+    appsGrid->addWidget(appRulesCard, 1, 0);
+    appsLayout->addLayout(appsGrid);
+    appsPage->installEventFilter(this);
+    connect(appsRules, &QPushButton::clicked, this, [appsRules, this] {
+        ui->menuRouting_Menu->popup(appsRules->mapToGlobal(QPoint(0, appsRules->height())));
+    });
+    connect(manageAppRules, &QPushButton::clicked, this, [manageAppRules, this] {
+        ui->menuRouting_Menu->popup(manageAppRules->mapToGlobal(QPoint(0, manageAppRules->height())));
+    });
+    appsLayout->addStretch();
+
+    auto *morePage = new QWidget(onlineSetiPages);
+    morePage->setObjectName("onlineSetiSubPage");
+    auto *moreLayout = new QVBoxLayout(morePage);
+    moreLayout->setContentsMargins(30, 28, 30, 28);
+    moreLayout->setSpacing(12);
+    auto *moreHeading = new QLabel(tr("Settings"), morePage);
+    moreHeading->setObjectName("onlineSetiPageHeading");
+    auto *moreIntro = new QLabel(tr("Settings, maintenance and diagnostics"), morePage);
+    moreIntro->setObjectName("onlineSetiMutedText");
+    moreLayout->addWidget(moreHeading);
+    moreLayout->addWidget(moreIntro);
+    auto *settingsGrid = new QGridLayout;
+    settingsGrid->setHorizontalSpacing(16);
+    settingsGrid->setVerticalSpacing(16);
+    auto addSettingsCard = [this, morePage, settingsGrid](int row, int col, const QString &title,
+                                                         const QString &description,
+                                                         const QString &buttonText, QMenu *menu) {
+        auto *card = new QFrame(morePage);
+        card->setObjectName("onlineSetiInfoCard");
+        auto *layout = new QVBoxLayout(card);
+        layout->setContentsMargins(20, 18, 20, 18);
+        layout->setSpacing(8);
+        auto *name = new QLabel(title, card);
+        name->setObjectName("onlineSetiCardValue");
+        auto *detail = new QLabel(description, card);
+        detail->setObjectName("onlineSetiMutedText");
+        detail->setWordWrap(true);
+        auto *button = new QPushButton(buttonText + QStringLiteral("  ›"), card);
+        button->setObjectName("onlineSetiSecondaryButton");
+        layout->addWidget(name);
+        layout->addWidget(detail);
+        layout->addWidget(button, 0, Qt::AlignLeft);
+        connect(button, &QPushButton::clicked, this, [button, menu] {
+            if (menu) menu->popup(button->mapToGlobal(QPoint(0, button->height())));
+        });
+        settingsGrid->addWidget(card, row, col);
+    };
+    addSettingsCard(0, 0, tr("Connection"), tr("VPN behavior, system mode and network switching."),
+                    tr("Configure connection"), ui->menu_spmode);
+    addSettingsCard(0, 1, tr("Application"), tr("Appearance, updates and local configuration."),
+                    tr("Open application options"), ui->menu_preferences);
+    addSettingsCard(1, 0, tr("Subscriptions and profiles"), tr("Manage profile groups and subscription sources."),
+                    tr("Manage subscriptions"), ui->menuTesting);
+    auto *diagnosticsCard = new QFrame(morePage);
+    diagnosticsCard->setObjectName("onlineSetiInfoCard");
+    auto *diagnosticsLayout = new QVBoxLayout(diagnosticsCard);
+    diagnosticsLayout->setContentsMargins(20, 18, 20, 18);
+    diagnosticsLayout->setSpacing(8);
+    auto *diagnosticsTitle = new QLabel(tr("Tools and diagnostics"), diagnosticsCard);
+    diagnosticsTitle->setObjectName("onlineSetiCardValue");
+    auto *diagnosticsText = new QLabel(tr("Review runtime state, traffic counters and connection logs."), diagnosticsCard);
+    diagnosticsText->setObjectName("onlineSetiMutedText");
+    diagnosticsText->setWordWrap(true);
+    auto *toolsButton = new QPushButton(tr("Open tools") + QStringLiteral("  ›"), diagnosticsCard);
+    toolsButton->setObjectName("onlineSetiSecondaryButton");
+    auto *runtimeButton = new QPushButton(tr("Open runtime statistics and logs"), diagnosticsCard);
+    runtimeButton->setObjectName("onlineSetiMenuButton");
+    diagnosticsLayout->addWidget(diagnosticsTitle);
+    diagnosticsLayout->addWidget(diagnosticsText);
+    diagnosticsLayout->addWidget(toolsButton, 0, Qt::AlignLeft);
+    diagnosticsLayout->addWidget(runtimeButton);
+    settingsGrid->addWidget(diagnosticsCard, 1, 1);
+    moreLayout->addLayout(settingsGrid);
+    connect(toolsButton, &QPushButton::clicked, this, [toolsButton, this] {
+        ui->menuTools->popup(toolsButton->mapToGlobal(QPoint(0, toolsButton->height())));
+    });
+    connect(runtimeButton, &QPushButton::clicked, this, [this] {
+        showOnlineSetiPage(1);
+        ui->actionRuntime_Stats->trigger();
+    });
+    auto *updateButton = new QPushButton(tr("Check for updates"), morePage);
+    updateButton->setObjectName("onlineSetiMenuButton");
+    updateButton->setEnabled(ui->actionCheck_For_Update->isEnabled());
+    updateButton->setObjectName("onlineSetiSecondaryButton");
+    updateButton->setParent(morePage);
+    connect(updateButton, &QPushButton::clicked, ui->actionCheck_For_Update, &QAction::trigger);
+    auto *configButton = new QPushButton(tr("Open configuration folder"), morePage);
+    configButton->setObjectName("onlineSetiMenuButton");
+    configButton->setObjectName("onlineSetiSecondaryButton");
+    configButton->setParent(morePage);
+    connect(configButton, &QPushButton::clicked, ui->menu_open_config_folder, &QAction::trigger);
+    auto *utilityRow = new QHBoxLayout;
+    utilityRow->addWidget(updateButton);
+    utilityRow->addWidget(configButton);
+    utilityRow->addStretch();
+    moreLayout->addLayout(utilityRow);
+    moreLayout->addStretch();
+
+    onlineSetiPages->addWidget(onlineSetiHome);
+    onlineSetiPages->addWidget(serversPage);
+    onlineSetiPages->addWidget(routesPage);
+    onlineSetiPages->addWidget(appsPage);
+    onlineSetiPages->addWidget(morePage);
+    shellLayout->addWidget(rail);
+    shellLayout->addWidget(contentHost, 1);
+
+    const QStringList labels = {tr("Home"), tr("Servers"), tr("Routing"), tr("Applications"), tr("Settings")};
+    const QStringList glyphs = {QStringLiteral("⌂"), QStringLiteral("◎"), QStringLiteral("⇄"), QStringLiteral("▦"), QStringLiteral("⚙")};
+    for (int i = 0; i < labels.size(); ++i) {
+        auto *button = new QPushButton(glyphs[i] + QStringLiteral("    ") + labels[i], rail);
+        button->setObjectName("onlineSetiNavButton");
+        button->setCheckable(true);
+        button->setCursor(Qt::PointingHandCursor);
+        railLayout->addWidget(button);
+        onlineSetiNavButtons.push_back(button);
+        connect(button, &QPushButton::clicked, this, [this, i] { showOnlineSetiPage(i); });
+    }
+    railLayout->addStretch();
+    auto *support = new QLabel(tr("Subscription and support"), rail);
+    support->setObjectName("onlineSetiRailNote");
+    support->setWordWrap(true);
+    auto *version = new QLabel(tr("Version %1").arg(QStringLiteral(NKR_VERSION)), rail);
+    version->setObjectName("onlineSetiRailVersion");
+    railLayout->addWidget(support);
+    railLayout->addWidget(version);
+
+    connect(onlineSetiPowerButton, &QPushButton::clicked, this, [this] {
+        if (running != nullptr || m_profileConnecting) profile_stop(false, false, true);
+        else profile_start();
+    });
+    connect(openServers, &QPushButton::clicked, this, [this] { showOnlineSetiPage(1); });
+    connect(routeButton, &QPushButton::clicked, this, [this] { showOnlineSetiPage(2); });
+    connect(manageRoutes, &QPushButton::clicked, this, [this, manageRoutes] {
+        ui->menuRouting_Menu->popup(manageRoutes->mapToGlobal(QPoint(0, manageRoutes->height())));
+    });
+    refreshOnlineSetiDashboard();
+    setCentralWidget(shell);
+    showOnlineSetiPage(0);
+}
+
+void MainWindow::refreshOnlineSetiDashboard() {
+    if (!onlineSetiHome || !onlineSetiConnectionStatus) return;
+    const bool connected = running != nullptr;
+    const bool connecting = m_profileConnecting;
+    const bool stopping = m_profileDisconnecting;
+    onlineSetiConnectionStatus->setText(connected ? tr("●  CONNECTED")
+                                                  : connecting ? tr("●  CONNECTING")
+                                                  : stopping ? tr("●  DISCONNECTING") : tr("○  NOT CONNECTED"));
+    onlineSetiConnectionStatus->setProperty("connected", connected);
+    onlineSetiConnectionStatus->style()->unpolish(onlineSetiConnectionStatus);
+    onlineSetiConnectionStatus->style()->polish(onlineSetiConnectionStatus);
+    onlineSetiPowerButton->setEnabled(!connecting && !stopping);
+    onlineSetiPowerButton->setProperty("connected", connected);
+    onlineSetiPowerButton->style()->unpolish(onlineSetiPowerButton);
+    onlineSetiPowerButton->style()->polish(onlineSetiPowerButton);
+    onlineSetiConnectionDetail->setText(connected ? tr("Connected")
+                                                  : connecting ? tr("Starting a secure connection…")
+                                                  : stopping ? tr("Disconnecting…") : tr("Click the power button to connect"));
+
+    QString profileName = tr("No profile selected");
+    QString profileMeta = tr("Open Servers to choose a connection profile");
+    if (connected && running->outbound) {
+        profileName = running->outbound->DisplayName();
+        const auto group = Configs::dataManager->groupsRepo->GetGroup(running->gid);
+        profileMeta = group ? group->name : tr("Connected profile");
+    } else {
+        const int id = get_profile_to_start();
+        if (id >= 0) {
+            const auto profile = Configs::dataManager->profilesRepo->GetProfile(id);
+            if (profile && profile->outbound) {
+                profileName = profile->outbound->DisplayName();
+                const auto group = Configs::dataManager->groupsRepo->GetGroup(profile->gid);
+                profileMeta = group ? group->name : tr("Ready to connect");
+            }
+        }
+    }
+    onlineSetiProfileName->setText(profileName);
+    onlineSetiProfileMeta->setText(profileMeta);
+    onlineSetiTraffic->setText(connected ? tr("Connection active") : tr("Waiting for connection"));
+    onlineSetiRoute->setText(connected ? ui->label_speed->text().replace('\n', QStringLiteral("   ·   "))
+                                       : tr("Traffic counters appear while connected"));
+    const auto route = Configs::dataManager->routesRepo->GetRouteProfile(Configs::dataManager->settingsRepo->current_route_id);
+    const QString routeName = route ? route->name : tr("Default routing");
+    onlineSetiRoute->setToolTip(routeName);
+    if (onlineSetiRoutingProfile) onlineSetiRoutingProfile->setText(routeName);
+    if (onlineSetiAppsProfile) onlineSetiAppsProfile->setText(tr("Current routing profile: %1").arg(routeName));
+    if (onlineSetiAppsRuleCount && onlineSetiAppsRuleLayout) {
+        while (auto *item = onlineSetiAppsRuleLayout->takeAt(0)) {
+            if (auto *widget = item->widget()) widget->deleteLater();
+            delete item;
+        }
+        QStringList appRules;
+        if (route && !route->isRaw) {
+            for (const auto &rule : route->Rules) {
+                if (!rule) continue;
+                QStringList selectors;
+                selectors.append(rule->process_name);
+                selectors.append(rule->process_path);
+                selectors.append(rule->process_path_regex);
+                selectors.append(rule->package_name);
+                selectors.removeAll(QString());
+                if (!selectors.isEmpty()) appRules.append(selectors.join(QStringLiteral(", ")));
+            }
+        }
+        onlineSetiAppsRuleCount->setText(tr("%n rule(s)", "app-specific routing rules", appRules.size()));
+        if (appRules.isEmpty()) {
+            auto *empty = new QLabel(tr("This routing profile has no app-specific rules."), onlineSetiAppsRuleList);
+            empty->setObjectName("onlineSetiAppsEmpty");
+            empty->setWordWrap(true);
+            onlineSetiAppsRuleLayout->addWidget(empty);
+        } else {
+            for (const QString &selector : appRules) {
+                auto *row = new QLabel(QStringLiteral("◉   ") + selector, onlineSetiAppsRuleList);
+                row->setObjectName("onlineSetiAppRuleRow");
+                row->setWordWrap(true);
+                row->setToolTip(selector);
+                onlineSetiAppsRuleLayout->addWidget(row);
+            }
+        }
+    }
+}
+#endif
 
 MainWindow::~MainWindow() {
     Subscription::updater()->SetUrlTester(nullptr);
